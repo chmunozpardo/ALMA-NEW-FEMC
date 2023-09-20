@@ -20,10 +20,7 @@
 #include <math.h> /* sqrt, fabs */
 
 /* Extra includes */
-/* CARTRIDGE defines */
-#ifndef _CARTRIDGE_H
 #include "cartridge.h"
-#endif /* _CARTRIDGE_H */
 
 /* Defines */
 /* General */
@@ -156,83 +153,60 @@
 #define LO_STATUS_REG_SHIFT_DIR NO_SHIFT
 
 /* --- ADC definitions (16-bit) --- */
-#define LO_ADC_STROBE_SIZE 3  // Bit size of the LO ADC convert strobe
-#define LO_ADC_STROBE_SHIFT_SIZE \
-    NO_SHIFT  // The strobe outgoing data is not shifted
-#define LO_ADC_STROBE_SHIFT_DIR \
-    NO_SHIFT                 // The strobe outgoing data is not shifted
-#define LO_ADC_RANGE 65536   // Full ADC range
-#define LO_ADC_DATA_SIZE 18  // Read only: 2 for internal use + 16-bit
-#define LO_ADC_DATA_SHIFT_SIZE NO_SHIFT  // The incoming ADC data is not shifted
-#define LO_ADC_DATA_SHIFT_DIR NO_SHIFT   // The incoming ADC data is not shifted
-#define LO_ADC_PHOTOMIXER_BIAS_V_SCALE \
-    (-10.0)  // Scale factor for PHOTOMIXER voltage
-#define LO_ADC_PHOTOMIXER_BIAS_C_SCALE \
-    (-10.0)  // Scale factor for PHOTOMIXER current
-#define LO_GATE_DRAIN_V_SCALE \
-    10.0                         // Scale factor for any gate or drain voltage
-#define LO_DRAIN_C_SCALE 1000.0  // Scale factor for any drain current
-#define LO_PLL_ASSEMBLY_TEMP_SCALE \
-    1000.0  // Scale factor for the PLL assembly temperature
-#define LO_PLL_TTL_PWR_SCALE 10.0  // Scale factor for the PLL any total power
-#define LO_LOCK_DETECT_V_SCALE \
-    (210.0 / 11.0)  // Scale factor for lock detect voltage
-#define LO_PLL_CORRECTION_V_SCALE \
-    (260.0 / 11.0)  // Scale factor for pll correction voltage
-#define LO_AMC_MULTIPLIER_I_SCALE \
-    100.0                            // Scale factor for AMC multiplier currents
-#define LO_SUPPLY_V_SCALE 20.0       // Scale factor for LO supply voltages
-#define LO_YIG_HEATER_I_SCALE 400.0  // Scale factor for PLL YIG heater current
-#define LO_YIG_HEATER_I_OFFSET 150.0  // Scale factor for PLL YIG heater current
-#define LO_ADC_BUSY 0                 // Busy state signal
+#define LO_ADC_STROBE_SIZE 3                      // Bit size of the LO ADC convert strobe
+#define LO_ADC_STROBE_SHIFT_SIZE NO_SHIFT         // The strobe outgoing data is not shifted
+#define LO_ADC_STROBE_SHIFT_DIR NO_SHIFT          // The strobe outgoing data is not shifted
+#define LO_ADC_RANGE 65536                        // Full ADC range
+#define LO_ADC_DATA_SIZE 18                       // Read only: 2 for internal use + 16-bit
+#define LO_ADC_DATA_SHIFT_SIZE NO_SHIFT           // The incoming ADC data is not shifted
+#define LO_ADC_DATA_SHIFT_DIR NO_SHIFT            // The incoming ADC data is not shifted
+#define LO_ADC_PHOTOMIXER_BIAS_V_SCALE (-10.0)    // Scale factor for PHOTOMIXER voltage
+#define LO_ADC_PHOTOMIXER_BIAS_C_SCALE (-10.0)    // Scale factor for PHOTOMIXER current
+#define LO_GATE_DRAIN_V_SCALE 10.0                // Scale factor for any gate or drain voltage
+#define LO_DRAIN_C_SCALE 1000.0                   // Scale factor for any drain current
+#define LO_PLL_ASSEMBLY_TEMP_SCALE 1000.0         // Scale factor for the PLL assembly temperature
+#define LO_PLL_TTL_PWR_SCALE 10.0                 // Scale factor for the PLL any total power
+#define LO_LOCK_DETECT_V_SCALE (210.0 / 11.0)     // Scale factor for lock detect voltage
+#define LO_PLL_CORRECTION_V_SCALE (260.0 / 11.0)  // Scale factor for pll correction voltage
+#define LO_AMC_MULTIPLIER_I_SCALE 100.0           // Scale factor for AMC multiplier currents
+#define LO_SUPPLY_V_SCALE 20.0                    // Scale factor for LO supply voltages
+#define LO_YIG_HEATER_I_SCALE 400.0               // Scale factor for PLL YIG heater current
+#define LO_YIG_HEATER_I_OFFSET 150.0              // Scale factor for PLL YIG heater current
+#define LO_ADC_BUSY 0                             // Busy state signal
 
 /* --- Common POT definitions (64-bit) --- */
 #define LO_POT_WORD_SIZE 4  // 4 ints necessary to contain the POT message
 #define POT0 0              // gate voltage, (Band 7 Teledyne base voltage)
-#define POT1 1  // drain voltage, (Band 7 Teledyne collector voltage)
-#define POT2 2  // gate/base pol0
-#define POT3 3  // drain/collector pol1
+#define POT1 1              // drain voltage, (Band 7 Teledyne collector voltage)
+#define POT2 2              // gate/base pol0
+#define POT3 3              // drain/collector pol1
 
 /* --- AMC POT definitions */
-#define LO_AMC_POT_STACK_BIT_0 \
-    0  // Stack bit configuration determineed by hardware design
-#define LO_AMC_POT_DATA_SIZE 35       // Write only: 34-bit + 1 for internal use
-#define LO_AMC_POT_DATA_SHIFT_SIZE 1  // 1 extra bit to be sent
+#define LO_AMC_POT_STACK_BIT_0 0              // Stack bit configuration determineed by hardware design
+#define LO_AMC_POT_DATA_SIZE 35               // Write only: 34-bit + 1 for internal use
+#define LO_AMC_POT_DATA_SHIFT_SIZE 1          // 1 extra bit to be sent
 #define LO_AMC_POT_DATA_SHIFT_DIR SHIFT_LEFT  // The data has to be shifted left
-#define LO_AMC_POT_DRAIN_B_V_SCALE(v) \
-    (unsigned char)(51.0 * v)  // Scale factor for AMC drain B voltage
-#define LO_AMC_POT_GATE_E_V_SCALE(v)                                        \
-    (unsigned char)(0.5 +                                                   \
-                    (v == 0.15                                              \
-                         ? 0.0                                              \
-                         : ((127.5 *                                        \
-                             (20.0 * v + 17.0 -                             \
-                              5.0 * sqrt(80.0 * v * v + 8.0 * v + 13.0))) / \
-                            (20.0 * v -                                     \
-                             3.0))))  // Scale factor for AMC gate E voltage
-#define LO_AMC_POT_DRAIN_E_V_SCALE(v) \
-    (unsigned char)(102.0 * v)  // Scale factor for AMC drain E voltage
+#define LO_AMC_POT_DRAIN_B_V_SCALE(v) (unsigned char)(51.0 * v)  // Scale factor for AMC drain B voltage
+#define LO_AMC_POT_GATE_E_V_SCALE(v)                                                                              \
+    (unsigned char)(0.5 + (v == 0.15 ? 0.0                                                                        \
+                                     : ((127.5 * (20.0 * v + 17.0 - 5.0 * sqrt(80.0 * v * v + 8.0 * v + 13.0))) / \
+                                        (20.0 * v - 3.0))))       // Scale factor for AMC gate E voltage
+#define LO_AMC_POT_DRAIN_E_V_SCALE(v) (unsigned char)(102.0 * v)  // Scale factor for AMC drain E voltage
 
 /* --- PA POT definitions */
-#define LO_PA_POT_STACK_BIT_0 \
-    0  // Stack bit configuration determined by hardware design
-#define LO_PA_POT_GATE_V_SCALE(v)                                           \
-    (unsigned char)(0.5 +                                                   \
-                    (v == 0.15                                              \
-                         ? 0.0                                              \
-                         : ((127.5 *                                        \
-                             (20.0 * v + 17.0 -                             \
-                              5.0 * sqrt(80.0 * v * v + 8.0 * v + 13.0))) / \
-                            (20.0 * v - 3.0))))  // Scale factor for PA_CHANNEL
-                                                 // gate voltage
-#define LO_PA_POT_DRAIN_V_SCALE(v) \
-    (unsigned char)(102.0 * v)  // Scale factor for PA_CHANNEL drain voltage
+#define LO_PA_POT_STACK_BIT_0 0  // Stack bit configuration determined by hardware design
+#define LO_PA_POT_GATE_V_SCALE(v)                                                                                 \
+    (unsigned char)(0.5 + (v == 0.15 ? 0.0                                                                        \
+                                     : ((127.5 * (20.0 * v + 17.0 - 5.0 * sqrt(80.0 * v * v + 8.0 * v + 13.0))) / \
+                                        (20.0 * v - 3.0))))    // Scale factor for PA_CHANNEL
+                                                               // gate voltage
+#define LO_PA_POT_DRAIN_V_SCALE(v) (unsigned char)(102.0 * v)  // Scale factor for PA_CHANNEL drain voltage
 #define LO_PA_POT_TELEDNE_BASE_V_SCALE(v) \
     (255 - (unsigned char)(102.0 * v))  // Scale factor for PA_CHANNEL base
                                         // voltage For Teledyne PA chips only!
 #define LO_PA_CURRENT_POT(Ch) (2 * currentPaChannel() + Ch)
-#define LO_PA_POT_DATA_SIZE 35       // Write only: 34-bit + 1 for internal use
-#define LO_PA_POT_DATA_SHIFT_SIZE 1  // 1 extra bit to be sent
+#define LO_PA_POT_DATA_SIZE 35               // Write only: 34-bit + 1 for internal use
+#define LO_PA_POT_DATA_SHIFT_SIZE 1          // 1 extra bit to be sent
 #define LO_PA_POT_DATA_SHIFT_DIR SHIFT_LEFT  // The data has to be shifted left
 
 /* Typedefs */
@@ -486,41 +460,31 @@ typedef struct {
 
 /* Globals */
 /* Externs */
-extern LO_REGISTERS
-    loRegisters[CARTRIDGES_NUMBER];  //!< Local Oscillator Registers
+extern LO_REGISTERS loRegisters[CARTRIDGES_NUMBER];  //!< Local Oscillator Registers
 
 /* Prototypes */
 /* Statics */
 static int getLoAnalogMonitor(void);  // Perform core analog monitor functions
 /* Externs */
-extern int setYtoCoarseTune(void);  //!< This function set the YTO coarse tune
-extern int setPhotomixerEnable(
-    unsigned char enable);  //!< This function enables/disables the photomixer
-extern int getPhotomixer(
-    unsigned char port);  //!< This function monitors the photomixer bias
-extern int getPll(unsigned char port);  //!< This function monitors different
-                                        //!< devices within the PLL
-extern int getPllStates(
-    void);  //!< This function monitors different states withing the PLL
-extern int setClearUnlockDetectLatch(
-    void);  //!< This function controls the operation of the clear unlock detect
-            //!< latch
-extern int setLoopBandwidthSelect(
-    unsigned char bandwidth);  //!< This function controls the loop bandwidth
+extern int setYtoCoarseTune(void);                     //!< This function set the YTO coarse tune
+extern int setPhotomixerEnable(unsigned char enable);  //!< This function enables/disables the photomixer
+extern int getPhotomixer(unsigned char port);          //!< This function monitors the photomixer bias
+extern int getPll(unsigned char port);                 //!< This function monitors different
+                                                       //!< devices within the PLL
+extern int getPllStates(void);                         //!< This function monitors different states withing the PLL
+extern int setClearUnlockDetectLatch(void);  //!< This function controls the operation of the clear unlock detect
+                                             //!< latch
+extern int setLoopBandwidthSelect(unsigned char bandwidth);  //!< This function controls the loop bandwidth
 extern int setSidebandLockPolaritySelect(
-    unsigned char
-        sideband);  //!< This function controls the sideband lock polarity
-extern int setNullLoopIntegrator(
-    unsigned char state);  //!< This function controls the operation of the null
-                           //!< loop integrator
-extern int getAmc(unsigned char port);  //!< This function monitors different
-                                        //!< devices within the AMC
-extern int setAmc(unsigned char port);  //!< This function controls different
-                                        //!< devices within the AMC
-extern int getPa(unsigned char port);   //!< This function controls different
-                                        //!< devices within the PA
-extern int getPaChannel(
-    void);  //!< This function monitors different devices within the PA channel
-extern int setPaChannel(
-    void);  //!< This function controls different devices within the PA channel
-#endif      /* _LOSERIALINTERFACE_H */
+    unsigned char sideband);                            //!< This function controls the sideband lock polarity
+extern int setNullLoopIntegrator(unsigned char state);  //!< This function controls the operation of the null
+                                                        //!< loop integrator
+extern int getAmc(unsigned char port);                  //!< This function monitors different
+                                                        //!< devices within the AMC
+extern int setAmc(unsigned char port);                  //!< This function controls different
+                                                        //!< devices within the AMC
+extern int getPa(unsigned char port);                   //!< This function controls different
+                                                        //!< devices within the PA
+extern int getPaChannel(void);  //!< This function monitors different devices within the PA channel
+extern int setPaChannel(void);  //!< This function controls different devices within the PA channel
+#endif                          /* _LOSERIALINTERFACE_H */

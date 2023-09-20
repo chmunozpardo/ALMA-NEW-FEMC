@@ -87,13 +87,11 @@ extern char *buildString(unsigned char *prefix, unsigned char number,
                          unsigned char *suffix);  //!< Build a string
 extern unsigned char checkRange(float low, float test,
                                 float high);  //!< Check range
-extern void changeEndian(
-    unsigned char *destination,
-    unsigned char *source);  //!< Change endianicity for floating point types
-extern void changeEndianInt(
-    unsigned char *destination,
-    unsigned char *source);      //!< Change endianicity for int types
-extern void bogoFunction(void);  //!< Place holder function
-extern long htol(char *hex);     //!< Conversion from Hex to long int
+extern void changeEndian(unsigned char *destination,
+                         unsigned char *source);  //!< Change endianicity for floating point types
+extern void changeEndianInt(unsigned char *destination,
+                            unsigned char *source);  //!< Change endianicity for int types
+extern void bogoFunction(void);                      //!< Place holder function
+extern long htol(char *hex);                         //!< Conversion from Hex to long int
 
 #endif /* _GLOBALDEFINITIONS_H */

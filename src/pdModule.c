@@ -8,50 +8,44 @@
     cartridge power distribution system. */
 
 /* Includes */
-#include <stdio.h>      /* printf */
-#include <string.h>     /* memcpy */
+#include <stdio.h>  /* printf */
+#include <string.h> /* memcpy */
 
+#include "async.h"
 #include "debug.h"
-#include "frontend.h"
 #include "error_local.h"
+#include "frontend.h"
 #include "pdSerialInterface.h"
 #include "timer.h"
-#include "async.h"
 
 /* Globals */
 /* Externs */
-unsigned char   currentPdModuleModule=0;
+unsigned char currentPdModuleModule = 0;
 /* Statics */
-static HANDLER  pdModuleModulesHandler[PD_MODULE_MODULES_NUMBER]={pdChannelHandler,
-                                                                  pdChannelHandler,
-                                                                  pdChannelHandler,
-                                                                  pdChannelHandler,
-                                                                  pdChannelHandler,
-                                                                  pdChannelHandler,
-                                                                  enableHandler};
+static HANDLER pdModuleModulesHandler[PD_MODULE_MODULES_NUMBER] = {pdChannelHandler, pdChannelHandler, pdChannelHandler,
+                                                                   pdChannelHandler, pdChannelHandler, pdChannelHandler,
+                                                                   enableHandler};
 /* Power distribution module handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the power distribution modules. */
-void pdModuleHandler(void){
-    #ifdef DEBUG_POWERDIS
-        printf("  Power Distribution Module: %d\n",
-               currentPowerDistributionModule);
-    #endif /* DEBUG_POWERDIS */
+void pdModuleHandler(void) {
+#ifdef DEBUG_POWERDIS
+    printf("  Power Distribution Module: %d\n", currentPowerDistributionModule);
+#endif /* DEBUG_POWERDIS */
 
     /* Check if the specified submodule is in range */
-    currentPdModuleModule=(CAN_ADDRESS&PD_MODULE_MODULES_RCA_MASK)>>PD_MODULE_MODULES_MASK_SHIFT;
-    if(currentPdModuleModule>=PD_MODULE_MODULES_NUMBER){
-        storeError(ERR_PD_MODULE, ERC_MODULE_RANGE); //Power distribution module submodule out of range
-        CAN_STATUS = HARDW_RNG_ERR; // Notify incoming CAN message of error
+    currentPdModuleModule = (CAN_ADDRESS & PD_MODULE_MODULES_RCA_MASK) >> PD_MODULE_MODULES_MASK_SHIFT;
+    if (currentPdModuleModule >= PD_MODULE_MODULES_NUMBER) {
+        storeError(ERR_PD_MODULE, ERC_MODULE_RANGE);  // Power distribution module submodule out of range
+        CAN_STATUS = HARDW_RNG_ERR;                   // Notify incoming CAN message of error
         return;
     }
 
     /* Check if the cartridge corresponding to the selected power distribution
        module is available. If it isn't then notify the incoming CAN message. */
-    if(frontend.cartridge[currentPowerDistributionModule].available==UNAVAILABLE)
-    {
-        storeError(ERR_PD_MODULE, ERC_MODULE_ABSENT); //corresponding cartridge not installed
-        CAN_STATUS = HARDW_BLKD_ERR; // Notify the incoming CAN message
+    if (frontend.cartridge[currentPowerDistributionModule].available == UNAVAILABLE) {
+        storeError(ERR_PD_MODULE, ERC_MODULE_ABSENT);  // corresponding cartridge not installed
+        CAN_STATUS = HARDW_BLKD_ERR;                   // Notify the incoming CAN message
         return;
     }
 
@@ -61,8 +55,7 @@ void pdModuleHandler(void){
 
 static int allowStandby2(int module) {
     // STANDBY2 only allowed for certain bands:
-    if (module == BAND6)
-        return TRUE;
+    if (module == BAND6) return TRUE;
 
     return FALSE;
 }
@@ -70,8 +63,7 @@ static int allowStandby2(int module) {
 static int allowPowerOn(int module, int standby2) {
     // Allow up to four to be powered on, so long as one of them is in STANDBY2 mode.
 
-    int avail = frontend.powerDistribution.maxPoweredModules -
-                frontend.powerDistribution.poweredModules;
+    int avail = frontend.powerDistribution.maxPoweredModules - frontend.powerDistribution.poweredModules;
 
     // not going to STANDBY2 mode so the simple check is enough:
     if (!standby2) {
@@ -90,46 +82,39 @@ static int allowPowerOn(int module, int standby2) {
 }
 
 void printPoweredModuleCounts(void) {
-    #ifdef DEBUG_POWERDIS
-        printf("    powered=%d/%d standby2=%d/%d\n", 
-                frontend.powerDistribution.poweredModules,
-                frontend.powerDistribution.maxPoweredModules,
-                frontend.powerDistribution.standby2Modules,
-                MAX_STANDBY2_BANDS_OPERATIONAL);
-    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+    printf("    powered=%d/%d standby2=%d/%d\n", frontend.powerDistribution.poweredModules,
+           frontend.powerDistribution.maxPoweredModules, frontend.powerDistribution.standby2Modules,
+           MAX_STANDBY2_BANDS_OPERATIONAL);
+#endif /* DEBUG_POWERDIS */
 }
-
 
 /* Power distribution module enable handler */
 static void enableHandler(void) {
-    unsigned char cmdStandby2;      
+    unsigned char cmdStandby2;
     //!< true if the command is to set STANDBY2 mode
     //!<  or the former state was STANDBY2 mode.
 
     // State transitions ending in powered-on or STANDBY2 states states:
     static enum {
-        ST_UNKNOWN                      = 0,
-        ST_CARTRIDGE_OFF__CARTRIDGE_ON  = 1,
-        ST_CARTRIDGE_OFF__STANDBY2      = 2,
-        ST_STANDBY2__CARTRIDGE_ON       = 3,
-        ST_CARTRIDGE_ON__STANDBY2       = 4
+        ST_UNKNOWN = 0,
+        ST_CARTRIDGE_OFF__CARTRIDGE_ON = 1,
+        ST_CARTRIDGE_OFF__STANDBY2 = 2,
+        ST_STANDBY2__CARTRIDGE_ON = 3,
+        ST_CARTRIDGE_ON__STANDBY2 = 4
     } cmdStateTransition = ST_UNKNOWN;
 
-    #ifdef DEBUG_POWERDIS
-        printf("   enable\n");
-    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+    printf("   enable\n");
+#endif /* DEBUG_POWERDIS */
 
     /* If it's a control message (size !=0) */
     if (CAN_SIZE) {
         // save the incoming message:
-        SAVE_LAST_CONTROL_MESSAGE(frontend.
-                                   powerDistribution.
-                                    pdModule[currentPowerDistributionModule].
-                                     lastEnable)
+        SAVE_LAST_CONTROL_MESSAGE(frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable)
 
         // If the command is to one of the powered on states:
-        if(CAN_BYTE) {
-
+        if (CAN_BYTE) {
             // Handle constraints:
             //  Cartridge in error state
             //  Illegal CAN payload
@@ -140,14 +125,9 @@ static void enableHandler(void) {
 
             // Disallow if the cartridge is in the error state:
             //  only allowed action is to power off
-            if((frontend.
-                 cartridge[currentPowerDistributionModule].
-                  state==CARTRIDGE_ERROR)) {
-                frontend.
-                 powerDistribution.
-                  pdModule[currentPowerDistributionModule].
-                   lastEnable.
-                    status = HARDW_ERROR; // Store in the last CAN message variable
+            if ((frontend.cartridge[currentPowerDistributionModule].state == CARTRIDGE_ERROR)) {
+                frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status =
+                    HARDW_ERROR;  // Store in the last CAN message variable
                 return;
             }
 
@@ -166,11 +146,8 @@ static void enableHandler(void) {
                         storeError(ERR_PD_MODULE, ERC_COMMAND_VAL);
 
                         // Store error in the last CAN message variable:
-                        frontend.
-                         powerDistribution.
-                          pdModule[currentPowerDistributionModule].
-                           lastEnable.
-                            status = HARDW_BLKD_ERR;
+                        frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status =
+                            HARDW_BLKD_ERR;
                         return;
                     }
                     break;
@@ -181,38 +158,26 @@ static void enableHandler(void) {
 
                     // Store error in the last CAN message variable:
                     // Its not a HARDW_BLKD_ERR just an illegal value so ERROR.
-                    frontend.
-                     powerDistribution.
-                      pdModule[currentPowerDistributionModule].
-                       lastEnable.
-                        status = ERROR;                        
+                    frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status = ERROR;
                     return;
             }
 
             // Already in the commanded state?
-            if((frontend.
-                 cartridge[currentPowerDistributionModule].
-                  state != CARTRIDGE_OFF) &&
-               (frontend.
-                 cartridge[currentPowerDistributionModule].
-                  standby2 == cmdStandby2))
-            {
+            if ((frontend.cartridge[currentPowerDistributionModule].state != CARTRIDGE_OFF) &&
+                (frontend.cartridge[currentPowerDistributionModule].standby2 == cmdStandby2)) {
                 // Yes. nothing to do
                 return;
             }
 
             // Which state transition?
-            if (frontend.
-                 cartridge[currentPowerDistributionModule].
-                  state == CARTRIDGE_OFF)
-            {
+            if (frontend.cartridge[currentPowerDistributionModule].state == CARTRIDGE_OFF) {
                 // Starting from powered off:
                 //  are we going to STANDBY2 state?
                 if (cmdStandby2)
                     cmdStateTransition = ST_CARTRIDGE_OFF__STANDBY2;
                 else
                     cmdStateTransition = ST_CARTRIDGE_OFF__CARTRIDGE_ON;
-            
+
             } else {
                 // Starting from powered on:
                 //  are we going to STANDBY2 state?
@@ -222,51 +187,39 @@ static void enableHandler(void) {
                     cmdStateTransition = ST_STANDBY2__CARTRIDGE_ON;
             }
 
-            #ifdef DEBUG_POWERDIS
-                printf("    cmdStateTransition=%d\n", cmdStateTransition);
-            #endif /* DEBUG_POWERDIS */
-            
+#ifdef DEBUG_POWERDIS
+            printf("    cmdStateTransition=%d\n", cmdStateTransition);
+#endif /* DEBUG_POWERDIS */
+
             // Update maxPoweredModules depending on the FE mode:
-            switch(frontend.mode) {
+            switch (frontend.mode) {
                 case TROUBLESHOOTING_MODE:
-                    frontend.
-                     powerDistribution.
-                      maxPoweredModules = MAX_POWERED_BANDS_TROUBLESHOOTING;
+                    frontend.powerDistribution.maxPoweredModules = MAX_POWERED_BANDS_TROUBLESHOOTING;
                     break;
                 default:
-                    frontend.
-                     powerDistribution.
-                      maxPoweredModules = MAX_POWERED_BANDS_OPERATIONAL;
+                    frontend.powerDistribution.maxPoweredModules = MAX_POWERED_BANDS_OPERATIONAL;
                     break;
             }
 
             // State transitions power-off to any:
             if (cmdStateTransition == ST_CARTRIDGE_OFF__CARTRIDGE_ON ||
                 cmdStateTransition == ST_CARTRIDGE_OFF__STANDBY2) {
-
                 // Check max number powered on:
                 if (!allowPowerOn(currentPowerDistributionModule, cmdStandby2)) {
                     // max number of bands powered on:
                     storeError(ERR_PD_MODULE, ERC_HARDWARE_BLOCKED);
 
                     // Store error in the last CAN message variable:
-                    frontend.
-                     powerDistribution.
-                      pdModule[currentPowerDistributionModule].
-                       lastEnable.
-                        status = HARDW_BLKD_ERR;
+                    frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status =
+                        HARDW_BLKD_ERR;
 
                     return;
                 }
 
                 // Turn on the cartridge:
                 if (setPdModuleEnable(PD_MODULE_ENABLE) == ERROR) {
-                    // Store error in the last CAN message variable:                        
-                    frontend.
-                     powerDistribution.
-                      pdModule[currentPowerDistributionModule].
-                       lastEnable.
-                        status = ERROR;
+                    // Store error in the last CAN message variable:
+                    frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status = ERROR;
 
                     return;
                 }
@@ -274,10 +227,8 @@ static void enableHandler(void) {
                 // Set the state of the cartridge to CARTRIDGE_ON (powered but not
                 // yet initialized. This state will trigger the initialization by
                 // the cartridge async routine.
-                frontend.
-                 cartridge[currentPowerDistributionModule].
-                  state = CARTRIDGE_ON;
-                
+                frontend.cartridge[currentPowerDistributionModule].state = CARTRIDGE_ON;
+
                 // Force the priority of the async to address the cartridge next.
                 // This will also re-eable the async procedure if it has been
                 // disabled via CAN message or console
@@ -285,34 +236,28 @@ static void enableHandler(void) {
 
                 // Increse the number of currently turned on cartridges.
                 //  OR STANDBY2 cartridges.
-                // This is done here since the initialization is 
+                // This is done here since the initialization is
                 //  going to be performed asynchronously.
-                // This prevents turning on too many cartridges 
+                // This prevents turning on too many cartridges
                 //  before each initialization is completed.
                 if (cmdStandby2) {
                     // Set the STANDBY2 state to the cartidge:
-                    frontend.
-                     cartridge[currentPowerDistributionModule].
-                      standby2 = TRUE;
+                    frontend.cartridge[currentPowerDistributionModule].standby2 = TRUE;
 
                     // Increase the number of STANDBY2 cartridges:
-                    frontend.
-                     powerDistribution.
-                      standby2Modules++;
+                    frontend.powerDistribution.standby2Modules++;
 
-                    #ifdef DEBUG_POWERDIS
-                        printPoweredModuleCounts();
-                    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+                    printPoweredModuleCounts();
+#endif /* DEBUG_POWERDIS */
 
                 } else {
                     // Increase the number of powered on cartridges:
-                    frontend.
-                     powerDistribution.
-                      poweredModules++;
+                    frontend.powerDistribution.poweredModules++;
 
-                    #ifdef DEBUG_POWERDIS
-                        printPoweredModuleCounts();
-                    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+                    printPoweredModuleCounts();
+#endif /* DEBUG_POWERDIS */
                 }
                 return;
             }
@@ -332,33 +277,24 @@ static void enableHandler(void) {
                         storeError(ERR_PD_MODULE, ERC_HARDWARE_BLOCKED);
 
                         // Store error in the last CAN message variable:
-                        frontend.
-                         powerDistribution.
-                          pdModule[currentPowerDistributionModule].
-                           lastEnable.
-                            status = HARDW_BLKD_ERR;
+                        frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status =
+                            HARDW_BLKD_ERR;
 
                         return;
                     }
 
                     // Clear the STANDBY2 state of the cartidge:
-                    frontend.
-                     cartridge[currentPowerDistributionModule].
-                      standby2 = FALSE;
+                    frontend.cartridge[currentPowerDistributionModule].standby2 = FALSE;
 
                     // Decrease the number of STANDBY2 cartridges:
-                    frontend.
-                     powerDistribution.
-                      standby2Modules--;
+                    frontend.powerDistribution.standby2Modules--;
 
                     // Increase the number of powered cartridges:
-                    frontend.
-                     powerDistribution.
-                      poweredModules++;
+                    frontend.powerDistribution.poweredModules++;
 
-                    #ifdef DEBUG_POWERDIS
-                        printPoweredModuleCounts();
-                    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+                    printPoweredModuleCounts();
+#endif /* DEBUG_POWERDIS */
 
                     return;
 
@@ -375,39 +311,28 @@ static void enableHandler(void) {
                         storeError(ERR_PD_MODULE, ERC_HARDWARE_BLOCKED);
 
                         // Store error in the last CAN message variable:
-                        frontend.
-                         powerDistribution.
-                          pdModule[currentPowerDistributionModule].
-                           lastEnable.
-                            status = HARDW_BLKD_ERR;
+                        frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status =
+                            HARDW_BLKD_ERR;
 
                         return;
                     }
                     // Set the STANDBY2 state of the cartidge:
-                    frontend.
-                     cartridge[currentPowerDistributionModule].
-                      standby2 = TRUE;
+                    frontend.cartridge[currentPowerDistributionModule].standby2 = TRUE;
 
                     // Increase the number of STANDBY2 cartridges:
-                    frontend.
-                     powerDistribution.
-                      standby2Modules++;
+                    frontend.powerDistribution.standby2Modules++;
 
                     // Decrease the number of powered cartridges:
-                    frontend.
-                     powerDistribution.
-                      poweredModules--;
+                    frontend.powerDistribution.poweredModules--;
 
-                    #ifdef DEBUG_POWERDIS
-                        printPoweredModuleCounts();
-                    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+                    printPoweredModuleCounts();
+#endif /* DEBUG_POWERDIS */
 
                     // Set the state of the cartridge to CARTRIDGE_GO_STANDBY2
                     // This state will trigger shutting down cold electronics in
                     // the cartridge async routine.
-                    frontend.
-                     cartridge[currentPowerDistributionModule].
-                      state = CARTRIDGE_GO_STANDBY2;
+                    frontend.cartridge[currentPowerDistributionModule].state = CARTRIDGE_GO_STANDBY2;
 
                     // Force the priority of the async to address the cartridge next.
                     // This will also re-eable the async procedure if it has been
@@ -419,85 +344,62 @@ static void enableHandler(void) {
                     storeError(ERR_PD_MODULE, ERC_DEBUG_ME);
                     return;
             }
-        
-        // CAN_BYTE == 0: The command is one of the power off transitions:
-        } else {
 
+            // CAN_BYTE == 0: The command is one of the power off transitions:
+        } else {
             // Handle constraints:
             //  Cartridge already off?   If so ignore.
             //  Power off from ON vs. STANDBY2 state.   Decerement different counters
 
             // Check if the cartridge is already powered off and if it is, just return:
-            if ((frontend.
-                  cartridge[currentPowerDistributionModule].
-                   state == CARTRIDGE_OFF)){
+            if ((frontend.cartridge[currentPowerDistributionModule].state == CARTRIDGE_OFF)) {
                 return;
             }
 
             // Cache whether the cartridge was in STANDBY2 mode prior to cartridgeStop()
-            cmdStandby2 = frontend.
-                           cartridge[currentPowerDistributionModule].
-                            standby2;
+            cmdStandby2 = frontend.cartridge[currentPowerDistributionModule].standby2;
 
             // Stop the cartridge.
             if (cartridgeStop(currentPowerDistributionModule) == ERROR) {
                 // If an error occurs while stopping
                 //  store the Error state in the last control message variable:
-                frontend.
-                 powerDistribution.
-                  pdModule[currentPowerDistributionModule].
-                   lastEnable.
-                    status = ERROR;
+                frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status = ERROR;
             }
 
             // Turn off the power distributrion module.
             if (setPdModuleEnable(PD_MODULE_DISABLE) == ERROR) {
                 // If an error occurs while stopping
                 //  store the Error state in the last control message variable:
-                frontend.
-                 powerDistribution.
-                  pdModule[currentPowerDistributionModule].
-                   lastEnable.
-                    status=ERROR;
+                frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status = ERROR;
 
                 /* Set the state of the cartridge to 'error'. If this occurs then
                    the knowledge of the state of the hardware is compromised and
                    the only allowed action should be to try again to turn off the
                    cartridge. */
-                frontend.
-                 cartridge[currentPowerDistributionModule].
-                  state=CARTRIDGE_ERROR;
+                frontend.cartridge[currentPowerDistributionModule].state = CARTRIDGE_ERROR;
 
                 return;
             }
 
             // Decrement the counter of currently turned on cartridges.
             if (cmdStandby2) {
-                frontend.
-                 powerDistribution.
-                  standby2Modules--;
+                frontend.powerDistribution.standby2Modules--;
 
             } else {
-                frontend.
-                 powerDistribution.
-                  poweredModules--;
+                frontend.powerDistribution.poweredModules--;
             }
 
-            #ifdef DEBUG_POWERDIS
-                printPoweredModuleCounts();
-            #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+            printPoweredModuleCounts();
+#endif /* DEBUG_POWERDIS */
             return;
         }
     }
 
-
     /* If it's a monitor message on a control RCA */
-    if(currentClass==CONTROL_CLASS){
+    if (currentClass == CONTROL_CLASS) {
         // return the last control message and status
-        RETURN_LAST_CONTROL_MESSAGE(frontend.
-                                     powerDistribution.
-                                      pdModule[currentPowerDistributionModule].
-                                       lastEnable)
+        RETURN_LAST_CONTROL_MESSAGE(frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable)
         return;
     }
 
@@ -506,22 +408,14 @@ static void enableHandler(void) {
        status that is stored in memory. The memory status is updated when the
        state of the power distribution module is changed by a control
        message. */
-    if((frontend.
-         cartridge[currentPowerDistributionModule].
-          state==CARTRIDGE_ERROR)){
-        CAN_BYTE=HARDW_ERROR;
-        CAN_SIZE=CAN_BYTE_SIZE;
+    if ((frontend.cartridge[currentPowerDistributionModule].state == CARTRIDGE_ERROR)) {
+        CAN_BYTE = HARDW_ERROR;
+        CAN_SIZE = CAN_BYTE_SIZE;
         return;
     }
 
     // Return 2 if we are in STANDBY2 mode:
-    CAN_BYTE=frontend.
-              powerDistribution.
-               pdModule[currentPowerDistributionModule].
-                enable
-            +frontend.
-              cartridge[currentPowerDistributionModule].
-               standby2;
-    CAN_SIZE=CAN_BYTE_SIZE;
+    CAN_BYTE = frontend.powerDistribution.pdModule[currentPowerDistributionModule].enable +
+               frontend.cartridge[currentPowerDistributionModule].standby2;
+    CAN_SIZE = CAN_BYTE_SIZE;
 }
-

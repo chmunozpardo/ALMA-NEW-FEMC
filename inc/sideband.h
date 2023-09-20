@@ -17,60 +17,50 @@
     information on the \ref sideband module see \ref sideband.h */
 
 #ifndef _SIDEBAND_H
-    #define _SIDEBAND_H
+#define _SIDEBAND_H
 
-    /* Extra includes */
-    /* LNA */
-    #ifndef _LNA_H
-        #include "lna.h"
-    #endif /* _LNA_H */
+/* Extra includes */
+#include "lna.h"
+#include "sis.h"
+#include "sisMagnet.h"
 
-    /* SIS */
-    #ifndef _SIS_H
-        #include "sis.h"
-    #endif /* _SIS_H */
+/* Defines */
+#define SIDEBANDS_NUMBER 2  //!< Number of sidebands per polarization
+#define SIDEBAND0 0         //!< 0: Upper
+#define SIDEBAND1 1         //!< 1: Lower
 
-    /* SIS magnet */
-    #ifndef _SISMAGNET_H
-        #include "sisMagnet.h"
-    #endif /* _SIS_MAGNET_H */
+/* Submodules definitions */
+#define SIDEBAND_MODULES_NUMBER 3  // See list below
+#define SIDEBAND_MODULES_RCA_MASK                                               \
+    0x00060                            /* Mask to extract the submodule number: \
+                                          0 -> sis                              \
+                                          1 -> sisMagnet                        \
+                                          2 -> lna */
+#define SIDEBAND_MODULES_MASK_SHIFT 5  // Bits right shift for the submodules mask
 
-    /* Defines */
-    #define SIDEBANDS_NUMBER    2 //!< Number of sidebands per polarization
-    #define SIDEBAND0           0 //!< 0: Upper
-    #define SIDEBAND1           1 //!< 1: Lower
+/* Typedefs */
+//! Current state of the sideband
+typedef struct {
+    //! LNAcurrent state
+    /*! Please see the definition of the \ref LNA structure for more
+        information. */
+    LNA lna;
+    //! SIS mixer current state
+    /*! Please see the definition of the \ref SIS structure for more
+        information. */
+    SIS sis;
+    //! SIS magnetic coil current state
+    /*! Please see the definition of the \ref SIS_MAGNET structure for more
+        information. */
+    SIS_MAGNET sisMagnet;
+} SIDEBAND;
 
-    /* Submodules definitions */
-    #define SIDEBAND_MODULES_NUMBER       3       // See list below
-    #define SIDEBAND_MODULES_RCA_MASK     0x00060 /* Mask to extract the submodule number:
-                                                     0 -> sis
-                                                     1 -> sisMagnet
-                                                     2 -> lna */
-    #define SIDEBAND_MODULES_MASK_SHIFT   5       // Bits right shift for the submodules mask
+/* Globals */
+/* Externs */
+extern unsigned char currentSidebandModule;  //!< Current addressed sideband submodule
 
-    /* Typedefs */
-    //! Current state of the sideband
-    typedef struct {
-        //!LNAcurrent state
-        /*! Please see the definition of the \ref LNA structure for more
-            information. */
-        LNA         lna;
-        //! SIS mixer current state
-        /*! Please see the definition of the \ref SIS structure for more
-            information. */
-        SIS         sis;
-        //! SIS magnetic coil current state
-        /*! Please see the definition of the \ref SIS_MAGNET structure for more
-            information. */
-        SIS_MAGNET  sisMagnet;
-    } SIDEBAND;
-
-    /* Globals */
-    /* Externs */
-    extern unsigned char currentSidebandModule; //!< Current addressed sideband submodule
-
-    /* Prototypes */
-    /* Externs */
-    extern void sidebandHandler(void); //!< This function deals with the incoming CAN message
+/* Prototypes */
+/* Externs */
+extern void sidebandHandler(void);  //!< This function deals with the incoming CAN message
 
 #endif /* _SIDEBAND_H */

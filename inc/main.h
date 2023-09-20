@@ -8,11 +8,11 @@
     This is the header \ref main.h. */
 
 #ifndef _MAIN_H
-    #define _MAIN_H
+#define _MAIN_H
 
-    /* Globals */
-    /* Externs */
-    extern unsigned char stop; //!< If true, stops the program
-    extern unsigned char restart; //!< if true, stops and restart the program
+/* Globals */
+/* Externs */
+extern unsigned char stop;     //!< If true, stops the program
+extern unsigned char restart;  //!< if true, stops and restart the program
 
 #endif /* _MAIN_H */

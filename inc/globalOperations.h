@@ -8,11 +8,11 @@
     frontend operations in the running software. */
 
 #ifndef _GLOBALOPERATIONS_H
-    #define _GLOBALOPERATIONS_H
+#define _GLOBALOPERATIONS_H
 
-    /* Prototypes */
-    /* Externs */
-    extern int initialization(void); //!< This function performs a global initialization of the system
-    extern int shutDown(void); //!< This function performs a global shutdown of the system
+/* Prototypes */
+/* Externs */
+extern int initialization(void);  //!< This function performs a global initialization of the system
+extern int shutDown(void);        //!< This function performs a global shutdown of the system
 
 #endif /* _GLOBALOPERATION_H */

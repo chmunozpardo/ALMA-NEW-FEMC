@@ -3,20 +3,17 @@
 */
 
 #include "teledynePa.h"
+
+#include "debug.h"
 #include "error_local.h"
 #include "frontend.h"
-#include "debug.h"
 
 unsigned char currentTeledynePaModule;
 
-static HANDLER teledynePaModulesHandler[TELEDYNE_PA_MODULES_NUMBER] = {
-        hasTeledynePaHandler,
-        collectorByteHandler,
-        collectorByteHandler
-};
+static HANDLER teledynePaModulesHandler[TELEDYNE_PA_MODULES_NUMBER] = {hasTeledynePaHandler, collectorByteHandler,
+                                                                       collectorByteHandler};
 
 void teledynePaHandler() {
-
     // Check if the submodule is in range
     currentTeledynePaModule = (CAN_ADDRESS & TELEDYNE_PA_MODULES_RCA_MASK);
     if (currentTeledynePaModule >= TELEDYNE_PA_MODULES_NUMBER) {
@@ -30,7 +27,7 @@ void teledynePaHandler() {
 }
 
 static void hasTeledynePaHandler(void) {
-    if (CAN_SIZE) { // If control (size !=0)
+    if (CAN_SIZE) {  // If control (size !=0)
         // save the incoming message:
         SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pa.lastHasTeledynePa)
 
@@ -55,8 +52,8 @@ static void hasTeledynePaHandler(void) {
     }
 
     /* If monitor on a monitor RCA */
-    CAN_BYTE=frontend.cartridge[currentModule].lo.pa.hasTeledynePa;
-    CAN_SIZE=CAN_BOOLEAN_SIZE;
+    CAN_BYTE = frontend.cartridge[currentModule].lo.pa.hasTeledynePa;
+    CAN_SIZE = CAN_BOOLEAN_SIZE;
 }
 
 static void collectorByteHandler() {

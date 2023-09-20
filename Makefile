@@ -6,7 +6,6 @@ CFLAGS=-DDEBUG_STARTUP $(INC_PATH)
 LIBS=-lm
 EXECUTABLE=bin/main
 
-
 all:	build $(EXECUTABLE)
 
 $(EXECUTABLE):  $(OBJECTS)

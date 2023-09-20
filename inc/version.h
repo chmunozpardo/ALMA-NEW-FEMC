@@ -30,7 +30,7 @@
         Add command SET_PPCOMM_BYTES which overrides the default 8 bytes returned by GET_PPCOMM_TIME
 
     2021-07-29 3.5.3
-    	Start/stop the FTP service when entering/exiting MAITENANCE_MODE
+        Start/stop the FTP service when entering/exiting MAITENANCE_MODE
 
     2021-04-23 3.5.2
         In SET_CARTRIDGE[Ca]_POL[Po]_SB[Sb]_LNA_ENABLE, if Ca=Band1 or Band2 and Sb = 1, also set Sb2.
@@ -45,37 +45,36 @@
     2020-02-20 3.0.0
         Delete remaining DATABASE_RANGE code
         Undefine CHECK_HW_AVAIL: No longer reading availability and other things which don't change from INI files.
-        Delete all DATABASE_HW code; delete database.h; Delete 'available' for pol, sb, cartridgeTemp, lna, lnaStage, lnaLed
-        Only 3 LNA stages.
-        Delete error codes MON_ERROR_RNG, MON_WARN_RNG, MON_WARN_ACT, MON_HARDW_FUT, HARDW_UPD_WARN, HARDW_RETRY
-        Add error codes ERC_... to be used by all subsystems.
-        Delete PLL_LOOP_BANDWIDTH_UNDEFINED
-        Much less printing on startup and shutdown: only print loaded config and errors.
-        Suppress errors about redirect stderr on startup; reassigned IRQ.  
-        Delete OWB simulator and stored list.     
+        Delete all DATABASE_HW code; delete database.h; Delete 'available' for pol, sb, cartridgeTemp, lna, lnaStage,
+        lnaLed Only 3 LNA stages. Delete error codes MON_ERROR_RNG, MON_WARN_RNG, MON_WARN_ACT, MON_HARDW_FUT,
+        HARDW_UPD_WARN, HARDW_RETRY Add error codes ERC_... to be used by all subsystems. Delete
+        PLL_LOOP_BANDWIDTH_UNDEFINED Much less printing on startup and shutdown: only print loaded config and errors.
+        Suppress errors about redirect stderr on startup; reassigned IRQ.
+        Delete OWB simulator and stored list.
         Added console system report.
         Added ifSwitch: allChannelsHandler, cryostatTemp: sequentialCoeffHandler, monitor readback LPR EDFA coeff.
         Always allow LO PA drain voltage setting for BAND1 and BAND2.
         Create CRYO_HRS.INI file if it doesn't exist.
 
     2018-04-06 2.8.7
-        Bugfix: fetimSerialInterface::getFetimExtTemp() stores in 
+        Bugfix: fetimSerialInterface::getFetimExtTemp() stores in
           frontend.fetim.compressor.temp[currentAsyncFetimExtTempModule] instead of [currentCompressorModule].
         Bugfix: he2press::pressHandler() returns last async value instead of reading synchronously.
         Renamed compTemp.* to fetimExtTemp.*
         Renamed all refs to "FETIM compressor temperature" to "FETIM external temperature"
         Delete DATABASE_RANGE stuff from (FETIM) compressor.c, fetimExtTemp.c, he2Press.c
-        
+
     2017-06-27 2.8.6
         Adds check for [CRYO] AVAILABLE=N to suppress cryostat async and all m&c
-        
+
     2017-01-08 2.8.5
         Official accepted release to the ALMA array.
 
     2017-01-05 2.8.4
         asyncCartridgeGoStandby2 returns ASYNC_DONE.   Should be immaterial.
         added DEBUG_GO_STANDBY2.
-        simplified GoStandby2 methods to use currentModule, currentBiasModule, currentPolarizationModule instead of params.
+        simplified GoStandby2 methods to use currentModule, currentBiasModule, currentPolarizationModule instead of
+   params.
 
     2016-12-31 2.8.3
     2016-12-30 2.8.2
@@ -141,7 +140,7 @@
         Modified and built by Morgan McLeod <mmcleod@nrao.edu>
         - FETIM He2 buffer tank is monitored asynchronously.
         - FETIM temperature sensor scaling corrected to match hardware.
-        - Added bit shift one place to right when monitoring He2 buffer tank 
+        - Added bit shift one place to right when monitoring He2 buffer tank
           and external temperature sensors.
         - Disabled DEBUG_STARTUP which was left enabled in previous release.
         - Fixed infinite loop preventing shutdown initiated by FETIM.
@@ -404,25 +403,25 @@
     Documentation relative to Version: 002.006.001 */
 
 #ifndef _VERSION_H
-    #define _VERSION_H
+#define _VERSION_H
 
-    /* Defines */
-    #define VERSION_MAJOR   3
-    #define VERSION_MINOR   6
-    #define VERSION_PATCH   5
+/* Defines */
+#define VERSION_MAJOR 3
+#define VERSION_MINOR 6
+#define VERSION_PATCH 5
 
-    #define VERSION_DATE    "2022-12-22"
-    #define VERSION_NOTES   "3.6.5: Implement Teledyne PA control.\n" \
-                            "Don't store cryostat timeout errors when in Troubleshooting mode"
+#define VERSION_DATE "2022-12-22"
+#define VERSION_NOTES                         \
+    "3.6.5: Implement Teledyne PA control.\n" \
+    "Don't store cryostat timeout errors when in Troubleshooting mode"
 
-    #define PRODUCT_TREE    "FEND-40.04.03.03-011-A-FRM"
-    #define AUTHOR          "Morgan McLeod - NRAO (mmcleod@nrao.edu)"
-    #define BUGZILLA        "jira.alma.cl"
+#define PRODUCT_TREE "FEND-40.04.03.03-011-A-FRM"
+#define AUTHOR "Morgan McLeod - NRAO (mmcleod@nrao.edu)"
+#define BUGZILLA "jira.alma.cl"
 
-    /* Prototypes */
-    /* Statics */
-    /* Externs */
-    extern void displayVersion(void); //!< This function displays the version information
-
+/* Prototypes */
+/* Statics */
+/* Externs */
+extern void displayVersion(void);  //!< This function displays the version information
 
 #endif /* _VERSION_H */

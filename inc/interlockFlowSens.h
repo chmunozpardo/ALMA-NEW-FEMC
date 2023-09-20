@@ -16,39 +16,35 @@
     For more information on this module see \ref interlockFlowSens.h */
 
 #ifndef _INTERLOCK_FLOW_SENS_H
-    #define _INTERLOCK_FLOW_SENS_H
+#define _INTERLOCK_FLOW_SENS_H
 
-    /* Extra includes */
-    /* GLOBALDEFINITIONS Defines */
-    #ifndef _GLOBALDEFINITIONS_H
-        #include "globalDefinitions.h"
-    #endif /* _GLOBALDEFINITIONS_H */
+/* Extra includes */
+#include "globalDefinitions.h"
 
-    /* Submodule definitions */
-    #define INTERLOCK_FLOW_SENS_MODULES_NUMBER     1   // It's just the flow
+/* Submodule definitions */
+#define INTERLOCK_FLOW_SENS_MODULES_NUMBER 1  // It's just the flow
 
-    /* Typedefs */
-    //! Current state of the FETIM interlock flow sensors
-    /*! This structure represent the current state of the FETIM interlock
-        flow sensor.
-        \ingroup    interlockFlow
-        \param      flow    This contains the most recent read-back value
-                                for the flow */
-    typedef struct {
-        //! FETIM interlock flow sensors temeprature
-        /*! This is the flow as registered by the sensor. */
-        float   flow;
-    } INTRLK_FLOW_SENS;
+/* Typedefs */
+//! Current state of the FETIM interlock flow sensors
+/*! This structure represent the current state of the FETIM interlock
+    flow sensor.
+    \ingroup    interlockFlow
+    \param      flow    This contains the most recent read-back value
+                            for the flow */
+typedef struct {
+    //! FETIM interlock flow sensors temeprature
+    /*! This is the flow as registered by the sensor. */
+    float flow;
+} INTRLK_FLOW_SENS;
 
+/* Globals */
+/* Externs */
+extern unsigned char currentInterlockFlowSensModule;  //!< Currently addressed FETIM interlock flow sens module
 
-    /* Globals */
-    /* Externs */
-    extern unsigned char currentInterlockFlowSensModule; //!< Currently addressed FETIM interlock flow sens module
-
-    /* Prototypes */
-    /* Statics */
-    static void flowHandler(void);
-    /* Externs */
-    extern void interlockFlowSensHandler(void); //!< This function deals with teh incoming CAN message
+/* Prototypes */
+/* Statics */
+static void flowHandler(void);
+/* Externs */
+extern void interlockFlowSensHandler(void);  //!< This function deals with teh incoming CAN message
 
 #endif /* _INTERLOCK_FLOW_SENS_H */

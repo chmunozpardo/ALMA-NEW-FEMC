@@ -19,15 +19,8 @@
 #define _LNASTAGE_H
 
 /* Extra includes */
-/* GLOBAL DEFINITIONS Defines */
-#ifndef _GLOBALDEFINITIONS_H
 #include "globalDefinitions.h"
-#endif /* _GLOBALDEFINITIONS_H */
-
-/* CAN module defines */
-#ifndef _CAN_H
 #include "packet.h"
-#endif /* _CAN_H */
 
 /* Defines */
 #define LNA_STAGES_NUMBER 3  //!< Number of LNA stages per LNA
@@ -63,8 +56,7 @@ typedef struct {
 
 /* Globals */
 /* Externs */
-extern unsigned char
-    currentLnaStageModule;  //!< Current addressed LNA stage submodule
+extern unsigned char currentLnaStageModule;  //!< Current addressed LNA stage submodule
 
 /* Prototypes */
 /* Statics */
@@ -72,7 +64,6 @@ static void drainVoltageHandler(void);
 static void drainCurrentHandler(void);
 static void gateVoltageHandler(void);
 /* Externs */
-extern void lnaStageHandler(
-    void);  //!< This function deals with the incoming CAN message
+extern void lnaStageHandler(void);  //!< This function deals with the incoming CAN message
 
 #endif /* _LNASTAGE_H */

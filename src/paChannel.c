@@ -11,46 +11,40 @@
 */
 
 /* Includes */
-#include <string.h>     /* memcpy */
-#include <stdio.h>      /* printf */
+#include <stdio.h>  /* printf */
+#include <string.h> /* memcpy */
 
+#include "debug.h"
 #include "error_local.h"
 #include "frontend.h"
-#include "loSerialInterface.h"
-#include "debug.h"
 #include "globalDefinitions.h"
+#include "loSerialInterface.h"
 
 /* Globals */
 /* Externs */
-unsigned char   currentPaChannelModule=0;
+unsigned char currentPaChannelModule = 0;
 /* Statics */
 /* A static to deal with the mapping of the PA cahnnels. This global variable is
    used to indicate if the mapping is defined or not. */
-static HANDLER  paChannelModulesHandler[PA_CHANNEL_MODULES_NUMBER] = {
-    gateVoltageHandler,
-    drainVoltageHandler,
-    drainCurrentHandler
-};
+static HANDLER paChannelModulesHandler[PA_CHANNEL_MODULES_NUMBER] = {gateVoltageHandler, drainVoltageHandler,
+                                                                     drainCurrentHandler};
 
 /* PA Channel handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the PA Channel. */
 void paChannelHandler(void) {
-
-    #ifdef DEBUG
-    printf("     PA Channel: %d (mapped to Polarization: %d)\n",
-               currentPaModule,
-               currentPaChannel());
-    #endif /* DEBUG */
+#ifdef DEBUG
+    printf("     PA Channel: %d (mapped to Polarization: %d)\n", currentPaModule, currentPaChannel());
+#endif /* DEBUG */
 
     /* Since the LO is always outfitted with all the modules, no hardware check
        is performed. */
 
     /* Check if the submodule is in range */
-    currentPaChannelModule=(CAN_ADDRESS&PA_CHANNEL_MODULES_RCA_MASK);
-    if (currentPaChannelModule>=PA_CHANNEL_MODULES_NUMBER) {
-        storeError(ERR_PA_CHANNEL, ERC_MODULE_RANGE); //PA channel submodule out of range
-        CAN_STATUS = HARDW_RNG_ERR; // Notify incoming CAN message of the error
+    currentPaChannelModule = (CAN_ADDRESS & PA_CHANNEL_MODULES_RCA_MASK);
+    if (currentPaChannelModule >= PA_CHANNEL_MODULES_NUMBER) {
+        storeError(ERR_PA_CHANNEL, ERC_MODULE_RANGE);  // PA channel submodule out of range
+        CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of the error
         return;
     }
 
@@ -62,10 +56,9 @@ void paChannelHandler(void) {
 /* This function will deal with monitor and control requests to the gate
    voltage. */
 static void gateVoltageHandler(void) {
-
-    #ifdef DEBUG
-        printf("      Gate Voltage\n");
-    #endif /* DEBUG */
+#ifdef DEBUG
+    printf("      Gate Voltage\n");
+#endif /* DEBUG */
 
     /* If control (size !=0) */
     if (CAN_SIZE) {
@@ -87,9 +80,10 @@ static void gateVoltageHandler(void) {
     }
 
     /* If monitor on control RCA */
-    if (currentClass == CONTROL_CLASS) { // If monitor on a control RCA
+    if (currentClass == CONTROL_CLASS) {  // If monitor on a control RCA
         // return the last control message and status
-        RETURN_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastGateVoltage)
+        RETURN_LAST_CONTROL_MESSAGE(
+            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastGateVoltage)
         return;
     }
 
@@ -101,7 +95,7 @@ static void gateVoltageHandler(void) {
         CAN_STATUS = ERROR;
     }
     /* Store the last known value in the outgoing message */
-        CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].gateVoltage;
+    CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].gateVoltage;
 
     /* Load the CAN message payload with the returned value and set the
        size. The value has to be converted from little endian (Intel) to
@@ -115,14 +109,13 @@ static void gateVoltageHandler(void) {
 /* This function will deal with monitor and control requests to the drain
    voltage. */
 static void drainVoltageHandler(void) {
-
-    float temp4K,temp12K;
-    unsigned int state=DISABLE;
+    float temp4K, temp12K;
+    unsigned int state = DISABLE;
     signed char ret;
 
-    #ifdef DEBUG
-        printf("      Drain Voltage\n");
-    #endif /* DEBUG */
+#ifdef DEBUG
+    printf("      Drain Voltage\n");
+#endif /* DEBUG */
 
     /* If control (size !=0) */
     if (CAN_SIZE) {
@@ -130,54 +123,54 @@ static void drainVoltageHandler(void) {
            PAs as too much power at this temperature could damage the
            multipliers. In the LO async loop, the PAs will be turned off if the
            dewar temepratures grows to above 30K. */
-        temp4K=frontend.cryostat.cryostatTemp[CRYOCOOLER_4K].temp;
-        temp12K=frontend.cryostat.cryostatTemp[CRYOCOOLER_12K].temp;
+        temp4K = frontend.cryostat.cryostatTemp[CRYOCOOLER_4K].temp;
+        temp12K = frontend.cryostat.cryostatTemp[CRYOCOOLER_12K].temp;
 
         /* We check the 4K sensor first and if that doesn't allow the command,
            we check the 12K sensor next.   Previous algorithm in 2.6.1 checked
-           the 12K sensor first and would always reject if that one sensor 
+           the 12K sensor first and would always reject if that one sensor
            was above PA_MAX_ALLOWED_TEMP. */
 
         // start by assuming the command will be blocked:
-        state=DISABLE;
+        state = DISABLE;
 
         // is the 4K cryostat sensor reading valid and below the threshold indicating cryocooling?
         if (CRYOSTAT_TEMP_BELOW_MAX(temp4K, PA_MAX_ALLOWED_TEMP)) {
-            state=ENABLE;   // yes.
+            state = ENABLE;  // yes.
         }
 
         // may need to use the 12K sensor instead:
         if (state == DISABLE) {
             if (CRYOSTAT_TEMP_BELOW_MAX(temp12K, PA_MAX_ALLOWED_TEMP)) {
-                state=ENABLE;   // yes.
+                state = ENABLE;  // yes.
             }
         }
 
         // if band 1 or band 2, enable:
-        if (currentModule == BAND1 || currentModule == BAND2)
-            state=ENABLE;
+        if (currentModule == BAND1 || currentModule == BAND2) state = ENABLE;
 
         // If we are in TROUBLESHOOTING mode, ignore all the above safety checks and allow the voltage to be set:
-        if (frontend.mode == TROUBLESHOOTING_MODE)
-            state=ENABLE;
+        if (frontend.mode == TROUBLESHOOTING_MODE) state = ENABLE;
 
-        if (state==DISABLE) {
-            //PA temperature above the allowed range -> PAs disabled:
+        if (state == DISABLE) {
+            // PA temperature above the allowed range -> PAs disabled:
             storeError(ERR_PA_CHANNEL, ERC_HARDWARE_BLOCKED);
 
             // Store the status in the last control message:
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status = HARDW_BLKD_ERR;
+            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status =
+                HARDW_BLKD_ERR;
 
             return;
         }
 
         // save the incoming message:
-        SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage)
+        SAVE_LAST_CONTROL_MESSAGE(
+            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage)
 
         /* Extract the float from the can message */
         changeEndian(CONV_CHR_ADD, CAN_DATA_ADD);
 
-        /* if not in TROUBLESHOOTING mode, 
+        /* if not in TROUBLESHOOTING mode,
             Limit the CONV_FLOAT value about to be sent to the PA channel for drain voltage
             to the safe maximum for the current YTO tuning.
            Returns HARDW_BLKD_ERR if the value was reduced. */
@@ -188,10 +181,11 @@ static void drainVoltageHandler(void) {
 
         if (ret != NO_ERROR) {
             // report that the limit was violated:
-            storeError(ERR_PA_CHANNEL, ERC_HARDWARE_BLOCKED); //Attempted to set LO PA above max safe power level.
+            storeError(ERR_PA_CHANNEL, ERC_HARDWARE_BLOCKED);  // Attempted to set LO PA above max safe power level.
 
             /* save the modified command setting to the "last control message" location */
-            changeEndian(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.data, CONV_CHR_ADD);
+            changeEndian(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.data,
+                         CONV_CHR_ADD);
         }
 
         /* Set the PA channel drain voltage. If an error occurs then store the
@@ -201,7 +195,7 @@ static void drainVoltageHandler(void) {
             frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status = ERROR;
             return;
         }
-        
+
         /* if limitSafePaDrainVoltage() above returned a problem, we want to save that error status */
         frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status = ret;
 
@@ -210,9 +204,10 @@ static void drainVoltageHandler(void) {
     }
 
     /* If monitor on control RCA */
-    if (currentClass == CONTROL_CLASS) { // If monitor on a control RCA
+    if (currentClass == CONTROL_CLASS) {  // If monitor on a control RCA
         // return the last control message and status
-        RETURN_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage)
+        RETURN_LAST_CONTROL_MESSAGE(
+            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage)
         return;
     }
 
@@ -224,7 +219,7 @@ static void drainVoltageHandler(void) {
         CAN_STATUS = ERROR;
     }
     /* Store the last known value in the outgoing message */
-        CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainVoltage;
+    CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainVoltage;
 
     /* Load the CAN message payload with the returned value and set the
        size. The value has to be converted from little endian (Intel) to
@@ -239,22 +234,21 @@ static void drainVoltageHandler(void) {
    drain current. There are no control messages allowed for the PA channel drain
    current. */
 static void drainCurrentHandler(void) {
-
-    #ifdef DEBUG
-        printf("      Drain Current\n");
-    #endif /* DEBUG */
+#ifdef DEBUG
+    printf("      Drain Current\n");
+#endif /* DEBUG */
 
     /* If control (size !=0) store error and return. No control message are
        allowed on this RCA. */
     if (CAN_SIZE) {
-        storeError(ERR_PA_CHANNEL, ERC_RCA_RANGE); //Control message out of range
+        storeError(ERR_PA_CHANNEL, ERC_RCA_RANGE);  // Control message out of range
         return;
     }
 
     /* If monitor on control RCA return error since there are no control
        messages allowed on this RCA. */
-    if (currentClass == CONTROL_CLASS) { // If monitor on control RCA
-        storeError(ERR_PA_CHANNEL, ERC_RCA_RANGE); //Monitor message out of range
+    if (currentClass == CONTROL_CLASS) {            // If monitor on control RCA
+        storeError(ERR_PA_CHANNEL, ERC_RCA_RANGE);  // Monitor message out of range
         /* Store the state in the outgoing CAN message */
         CAN_STATUS = MON_CAN_RNG;
         return;
@@ -290,7 +284,7 @@ static void drainCurrentHandler(void) {
         - \ref PA_CHANNEL_B */
 int currentPaChannel(void) {
     /* Switch on cartridge number */
-    switch(currentModule) {
+    switch (currentModule) {
         case BAND3:
         case BAND4:
         case BAND8:
@@ -299,10 +293,10 @@ int currentPaChannel(void) {
             return currentPaModule == 0 ? PA_CHANNEL_B : PA_CHANNEL_A;
             break;
 
-        case BAND1: // Band 1 preproduction.
-                    // TODO: Assign correctly for 3.6.x
-        case BAND2: // Band 2 prototype.
-                    // TODO: Assign correctly for 3.6.x
+        case BAND1:  // Band 1 preproduction.
+                     // TODO: Assign correctly for 3.6.x
+        case BAND2:  // Band 2 prototype.
+                     // TODO: Assign correctly for 3.6.x
         case BAND5:
         case BAND6:
         case BAND7:

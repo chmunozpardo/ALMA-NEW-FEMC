@@ -17,24 +17,24 @@
     monitor and control device takes place. */
 
 /* Includes */
-#include <stddef.h>     /* NULL */
-#include <stdio.h>      /* printf */
-#include <math.h>       /* pow */
-#include <errno.h>      /* errno */
-
 #include "lprSerialInterface.h"
+
+#include <errno.h>  /* errno */
+#include <math.h>   /* pow */
+#include <stddef.h> /* NULL */
+#include <stdio.h>  /* printf */
+
+#include "debug.h"
 #include "error_local.h"
+#include "frontend.h"
+#include "laser.h"
 #include "serialInterface.h"
 #include "timer.h"
-#include "frontend.h"
-#include "debug.h"
-#include "laser.h"
 
 /* Globals */
 /* Externs */
 /* Statics */
 LPR_REGISTERS lprRegisters;
-
 
 /* LPR analog monitor request core.
    This function performs the core operations that are common to all the analog
@@ -48,8 +48,7 @@ LPR_REGISTERS lprRegisters;
 
    If an error happens during the process it will return ERROR, otherwise
    NO_ERROR will be returned. */
-static int getLprAnalogMonitor(void){
-
+static int getLprAnalogMonitor(void) {
     /* A temporary variable to deal with the timer. */
     int timedOut;
 
@@ -59,113 +58,84 @@ static int getLprAnalogMonitor(void){
        stored one is only the real 16 bit value. */
     int tempAdcValue[2];
 
-
-    /* Parallel write BREG */
-    #ifdef DEBUG_LPR_SERIAL
-        printf("         - Writing BREG\n");
-    #endif /* DEBUG */
+/* Parallel write BREG */
+#ifdef DEBUG_LPR_SERIAL
+    printf("         - Writing BREG\n");
+#endif /* DEBUG */
 
     /* The function to write the data to the hardware is called passing the
        intermediate buffer. If an error occurs, notify the calling function. */
-    if(serialAccess(LPR_PARALLEL_WRITE(LPR_BREG),
-                    &lprRegisters.
-                      bReg.
-                       integer,
-                    LPR_BREG_SIZE,
-                    LPR_BREG_SHIFT_SIZE,
-                    LPR_BREG_SHIFT_DIR,
-                    SERIAL_WRITE)==ERROR){
+    if (serialAccess(LPR_PARALLEL_WRITE(LPR_BREG), &lprRegisters.bReg.integer, LPR_BREG_SIZE, LPR_BREG_SHIFT_SIZE,
+                     LPR_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
         return ERROR;
     }
 
-    /* Initiate ADC conversion
-        - send ADC convert strobe command */
-    #ifdef DEBUG_LPR_SERIAL
-        printf("         - Initiating ADC conversion\n");
-    #endif /* DEBUG */
+/* Initiate ADC conversion
+    - send ADC convert strobe command */
+#ifdef DEBUG_LPR_SERIAL
+    printf("         - Initiating ADC conversion\n");
+#endif /* DEBUG */
     /* If an error occurs, notify the calling function */
-    if(serialAccess(LPR_ADC_CONVERT_STROBE,
-                    NULL,
-                    LPR_ADC_STROBE_SIZE,
-                    LPR_ADC_STROBE_SHIFT_SIZE,
-                    LPR_ADC_STROBE_SHIFT_DIR,
-                    SERIAL_WRITE)==ERROR){
+    if (serialAccess(LPR_ADC_CONVERT_STROBE, NULL, LPR_ADC_STROBE_SIZE, LPR_ADC_STROBE_SHIFT_SIZE,
+                     LPR_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
         return ERROR;
     }
 
     /* Wait on ADC ready status
         - parallel input */
     /* Setup for 1 seconds and start the asynchronous timer */
-    if(startAsyncTimer(TIMER_LPR_ADC_RDY,
-                       TIMER_LPR_TO_ADC_RDY,
-                       FALSE)==ERROR){
+    if (startAsyncTimer(TIMER_LPR_ADC_RDY, TIMER_LPR_TO_ADC_RDY, FALSE) == ERROR) {
         return ERROR;
     }
 
     do {
-        #ifdef DEBUG_LPR_SERIAL
-            printf("         - Waiting on ADC ready\n");
-        #endif /* DEBUG */
+#ifdef DEBUG_LPR_SERIAL
+        printf("         - Waiting on ADC ready\n");
+#endif /* DEBUG */
 
         /* If an error occurs, notify the calling funtion */
-        if(serialAccess(LPR_PARALLEL_READ,
-                        &lprRegisters.
-                          statusReg.
-                           integer,
-                        LPR_STATUS_REG_SIZE,
-                        LPR_STATUS_REG_SHIFT_SIZE,
-                        LPR_STATUS_REG_SHIFT_DIR,
-                        SERIAL_READ)==ERROR){
+        if (serialAccess(LPR_PARALLEL_READ, &lprRegisters.statusReg.integer, LPR_STATUS_REG_SIZE,
+                         LPR_STATUS_REG_SHIFT_SIZE, LPR_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
             /* Stop the timer */
-            if(stopAsyncTimer(TIMER_LPR_ADC_RDY)==ERROR){
+            if (stopAsyncTimer(TIMER_LPR_ADC_RDY) == ERROR) {
                 return ERROR;
             }
 
             return ERROR;
         }
-        timedOut=queryAsyncTimer(TIMER_LPR_ADC_RDY);
-        if(timedOut==ERROR){
+        timedOut = queryAsyncTimer(TIMER_LPR_ADC_RDY);
+        if (timedOut == ERROR) {
             return ERROR;
         }
-    } while ((lprRegisters.
-               statusReg.
-                bitField.
-                 adcReady==LPR_ADC_BUSY)&&(timedOut==TIMER_RUNNING));
+    } while ((lprRegisters.statusReg.bitField.adcReady == LPR_ADC_BUSY) && (timedOut == TIMER_RUNNING));
 
     /* If the timer has expired signal the error */
-    if(timedOut==TIMER_EXPIRED){
-        storeError(ERR_LPR_SERIAL, ERC_HARDWARE_TIMEOUT); //Timeout while waiting for the ADC to become ready
+    if (timedOut == TIMER_EXPIRED) {
+        storeError(ERR_LPR_SERIAL, ERC_HARDWARE_TIMEOUT);  // Timeout while waiting for the ADC to become ready
         return ERROR;
     }
 
     /* In case of no error, clear the asynchronous timer. */
-    if(stopAsyncTimer(TIMER_LPR_ADC_RDY)==ERROR){
+    if (stopAsyncTimer(TIMER_LPR_ADC_RDY) == ERROR) {
         return ERROR;
     }
 
-
-    /* ADC read cycle */
-    #ifdef DEBUG_LPR_SERIAL
-        printf("         - Reading ADC value\n");
-    #endif /* DEBUG */
+/* ADC read cycle */
+#ifdef DEBUG_LPR_SERIAL
+    printf("         - Reading ADC value\n");
+#endif /* DEBUG */
 
     /* If error return the state to the calling function */
-    if(serialAccess(LPR_ADC_DATA_READ,
-                    &tempAdcValue,
-                    LPR_ADC_DATA_SIZE,
-                    LPR_ADC_DATA_SHIFT_SIZE,
-                    LPR_ADC_DATA_SHIFT_DIR,
-                    SERIAL_READ)==ERROR){
+    if (serialAccess(LPR_ADC_DATA_READ, &tempAdcValue, LPR_ADC_DATA_SIZE, LPR_ADC_DATA_SHIFT_SIZE,
+                     LPR_ADC_DATA_SHIFT_DIR, SERIAL_READ) == ERROR) {
         return ERROR;
     }
 
     /* Drop the not needed bits and store the data */
-    lprRegisters.
-     adcData = tempAdcValue[0];
+    lprRegisters.adcData = tempAdcValue[0] & 0xFFFF;
 
     return NO_ERROR;
 }
-
 
 /* Get LPR temperatures */
 /*! This function return the operating information about the addressed
@@ -183,41 +153,29 @@ static int getLprAnalogMonitor(void){
     \return
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
-int getLprTemp(void){
-
+int getLprTemp(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
-        lprRegisters.
-         bReg.
-          integer=0x0000;
+        lprRegisters.bReg.integer = 0x0000;
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        lprRegisters.
-         bReg.
-          bitField.
-           monitorPoint=LPR_BREG_TEMPERATURE(currentLprModule);
+        lprRegisters.bReg.bitField.monitorPoint = LPR_BREG_TEMPERATURE(currentLprModule);
 
         /* 2->5 Call the getLprAnalogMonitor funtion */
-        if(getLprAnalogMonitor()==ERROR){
+        if (getLprAnalogMonitor() == ERROR) {
             return ERROR;
         }
 
         /* 6 - Scale the data */
         /* The temperature is given by: 5.0e+6*(adcData/65536)/5110 */
-        frontend.
-         lpr.
-          lprTemp[currentLprModule].
-           temp=(LPR_ADC_TEMP_SCALE*lprRegisters.
-                                                    adcData)/LPR_ADC_RANGE;
+        frontend.lpr.lprTemp[currentLprModule].temp = (LPR_ADC_TEMP_SCALE * lprRegisters.adcData) / LPR_ADC_RANGE;
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.lprTemp[currentLprModule].temp = 221.1;
     }
     return NO_ERROR;
 }
-
-
 
 /* Set optical switch port */
 /*! This function controls the optical switch port for the LPR.
@@ -230,82 +188,57 @@ int getLprTemp(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setOpticalSwitchPort(void){
+int setOpticalSwitchPort(void) {
     /* Store the current value of the optical switch port in a temporary
        variable. We use a temporary variable so that if any error occurs during
        the update of the hardware state, we don't end up with an AREG describing
        a different state than the hardware one. */
-    int tempAReg=lprRegisters.
-                  aReg.
-                   integer;
+    int tempAReg = lprRegisters.aReg.integer;
     if (frontend.mode != SIMULATION_MODE) {
-
         /* Update AREG */
-        lprRegisters.
-         aReg.
-          bitField.
-           port=LPR_AREG_SWITCH_PORT(CAN_BYTE);
+        lprRegisters.aReg.bitField.port = LPR_AREG_SWITCH_PORT(CAN_BYTE);
 
         /* Get the LPR states. */
-        if(getLprStates()==ERROR){
+        if (getLprStates() == ERROR) {
             return ERROR;
         }
 
         /* If no error check the idle state. If busy, return error. */
-        if(frontend.
-            lpr.
-             opticalSwitch.
-              state==OPTICAL_SWITCH_BUSY){
-                storeError(ERR_LPR_SERIAL, ERC_HARDWARE_WAIT); //Optical switch busy
-                return ERROR;
+        if (frontend.lpr.opticalSwitch.state == OPTICAL_SWITCH_BUSY) {
+            storeError(ERR_LPR_SERIAL, ERC_HARDWARE_WAIT);  // Optical switch busy
+            return ERROR;
         }
 
-        /* 1 - Parallel write AREG */
-        #ifdef DEBUG_LPR_SERIAL
-            printf("         - Writing AREG\n");
-        #endif /* DEBUG */
+/* 1 - Parallel write AREG */
+#ifdef DEBUG_LPR_SERIAL
+        printf("         - Writing AREG\n");
+#endif /* DEBUG */
 
-        if(serialAccess(LPR_PARALLEL_WRITE(LPR_AREG),
-                        &lprRegisters.
-                          aReg.
-                           integer,
-                        LPR_AREG_SIZE,
-                        LPR_AREG_SHIFT_SIZE,
-                        LPR_AREG_SHIFT_DIR,
-                        SERIAL_WRITE)==ERROR){
+        if (serialAccess(LPR_PARALLEL_WRITE(LPR_AREG), &lprRegisters.aReg.integer, LPR_AREG_SIZE, LPR_AREG_SHIFT_SIZE,
+                         LPR_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore AREG to its original saved value */
-            lprRegisters.
-             aReg.
-              integer = tempAReg;
+            lprRegisters.aReg.integer = tempAReg;
 
             return ERROR;
         }
 
-        /* Send optical switch strobe */
-        #ifdef DEBUG_LPR_SERIAL
-            printf("         - Sending optical switch strobe\n");
-        #endif /* DEBUG_LPR_SERIAL */
+/* Send optical switch strobe */
+#ifdef DEBUG_LPR_SERIAL
+        printf("         - Sending optical switch strobe\n");
+#endif /* DEBUG_LPR_SERIAL */
         /* If an error occurs, notify the calling function */
-        if(serialAccess(LPR_OPTICAL_SWITCH_STROBE,
-                        NULL,
-                        LPR_OPTICAL_SWITCH_STROBE_SIZE,
-                        LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE,
-                        LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR,
-                        SERIAL_WRITE)==ERROR){
+        if (serialAccess(LPR_OPTICAL_SWITCH_STROBE, NULL, LPR_OPTICAL_SWITCH_STROBE_SIZE,
+                         LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE, LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR,
+                         SERIAL_WRITE) == ERROR) {
             return ERROR;
         }
     }
     /* Since there is no real hardware read back, if no error occurred the
        current state is updated to reflect the issued command. */
-    frontend.
-     lpr.
-      opticalSwitch.
-       port=CAN_BYTE;
+    frontend.lpr.opticalSwitch.port = CAN_BYTE;
 
     return NO_ERROR;
 }
-
-
 
 /* Set optical switch shutter */
 /*! This function controls the optical switch shutter for the LPR.
@@ -325,84 +258,60 @@ int setOpticalSwitchPort(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setOpticalSwitchShutter(unsigned char mode){
+int setOpticalSwitchShutter(unsigned char mode) {
     /* Store the current value of the optical switch port in a temporary
        variable. We use a temporary variable so that if any error occurs during
        the update of the hardware state, we don't end up with an AREG describing
        a different state than the hardware one. */
-    int tempAReg=lprRegisters.
-                  aReg.
-                   integer;
+    int tempAReg = lprRegisters.aReg.integer;
     if (frontend.mode != SIMULATION_MODE) {
-
         /* Update AREG */
-        lprRegisters.
-         aReg.
-          bitField.
-           port=LPR_AREG_SWITCH_SHUTTER;
+        lprRegisters.aReg.bitField.port = LPR_AREG_SWITCH_SHUTTER;
 
         /* If the shutter mode is not forced then check for the busy state */
-        if(mode==STANDARD){
+        if (mode == STANDARD) {
             /* Get the LPR states. */
-            if(getLprStates()==ERROR){
+            if (getLprStates() == ERROR) {
                 return ERROR;
             }
 
             /* If no error check the idle state. If busy, return error. */
-            if(frontend.
-                lpr.
-                 opticalSwitch.
-                  state==OPTICAL_SWITCH_BUSY){
-                    storeError(ERR_LPR_SERIAL, ERC_HARDWARE_WAIT); //Optical switch busy
-                    return ERROR;
+            if (frontend.lpr.opticalSwitch.state == OPTICAL_SWITCH_BUSY) {
+                storeError(ERR_LPR_SERIAL, ERC_HARDWARE_WAIT);  // Optical switch busy
+                return ERROR;
             }
         }
 
-        /* 1 - Parallel write AREG */
-        #ifdef DEBUG_LPR_SERIAL
-            printf("         - Writing AREG\n");
-        #endif /* DEBUG */
+/* 1 - Parallel write AREG */
+#ifdef DEBUG_LPR_SERIAL
+        printf("         - Writing AREG\n");
+#endif /* DEBUG */
 
-        if(serialAccess(LPR_PARALLEL_WRITE(LPR_AREG),
-                        &lprRegisters.
-                          aReg.
-                           integer,
-                        LPR_AREG_SIZE,
-                        LPR_AREG_SHIFT_SIZE,
-                        LPR_AREG_SHIFT_DIR,
-                        SERIAL_WRITE)==ERROR){
+        if (serialAccess(LPR_PARALLEL_WRITE(LPR_AREG), &lprRegisters.aReg.integer, LPR_AREG_SIZE, LPR_AREG_SHIFT_SIZE,
+                         LPR_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore AREG to its original saved value */
-            lprRegisters.
-             aReg.
-              integer = tempAReg;
+            lprRegisters.aReg.integer = tempAReg;
 
             return ERROR;
         }
 
-        /* Send optical switch strobe */
-        #ifdef DEBUG_LPR_SERIAL
-            printf("         - Sending optical switch strobe\n");
-        #endif /* DEBUG_LPR_SERIAL */
+/* Send optical switch strobe */
+#ifdef DEBUG_LPR_SERIAL
+        printf("         - Sending optical switch strobe\n");
+#endif /* DEBUG_LPR_SERIAL */
         /* If an error occurs, notify the calling function */
-        if(serialAccess(LPR_OPTICAL_SWITCH_STROBE,
-                        NULL,
-                        LPR_OPTICAL_SWITCH_STROBE_SIZE,
-                        LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE,
-                        LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR,
-                        SERIAL_WRITE)==ERROR){
+        if (serialAccess(LPR_OPTICAL_SWITCH_STROBE, NULL, LPR_OPTICAL_SWITCH_STROBE_SIZE,
+                         LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE, LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR,
+                         SERIAL_WRITE) == ERROR) {
             return ERROR;
         }
     }
     /* Since there is no real hardware read back, if no error occurred the
        current state is updated to reflect the issued command. */
-    frontend.
-     lpr.
-      opticalSwitch.
-       shutter=SHUTTER_ENABLE;
+    frontend.lpr.opticalSwitch.shutter = SHUTTER_ENABLE;
 
     return NO_ERROR;
 }
-
 
 /* Get laser drive current */
 /*! This function returns the current of the laser drive. The resulting scaled
@@ -419,42 +328,29 @@ int setOpticalSwitchShutter(unsigned char mode){
     \return
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
-int getLaserDriveCurrent(void){
+int getLaserDriveCurrent(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
-        lprRegisters.
-         bReg.
-          integer=0x0000;
+        lprRegisters.bReg.integer = 0x0000;
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        lprRegisters.
-         bReg.
-          bitField.
-           monitorPoint=LPR_BREG_LASER_DRIVE_CURRENT;
+        lprRegisters.bReg.bitField.monitorPoint = LPR_BREG_LASER_DRIVE_CURRENT;
 
         /* 2->5 Call the getLprAnalogMonitor funtion */
-        if(getLprAnalogMonitor()==ERROR){
+        if (getLprAnalogMonitor() == ERROR) {
             return ERROR;
         }
 
         /* 6 - Scale the data */
         /* The laser drive current is given by: 800*(adcData/65536) */
-        frontend.
-         lpr.
-          edfa.
-           laser.
-            driveCurrent=(LPR_ADC_DRIVE_CURRENT_SCALE*lprRegisters.
-                                                                      adcData/LPR_ADC_RANGE);
+        frontend.lpr.edfa.laser.driveCurrent = (LPR_ADC_DRIVE_CURRENT_SCALE * lprRegisters.adcData / LPR_ADC_RANGE);
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.edfa.laser.driveCurrent = 53.1;
     }
     return NO_ERROR;
 }
-
-
-
 
 /* Get laser photo detector current */
 /*! This function returns the current of the laser photo detector. The resulting
@@ -471,39 +367,30 @@ int getLaserDriveCurrent(void){
     \return
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
-int getLaserPhotoDetectCurrent(void){
+int getLaserPhotoDetectCurrent(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
-        lprRegisters.
-         bReg.
-          integer=0x0000;
+        lprRegisters.bReg.integer = 0x0000;
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        lprRegisters.
-         bReg.
-          bitField.
-           monitorPoint=LPR_BREG_LASER_PD_CURRENT;
+        lprRegisters.bReg.bitField.monitorPoint = LPR_BREG_LASER_PD_CURRENT;
 
         /* 2->5 Call the getLprAnalogMonitor funtion */
-        if(getLprAnalogMonitor()==ERROR){
+        if (getLprAnalogMonitor() == ERROR) {
             return ERROR;
         }
 
         /* 6 - Scale the data */
         /* The laser drive current is given by: 10*[2.5-5.0*(adcData/65536)] */
-        frontend.
-         lpr.
-          edfa.
-           laser.
-            photoDetectCurrent=LPR_ADC_LASER_PD_CURRRENT_OFFSET-(LPR_ADC_LASER_PD_CURRENT_SCALE*lprRegisters.adcData)/LPR_ADC_RANGE;
+        frontend.lpr.edfa.laser.photoDetectCurrent =
+            LPR_ADC_LASER_PD_CURRRENT_OFFSET - (LPR_ADC_LASER_PD_CURRENT_SCALE * lprRegisters.adcData) / LPR_ADC_RANGE;
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.edfa.laser.photoDetectCurrent = 3.3;
     }
     return NO_ERROR;
 }
-
 
 /* Get EDFA photo detector current */
 /*! This function returns the current of the EDFA photo detector. The resulting
@@ -520,40 +407,30 @@ int getLaserPhotoDetectCurrent(void){
     \return
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
-int getPhotoDetectorCurrent(void){
+int getPhotoDetectorCurrent(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
-        lprRegisters.
-         bReg.
-          integer=0x0000;
+        lprRegisters.bReg.integer = 0x0000;
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        lprRegisters.
-         bReg.
-          bitField.
-           monitorPoint=LPR_BREG_EDFA_PD_CURRENT;
+        lprRegisters.bReg.bitField.monitorPoint = LPR_BREG_EDFA_PD_CURRENT;
 
         /* 2->5 Call the getLprAnalogMonitor funtion */
-        if(getLprAnalogMonitor()==ERROR){
+        if (getLprAnalogMonitor() == ERROR) {
             return ERROR;
         }
 
         /* 6 - Scale the data */
         /* The laser drive current is given by: 500.0*(adcData/65536) */
-        frontend.
-         lpr.
-          edfa.
-           photoDetector.
-            current=(LPR_ADC_EDFA_PD_CURRENT_SCALE*lprRegisters.
-                                                                   adcData)/LPR_ADC_RANGE;
+        frontend.lpr.edfa.photoDetector.current =
+            (LPR_ADC_EDFA_PD_CURRENT_SCALE * lprRegisters.adcData) / LPR_ADC_RANGE;
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.edfa.photoDetector.current = 65.4;
     }
     return NO_ERROR;
 }
-
 
 /* Send DAC strobes */
 /*! This function will send the required strobe to the currently addressed DAC.
@@ -561,15 +438,11 @@ int getPhotoDetectorCurrent(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setLprDacStrobe(void){
+int setLprDacStrobe(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Send the reset strobe */
-        if(serialAccess(LPR_DAC_RESET_STROBE,
-                        NULL,
-                        LPR_DAC_STROBE_SIZE,
-                        LPR_DAC_STROBE_SHIFT_SIZE,
-                        LPR_DAC_STROBE_SHIFT_DIR,
-                        SERIAL_WRITE)==ERROR){
+        if (serialAccess(LPR_DAC_RESET_STROBE, NULL, LPR_DAC_STROBE_SIZE, LPR_DAC_STROBE_SHIFT_SIZE,
+                         LPR_DAC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             return ERROR;
         }
     }
@@ -587,44 +460,27 @@ int setLprDacStrobe(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setModulationInputValue(void){
-
+int setModulationInputValue(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Setup the DAC2 message */
         /* Select the register to address */
-        lprRegisters.
-         dacReg.
-          bitField.
-           dacSelect=LPR_DAC_REGISTER(LPR_DAC_A_REG);
+        lprRegisters.dacReg.bitField.dacSelect = LPR_DAC_REGISTER(LPR_DAC_A_REG);
         /* Setup quick load */
-        lprRegisters.
-         dacReg.
-          bitField.
-           quickLoad=NO;
+        lprRegisters.dacReg.bitField.quickLoad = NO;
         /* 1 - Format the data according to the dac specifications. */
-        lprRegisters.
-         dacReg.
-          bitField.
-           data=LPR_DAC_MOD_INPUT_SCALE(CONV_FLOAT);
+        lprRegisters.dacReg.bitField.data = LPR_DAC_MOD_INPUT_SCALE(CONV_FLOAT);
 
-        /* 2 - Write the data to the serial access function */
-        #ifdef DEBUG_LPR_SERIAL
-            printf("         - Writing DAC\n");
-        #endif /* DEBUG */
-        if(serialAccess(LPR_DAC_DATA_WRITE,
-                        lprRegisters.
-                         dacReg.
-                          integer,
-                        LPR_DAC_DATA_SIZE,
-                        LPR_DAC_DATA_SHIFT_SIZE,
-                        LPR_DAC_DATA_SHIFT_DIR,
-                        SERIAL_WRITE)==ERROR){
+/* 2 - Write the data to the serial access function */
+#ifdef DEBUG_LPR_SERIAL
+        printf("         - Writing DAC\n");
+#endif /* DEBUG */
+        if (serialAccess(LPR_DAC_DATA_WRITE, lprRegisters.dacReg.integer, LPR_DAC_DATA_SIZE, LPR_DAC_DATA_SHIFT_SIZE,
+                         LPR_DAC_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             return ERROR;
         }
     }
     return NO_ERROR;
 }
-
 
 /* Get EDFA photo detector power */
 /*! This function returns the power of the EDFA photo detector. The resulting
@@ -642,22 +498,17 @@ int setModulationInputValue(void){
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
 
-int getPhotoDetectorPower(void){
+int getPhotoDetectorPower(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
-        lprRegisters.
-         bReg.
-          integer=0x0000;
+        lprRegisters.bReg.integer = 0x0000;
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        lprRegisters.
-         bReg.
-          bitField.
-           monitorPoint=LPR_BREG_EDFA_PD_POWER;
+        lprRegisters.bReg.bitField.monitorPoint = LPR_BREG_EDFA_PD_POWER;
 
         /* 2->5 Call the getLprAnalogMonitor funtion */
-        if(getLprAnalogMonitor()==ERROR){
+        if (getLprAnalogMonitor() == ERROR) {
             return ERROR;
         }
 
@@ -666,14 +517,13 @@ int getPhotoDetectorPower(void){
            The coefficient is stored in the configuration database and loaded at
            initialization time. */
         frontend.lpr.edfa.photoDetector.power =
-            (frontend.lpr.edfa.photoDetector.coeff*lprRegisters.adcData/LPR_ADC_RANGE);
+            (frontend.lpr.edfa.photoDetector.coeff * lprRegisters.adcData / LPR_ADC_RANGE);
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.edfa.photoDetector.power = 4.3;
     }
     return NO_ERROR;
 }
-
 
 /* Get laser pump temperature */
 /*! This function returns the pump temperature of the laser. The resulting
@@ -690,65 +540,43 @@ int getPhotoDetectorPower(void){
     \return
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
-int getLaserPumpTemperature(void){
-
+int getLaserPumpTemperature(void) {
     /* Float to help perform the temperature evaluation */
-    float vin=0.0, temperature=0.0;
+    float vin = 0.0, temperature = 0.0;
 
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
-        lprRegisters.
-         bReg.
-          integer=0x0000;
+        lprRegisters.bReg.integer = 0x0000;
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        lprRegisters.
-         bReg.
-          bitField.
-           monitorPoint=LPR_BREG_PUMP_TEMP;
+        lprRegisters.bReg.bitField.monitorPoint = LPR_BREG_PUMP_TEMP;
 
         /* 2->5 Call the getLprAnalogMonitor funtion */
-        if(getLprAnalogMonitor()==ERROR){
+        if (getLprAnalogMonitor() == ERROR) {
             return ERROR;
         }
 
         /* 6 - Scale the data */
         /* Scale the input voltage to the right value: vin=5*(adcData/65536) */
-        vin=(LPR_ADC_VOLTAGE_IN_SCALE*lprRegisters.
-                                       adcData)/LPR_ADC_RANGE;
+        vin = (LPR_ADC_VOLTAGE_IN_SCALE * lprRegisters.adcData) / LPR_ADC_RANGE;
         /* Apply the interpolation */
-        temperature=PTMP_0+
-                    PTMP_1*vin+
-                    PTMP_2*pow(vin,
-                               2.0)+
-                    PTMP_3*pow(vin,
-                               3.0)+
-                    PTMP_4*pow(vin,
-                               4.0)+
-                    PTMP_5*pow(vin,
-                               5.0)+
-                    PTMP_6*pow(vin,
-                               6.0);
+        temperature = PTMP_0 + PTMP_1 * vin + PTMP_2 * pow(vin, 2.0) + PTMP_3 * pow(vin, 3.0) + PTMP_4 * pow(vin, 4.0) +
+                      PTMP_5 * pow(vin, 5.0) + PTMP_6 * pow(vin, 6.0);
 
         /* Check if a domain error occurred while evaluating the power. */
-        if(errno==EDOM){
+        if (errno == EDOM) {
             return HARDW_CON_ERR;
         }
 
         /* Store the data */
-        frontend.
-         lpr.
-          edfa.
-           laser.
-            pumpTemp=temperature;
+        frontend.lpr.edfa.laser.pumpTemp = temperature;
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.edfa.laser.pumpTemp = 234.5;
     }
     return NO_ERROR;
 }
-
 
 /* Get LPR states */
 /*! This function monitors the states of several hardware in the LPR. This is a
@@ -757,54 +585,28 @@ int getLaserPumpTemperature(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int getLprStates(void){
-
+int getLprStates(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Read the status register, if an error occurs, notify the calling
            function. */
-        if(serialAccess(LPR_PARALLEL_READ,
-                        &lprRegisters.
-                          statusReg.
-                           integer,
-                        LPR_STATUS_REG_SIZE,
-                        LPR_STATUS_REG_SHIFT_SIZE,
-                        LPR_STATUS_REG_SHIFT_DIR,
-                        SERIAL_READ)==ERROR){
+        if (serialAccess(LPR_PARALLEL_READ, &lprRegisters.statusReg.integer, LPR_STATUS_REG_SIZE,
+                         LPR_STATUS_REG_SHIFT_SIZE, LPR_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
             return ERROR;
         }
 
         /* Store the optical switch error */
-        frontend.
-         lpr.
-          opticalSwitch.
-           state=lprRegisters.
-                                 statusReg.
-                                  bitField.
-                                   opticalSwitchError;
+        frontend.lpr.opticalSwitch.state = lprRegisters.statusReg.bitField.opticalSwitchError;
 
         /* Store the optical switch busy state */
-        frontend.
-         lpr.
-          opticalSwitch.
-           busy=lprRegisters.
-                                statusReg.
-                                 bitField.
-                                  opticalSwitchState;
+        frontend.lpr.opticalSwitch.busy = lprRegisters.statusReg.bitField.opticalSwitchState;
 
         /* Store the EDFA driver state */
-        frontend.
-         lpr.
-          edfa.
-           driverTempAlarm=lprRegisters.
-                                           statusReg.
-                                            bitField.
-                                             edfaDriverState;
+        frontend.lpr.edfa.driverTempAlarm = lprRegisters.statusReg.bitField.edfaDriverState;
     } else {
-        //SIMULATION_MODE
+        // SIMULATION_MODE
         frontend.lpr.opticalSwitch.state = 0;
         frontend.lpr.opticalSwitch.busy = 0;
         frontend.lpr.edfa.driverTempAlarm = 0;
     }
     return NO_ERROR;
 }
-

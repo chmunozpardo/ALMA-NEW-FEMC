@@ -7,22 +7,23 @@
     This file contains general use functions and variables. */
 
 /* Includes */
-#define __STDC_WANT_LIB_EXT1__  1   // Use the Safer C Library extension
-#include <stdio.h>                  /* sprintf_s */
-#include <stdlib.h>                 /* atol */
-#include <string.h>                 /* strstr, strlen */
-#include <math.h>                   /* pow */
-
+#define __STDC_WANT_LIB_EXT1__ 1  // Use the Safer C Library extension
 #include "globalDefinitions.h"
-#include "packet.h"
-#include "error_local.h"
+
+#include <math.h>   /* pow */
+#include <stdio.h>  /* sprintf_s */
+#include <stdlib.h> /* atol */
+#include <string.h> /* strstr, strlen */
+
 #include "debug.h"
+#include "error_local.h"
+#include "packet.h"
 
 /* Globals */
 /* Externs */
-CONVERSION convert;   /*!< This union allows to perform quick and easy
-                           conversion from the incoming CAN payload (unsigned
-                           unsigned char[4]) to a float to be used in the program. */
+CONVERSION convert; /*!< This union allows to perform quick and easy
+                         conversion from the incoming CAN payload (unsigned
+                         unsigned char[4]) to a float to be used in the program. */
 
 /* Check range */
 /*! This function checks if the parameter \p test is within the provided ranges.
@@ -35,13 +36,11 @@ CONVERSION convert;   /*!< This union allows to perform quick and easy
         - \ref ABOVE_RANGE  -> Above range
         - \ref IN_RANGE     -> In range
         - \ref BELOW_RANGE  -> Below Range */
-unsigned char checkRange(float low,
-                         float test,
-                         float high){
-    if(test<low){
+unsigned char checkRange(float low, float test, float high) {
+    if (test < low) {
         return BELOW_RANGE;
     }
-    if(test>high){
+    if (test > high) {
         return ABOVE_RANGE;
     }
     return IN_RANGE;
@@ -53,12 +52,11 @@ unsigned char checkRange(float low,
     \p *destination
     \param  destination a *unsigned char
     \param  source      a *unsigned char */
-void changeEndian(unsigned char *destination,
-                  unsigned char *source){
-    destination[3]=source[0];
-    destination[2]=source[1];
-    destination[1]=source[2];
-    destination[0]=source[3];
+void changeEndian(unsigned char *destination, unsigned char *source) {
+    destination[3] = source[0];
+    destination[2] = source[1];
+    destination[1] = source[2];
+    destination[0] = source[3];
 }
 
 /* Change endianicity for unsigned ints */
@@ -67,12 +65,11 @@ void changeEndian(unsigned char *destination,
     \p *destination
     \param  destination a *unsigned char
     \param  source      a *unsigned char */
-void changeEndianInt(unsigned char *destination,
-                     unsigned char *source){
-    destination[3]=source[2];
-    destination[2]=source[3];
-    destination[1]=source[0];
-    destination[0]=source[1];
+void changeEndianInt(unsigned char *destination, unsigned char *source) {
+    destination[3] = source[2];
+    destination[2] = source[3];
+    destination[1] = source[0];
+    destination[0] = source[1];
 }
 
 /* Build string */
@@ -85,38 +82,20 @@ void changeEndianInt(unsigned char *destination,
 
     \note   This function doesn't perform any check on the provided data to
             speed up the execution. */
-char *buildString(unsigned char *prefix,
-                  unsigned char number,
-                  unsigned char *suffix){
+char *buildString(unsigned char *prefix, unsigned char number, unsigned char *suffix) {
     static unsigned char string[MAX_STRING_SIZE];
 
-    if(suffix==NULL){
-        if(prefix==NULL){
-            snprintf(string,
-                      sizeof(string),
-                      "%d",
-                      number);
+    if (suffix == NULL) {
+        if (prefix == NULL) {
+            snprintf(string, sizeof(string), "%d", number);
         } else {
-            snprintf(string,
-                      sizeof(string),
-                      "%s%d",
-                      prefix,
-                      number);
+            snprintf(string, sizeof(string), "%s%d", prefix, number);
         }
     } else {
-        if(prefix==NULL){
-            snprintf(string,
-                      sizeof(string),
-                      "%d%s",
-                      number,
-                      suffix);
+        if (prefix == NULL) {
+            snprintf(string, sizeof(string), "%d%s", number, suffix);
         } else {
-            snprintf(string,
-                      sizeof(string),
-                      "%s%d%s",
-                      prefix,
-                      number,
-                      suffix);
+            snprintf(string, sizeof(string), "%s%d%s", prefix, number, suffix);
         }
     }
 
@@ -128,47 +107,42 @@ char *buildString(unsigned char *prefix,
     removed from the hardware. It is used as a placeholder in case something
     new will be connected in the hardware. */
 void bogoFunction(void) {
-
-    #ifdef DEBUG
-        printf("Bogo Function!\n");
-    #endif /* DEBUG */
+#ifdef DEBUG
+    printf("Bogo Function!\n");
+#endif /* DEBUG */
 
     /* If control message, ignore it. */
-    if(CAN_SIZE){ // If control (size!=0)
+    if (CAN_SIZE) {  // If control (size!=0)
         return;
     }
 
     /* If monitor */
-    CAN_SIZE=0;
-    CAN_STATUS=HARDW_RNG_ERR;
+    CAN_SIZE = 0;
+    CAN_STATUS = HARDW_RNG_ERR;
 
     return;
 }
 
 /* htol */
 /*! This function allow conversion from hexadecimal string to long int. */
-long htol(char *hex){
+long htol(char *hex) {
+    unsigned char len, bas, cnt, val;
+    long longInt = 0;
 
-    unsigned char len,bas,cnt,val;
-	long longInt=0;
+    if (strstr(hex, "0x")) {
+        len = strlen(hex);
 
-	if(strstr(hex,
-              "0x")){
-		len=strlen(hex);
+        for (cnt = 0; cnt < len; cnt++) {
+            val = hex[cnt];
 
-		for(cnt=0;cnt<len;cnt++){
+            if (((val > 47) && (val < 58)) || ((val > 64) && (val < 71)) || ((val > 96) && (val < 103))) {
+                bas = val > 64 ? (val > 96 ? 87 : 55) : 48;
+                longInt += (val - bas) * pow(16, len - cnt - 1);
+            }
+        }
+    } else {
+        longInt = atol(hex);
+    }
 
-	    	val=hex[cnt];
-
-		    if(((val>47)&&(val<58))||((val>64)&&(val<71))||((val>96)&&(val<103))){
-				bas=val>64?(val>96?87:55):48;
-				longInt+=(val-bas)*pow(16,len-cnt-1);
-		    }
-		}
-	} else {
-		longInt=atol(hex);
-	}
-
-	return longInt;
+    return longInt;
 }
-

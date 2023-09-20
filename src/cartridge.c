@@ -7,72 +7,65 @@
     This file contains all the functions necessary to handle cartridge events. */
 
 /* Includes */
-#include <stdio.h>      /* printf */
+#include <stdio.h> /* printf */
 
-#include "frontend.h"
-#include "error_local.h"
-#include "debug.h"
-#include "biasSerialInterface.h"
-#include "iniWrapper.h"
 #include "async.h"
+#include "biasSerialInterface.h"
+#include "debug.h"
+#include "error_local.h"
+#include "frontend.h"
+#include "iniWrapper.h"
 #include "pdSerialInterface.h"
-#include "timer.h"
 #include "serialMux.h"
+#include "timer.h"
 
 /* Statics */
-static HANDLER cartridgeSubsystemHandler[CARTRIDGE_SUBSYSTEMS_NUMBER]={biasSubsystemHandler,
-                                                                       loAndTempSubsystemHandler};
+static HANDLER cartridgeSubsystemHandler[CARTRIDGE_SUBSYSTEMS_NUMBER] = {biasSubsystemHandler,
+                                                                         loAndTempSubsystemHandler};
 
-static HANDLER biasModulesHandler[BIAS_MODULES_NUMBER]={polarizationHandler,
-                                                        polarizationHandler};
+static HANDLER biasModulesHandler[BIAS_MODULES_NUMBER] = {polarizationHandler, polarizationHandler};
 
-static HANDLER loAndTempModulesHandler[LO_TEMP_MODULES_NUMBER]={loHandler,
-                                                                cartridgeTempSubsystemHandler};
+static HANDLER loAndTempModulesHandler[LO_TEMP_MODULES_NUMBER] = {loHandler, cartridgeTempSubsystemHandler};
 
-static HANDLER cartridgeTempSubsystemModulesHandler[CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER]={cartridgeTempHandler,
-                                                                                              cartridgeTempHandler,
-                                                                                              cartridgeTempHandler,
-                                                                                              cartridgeTempHandler,
-                                                                                              cartridgeTempHandler,
-                                                                                              cartridgeTempHandler};
+static HANDLER cartridgeTempSubsystemModulesHandler[CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER] = {
+    cartridgeTempHandler, cartridgeTempHandler, cartridgeTempHandler,
+    cartridgeTempHandler, cartridgeTempHandler, cartridgeTempHandler};
 
 /* Externs */
-unsigned char currentCartridgeSubsystem=0; /*! This global keep track of the
-                                               currently addressed cartridge
-                                               subsystem (WCA or CCA) */
-unsigned char currentLoAndTempModule=0; /*! This global keeps track of the
-                                            currently addressed LO and cartridge
-                                            temperature sensors */
-unsigned char currentBiasModule=0; /*! This global keeps track of the currently
-                                       addressed polarization */
-unsigned char currentCartridgeTempSubsystemModule=0; /*! This global keeps track
-                                                         of the currently
-                                                         addressed temperature
-                                                         sensor */
+unsigned char currentCartridgeSubsystem = 0;           /*! This global keep track of the
+                                                           currently addressed cartridge
+                                                           subsystem (WCA or CCA) */
+unsigned char currentLoAndTempModule = 0;              /*! This global keeps track of the
+                                                           currently addressed LO and cartridge
+                                                           temperature sensors */
+unsigned char currentBiasModule = 0;                   /*! This global keeps track of the currently
+                                                           addressed polarization */
+unsigned char currentCartridgeTempSubsystemModule = 0; /*! This global keeps track
+                                                           of the currently
+                                                           addressed temperature
+                                                           sensor */
 
 /* Cartridge handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cartridges. */
-void cartridgeHandler(void){
-    #ifdef DEBUG
-        printf(" Cartridge: %d (currentModule)\n",
-               currentModule);
-    #endif /* DEBUG */
+void cartridgeHandler(void) {
+#ifdef DEBUG
+    printf(" Cartridge: %d (currentModule)\n", currentModule);
+#endif /* DEBUG */
 
-    if(frontend.cartridge[currentModule].available==UNAVAILABLE) {
-        storeError(ERR_CARTRIDGE, ERC_MODULE_ABSENT);  //Cartridge not installed
-        CAN_STATUS = HARDW_RNG_ERR; // Notify incoming CAN message of error
+    if (frontend.cartridge[currentModule].available == UNAVAILABLE) {
+        storeError(ERR_CARTRIDGE, ERC_MODULE_ABSENT);  // Cartridge not installed
+        CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of error
         return;
     }
-    
-    /* Check the state of the cartridge */
-    switch(frontend.cartridge[currentModule].state) {
 
+    /* Check the state of the cartridge */
+    switch (frontend.cartridge[currentModule].state) {
         /* Check if the cartridge is in error state. If this is the case, then
            no action is allowed until the error is cleared. See ICD. */
         case CARTRIDGE_ERROR:
-            storeError(ERR_CARTRIDGE, ERC_HARDWARE_ERROR);  //The cartridge is in error state
-            CAN_STATUS = HARDW_ERROR; // Notify incoming message
+            storeError(ERR_CARTRIDGE, ERC_HARDWARE_ERROR);  // The cartridge is in error state
+            CAN_STATUS = HARDW_ERROR;                       // Notify incoming message
             return;
             break;
 
@@ -82,8 +75,8 @@ void cartridgeHandler(void){
            think that they should operate at 5MHz instead of 10 and the returned
            data will be half of the real data. */
         case CARTRIDGE_OFF:
-            storeError(ERR_CARTRIDGE, ERC_MODULE_POWER); //The cartridge is not powered
-            CAN_STATUS = HARDW_BLKD_ERR; // Notify incoming message
+            storeError(ERR_CARTRIDGE, ERC_MODULE_POWER);  // The cartridge is not powered
+            CAN_STATUS = HARDW_BLKD_ERR;                  // Notify incoming message
             return;
             break;
 
@@ -106,11 +99,11 @@ void cartridgeHandler(void){
     }
 
     /* Check if the specified submodule is in range */
-    currentCartridgeSubsystem=(CAN_ADDRESS&CARTRIDGE_SUBSYSTEM_RCA_MASK)>>CARTRIDGE_SUBSYSTEM_MASK_SHIFT;
-    if(currentCartridgeSubsystem>=CARTRIDGE_SUBSYSTEMS_NUMBER){
-        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE); //Cartridge subsystem out of range
+    currentCartridgeSubsystem = (CAN_ADDRESS & CARTRIDGE_SUBSYSTEM_RCA_MASK) >> CARTRIDGE_SUBSYSTEM_MASK_SHIFT;
+    if (currentCartridgeSubsystem >= CARTRIDGE_SUBSYSTEMS_NUMBER) {
+        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // Cartridge subsystem out of range
 
-        CAN_STATUS = HARDW_RNG_ERR; // Notify incoming CAN message of the error
+        CAN_STATUS = HARDW_RNG_ERR;  // Notify incoming CAN message of the error
         return;
     }
 
@@ -119,18 +112,18 @@ void cartridgeHandler(void){
 }
 
 /* LO and Cartridge temperature sensors handler. */
-static void loAndTempSubsystemHandler(void){
-    #ifdef DEBUG
-        printf("  LO or Temperature\n");
-    #endif /* DEBUG */
+static void loAndTempSubsystemHandler(void) {
+#ifdef DEBUG
+    printf("  LO or Temperature\n");
+#endif /* DEBUG */
 
     /* No need to check if it is outfitted since this is a fictuos subsystem
        used to redirect CAN messages */
 
     /* Check if the specified submodule is in range */
-    currentLoAndTempModule=(CAN_ADDRESS&LO_TEMP_MODULES_RCA_MASK)>>LO_TEMP_MODULES_MASK_SHIFT;
-    if(currentLoAndTempModule>=LO_TEMP_MODULES_NUMBER){
-        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE); //Lo and cartridge temperature submodule out of range
+    currentLoAndTempModule = (CAN_ADDRESS & LO_TEMP_MODULES_RCA_MASK) >> LO_TEMP_MODULES_MASK_SHIFT;
+    if (currentLoAndTempModule >= LO_TEMP_MODULES_NUMBER) {
+        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // Lo and cartridge temperature submodule out of range
         return;
     }
 
@@ -139,52 +132,50 @@ static void loAndTempSubsystemHandler(void){
 }
 
 /* Cartridge temperature sensor handler. */
-static void cartridgeTempSubsystemHandler(void){
-    #ifdef DEBUG
-        printf("   Cartridge Temperature\n");
-    #endif /* DEBUG */
+static void cartridgeTempSubsystemHandler(void) {
+#ifdef DEBUG
+    printf("   Cartridge Temperature\n");
+#endif /* DEBUG */
 
     /* No need to check if it is outfitted since this is a fictuos subsystem
        used to redirect CAN messages */
 
     /* Check if the the specified submodule is in range */
-    currentCartridgeTempSubsystemModule=(CAN_ADDRESS&CARTRIDGE_TEMP_SUBSYSTEM_MODULES_RCA_MASK)>>CARTRIDGE_TEMP_SUBSYSTEM_MODULES_MASK_SHIFT;
-    if(currentCartridgeTempSubsystemModule>=CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER){
-        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE); //Cartridge temperature submodule out of range
+    currentCartridgeTempSubsystemModule =
+        (CAN_ADDRESS & CARTRIDGE_TEMP_SUBSYSTEM_MODULES_RCA_MASK) >> CARTRIDGE_TEMP_SUBSYSTEM_MODULES_MASK_SHIFT;
+    if (currentCartridgeTempSubsystemModule >= CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER) {
+        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // Cartridge temperature submodule out of range
         return;
     }
 
     /* Since the sensor are actually controlled by the bias module while the
        RCAs are listed under the LO and Temp submodule, we have to manually
        change the subsystem to address the correct hardware. */
-    currentCartridgeSubsystem=CARTRIDGE_SUBSYSTEM_BIAS;
+    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_BIAS;
 
     /* Call the correct function */
     (cartridgeTempSubsystemModulesHandler[currentCartridgeTempSubsystemModule])();
 }
 
 /* BIAS handler. */
-static void biasSubsystemHandler(void){
-
-    #ifdef DEBUG
-        printf("  BIAS\n");
-    #endif /* DEBUG */
+static void biasSubsystemHandler(void) {
+#ifdef DEBUG
+    printf("  BIAS\n");
+#endif /* DEBUG */
 
     /* No need to check if it is outfitted since this is a fictuos subsystem
        used to redirect CAN messages */
 
     /* Check if the specified submodule is in range */
-    currentBiasModule=(CAN_ADDRESS&BIAS_MODULES_RCA_MASK)>>BIAS_MODULES_MASK_SHIFT;
-    if(currentBiasModule>=BIAS_MODULES_NUMBER){
-        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE); //BIAS submodule out of range
+    currentBiasModule = (CAN_ADDRESS & BIAS_MODULES_RCA_MASK) >> BIAS_MODULES_MASK_SHIFT;
+    if (currentBiasModule >= BIAS_MODULES_NUMBER) {
+        storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // BIAS submodule out of range
         return;
     }
-
 
     /* Call the correct function */
     (biasModulesHandler[currentBiasModule])();
 }
-
 
 /* Cartridge stop */
 /*! This function performs the operations necessary to shut down a cartidge.
@@ -192,12 +183,10 @@ static void biasSubsystemHandler(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int cartridgeStop(unsigned char cartridge){
-
-    #ifdef DEBUG_INIT
-        printf("- Shutting down cartridge %d...\n",
-               cartridge);
-    #endif  // DEBUG_INIT
+int cartridgeStop(unsigned char cartridge) {
+#ifdef DEBUG_INIT
+    printf("- Shutting down cartridge %d...\n", cartridge);
+#endif  // DEBUG_INIT
 
     /* Change the state of the addressed cartridge to OFF */
     frontend.cartridge[cartridge].state = CARTRIDGE_OFF;
@@ -205,13 +194,12 @@ int cartridgeStop(unsigned char cartridge){
     /* Force clear STANDBY2 mode */
     frontend.cartridge[cartridge].standby2 = FALSE;
 
-    #ifdef DEBUG_INIT
-        printf("  done!\n\n");
-    #endif  // DEBUG_INIT
+#ifdef DEBUG_INIT
+    printf("  done!\n\n");
+#endif  // DEBUG_INIT
 
     return NO_ERROR;
 }
-
 
 /* Cartridge startup init */
 /*! This function performs the operations necessary to initialize a cartridge
@@ -220,275 +208,238 @@ int cartridgeStop(unsigned char cartridge){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int cartridgeStartup(void){
-
+int cartridgeStartup(void) {
     /* Few variables to help load the data from the configuration file */
     CFG_STRUCT dataIn;
-    float resistor=0.0;
+    float resistor = 0.0;
     unsigned char sensor;
 
     /* A variable to hold the section names of the cartridge configuration file
        where the temperature sensors offsets can be found. */
-    char sensors[CARTRIDGE_TEMP_SENSORS_NUMBER+1][SENSOR_SEC_NAME_SIZE]={"4K_STAGE",
-                                                                         "110K_STAGE",
-                                                                         "POL0_MIXER",
-                                                                         "SPARE",
-                                                                         "15K_STAGE",
-                                                                         "POL1_MIXER"};
+    char sensors[CARTRIDGE_TEMP_SENSORS_NUMBER + 1][SENSOR_SEC_NAME_SIZE] = {"4K_STAGE", "110K_STAGE", "POL0_MIXER",
+                                                                             "SPARE",    "15K_STAGE",  "POL1_MIXER"};
 
-    #ifdef DEBUG_STARTUP
-        printf(" Cartridge %d configuration file: %s\n",
-               currentModule + 1,
-               frontend.cartridge[currentModule].configFile);
+#ifdef DEBUG_STARTUP
+    printf(" Cartridge %d configuration file: %s\n", currentModule + 1, frontend.cartridge[currentModule].configFile);
 
-        printf(" Initializing Cartridge %d...\n", currentModule+1);                                                                         
-    #endif
+    printf(" Initializing Cartridge %d...\n", currentModule + 1);
+#endif
 
-    #ifndef CHECK_HW_AVAIL
+#ifndef CHECK_HW_AVAIL
 
-        /* Assign current sense resistor value */
-        switch(currentModule + 1) {
-            case 3:
-                resistor = 5.0;
-                break;
-            case 4:
-                resistor = 5.0;
-                break;
-            case 5:
-                resistor = 5.1;
-                break;
-            case 6:
-                resistor = 5.0;
-                break;
-            case 7:
-                resistor = 50.0;
-                break;
-            case 8:
-                resistor = 5.0;
-                break;
-            case 9:
-                resistor = 10.0;
-                break;
-            case 10:
-                resistor = 10.0;
-                break;
-            default:
-                resistor = 1.0;
-                break;
-        }
-
-        /* Polarization Level */
-        for(currentBiasModule = 0; 
-            currentBiasModule < POLARIZATIONS_NUMBER; 
-            currentBiasModule++) 
-        {
-            /* Sideband Level */
-            for(currentPolarizationModule = 0;
-                currentPolarizationModule < SIDEBANDS_NUMBER;
-                currentPolarizationModule++)
-            {
-                /* SIS availability for bands 3-10: */
-                frontend.cartridge[currentModule].polarization[currentBiasModule].
-                    sideband[currentPolarizationModule].sis.available
-                    = ((currentModule + 1) >= 3);
-
-                /* SIS current sense resistor */
-                frontend.cartridge[currentModule].polarization[currentBiasModule].
-                   sideband[currentPolarizationModule].
-                    sis.resistor = resistor;
-
-                /* SIS magnet availability for bands 5-10: */
-                /* Configure the read array for SIS magnet availability info */
-                frontend.cartridge[currentModule].polarization[currentBiasModule].
-                    sideband[currentPolarizationModule].sisMagnet.available
-                    = ((currentModule + 1) >= 5);
-            }
-            /* SIS heater availability for bands 3-10: */
-            frontend.cartridge[currentModule].polarization[currentBiasModule].
-                sisHeater.available = ((currentModule + 1) >= 3);;
-        }
-
-    #else // CHECK_HW_AVAIL
-
-        printf(" Cartridge %d configuration file: %s\n",
-               currentModule+1,
-               frontend.cartridge[currentModule].configFile);
-
-        /* Load the hardware availability information for the selected cartridge. */
-        printf("  - Hardware availability...\n");
-
-        /* Polarization Level */
-        for(currentBiasModule=0;
-            currentBiasModule<POLARIZATIONS_NUMBER;
-            currentBiasModule++)
-        {
-            /* Sideband Level */
-            for(currentPolarizationModule=0;
-                currentPolarizationModule<SIDEBANDS_NUMBER;
-                currentPolarizationModule++)
-            {
-                /* SIS availability */
-                /* Configure the read array for SIS availability info */
-                dataIn.Name=SIS_AVAIL_KEY;
-                dataIn.VarType=Cfg_Boolean;
-                dataIn.DataPtr=&frontend.cartridge[currentModule].polarization[currentBiasModule].
-                    sideband[currentPolarizationModule].sis.available;
-
-                /* Access configuration file, if error, then skip the configuration. */
-                if(myReadCfg(frontend.cartridge[currentModule].configFile,
-                             SIS_AVAIL_SECT(currentBiasModule, currentPolarizationModule),
-                             &dataIn,
-                             SIS_AVAIL_EXPECTED) != NO_ERROR)
-                {
-                    return NO_ERROR;
-                }
-
-                #ifdef DEBUG_STARTUP
-                    /* Print the availability info */
-                    printf("        - SIS available: %d\n",
-                            frontend.cartridge[currentModule].polarization[currentBiasModule].
-                                sideband[currentPolarizationModule].sis.available);
-                #endif /* DEBUG_STARTUP */
-
-                /* SIS magnet availability */
-                /* Configure the read array for SIS magnet availability info */
-                dataIn.Name=SIS_MAG_AVAIL_KEY;
-                dataIn.VarType=Cfg_Boolean;
-                dataIn.DataPtr=&frontend.cartridge[currentModule].polarization[currentBiasModule].
-                    sideband[currentPolarizationModule].sisMagnet.available;
-
-                /* Access configuration file, if error, then skip the configuration. */
-                if(myReadCfg(frontend.cartridge[currentModule].configFile,
-                             SIS_MAG_AVAIL_SECT(currentBiasModule, currentPolarizationModule),
-                             &dataIn,
-                             SIS_MAG_AVAIL_EXPECTED) != NO_ERROR)
-                {
-                    return NO_ERROR;
-                }
-
-                #ifdef DEBUG_STARTUP
-                    /* Print the availability info */
-                    printf("        - SIS magnet available: %d\n",
-                            frontend.cartridge[currentModule].polarization[currentBiasModule].
-                                sideband[currentPolarizationModule].sisMagnet.available);
-                #endif /* DEBUG_STARTUP */
-            }
-
-            /* SIS heater availability */
-            /* Configure the read array for SIS heater availability info */
-            dataIn.Name=SIS_HEATER_AVAIL_KEY;
-            dataIn.VarType=Cfg_Boolean;
-            dataIn.DataPtr=&frontend.cartridge[currentModule].polarization[currentBiasModule].
-                sisHeater.available;
-
-            /* Access configuration file, if error, then skip the configuration. */
-            if(myReadCfg(frontend.cartridge[currentModule].configFile,
-                         SIS_HEATER_AVAIL_SECT(currentBiasModule),
-                         &dataIn,
-                         SIS_HEATER_AVAIL_EXPECTED) != NO_ERROR)
-            {
-                return NO_ERROR;
-            }
-
-            #ifdef DEBUG_STARTUP
-                /* Print the availability info */
-                printf("      - SIS heater available: %d\n",
-                        frontend.cartridge[currentModule].polarization[currentBiasModule].
-                            sisHeater.available);
-            #endif /* DEBUG_STARTUP */
-        }
-        printf("    done!\n"); // Hardware availability
-
-        // Resistor value is expected for bands 3-10:
-        if ((currentModule + 1) >= 3) {
-
-            /* Load the SIS current sense resistor value. This assumes that all the
-               sidebands in all the polarizations have the same sense resistor. If this
-               is not the case then the software and the configuration files will have
-               to be update to allow for different values for different sidebands and
-               polarizations.
-               Also the availability of polarization and sideband should be checked
-               before this step. The check is skipped because no harm is done if the
-               value of the resistor is set for a not installed*/
-            printf("  - Sense resistor...\n");
-
-            /* Configure read array */
-            dataIn.Name=RESISTOR_VALUE_KEY;
-            dataIn.VarType=Cfg_Float;
-            dataIn.DataPtr=&resistor;
-
-            /* Access configuration file, if error, skip the configuration. */
-            if(myReadCfg(frontend.cartridge[currentModule].configFile,
-                         RESISTOR_VALUE_SECTION,
-                         &dataIn,
-                         RESISTOR_VALUE_EXPECTED) != NO_ERROR)
-            {
-                return NO_ERROR;
-            }
-        }
-
-        /* Store the value in all polarizations sidebands. */
-        for(currentBiasModule=0;
-            currentBiasModule<POLARIZATIONS_NUMBER;
-            currentBiasModule++)
-        {
-            for(currentPolarizationModule=0;
-                currentPolarizationModule<SIDEBANDS_NUMBER;
-                currentPolarizationModule++){
-
-                /* Store in the frontend variable */
-                frontend.cartridge[currentModule].polarization[currentBiasModule].
-                    sideband[currentPolarizationModule].sis.resistor=resistor;
-
-                #ifdef DEBUG_STARTUP
-                    printf("    - Polarization %d Sideband %d (%f ohm)...done!\n",
-                            currentBiasModule,
-                            currentPolarizationModule,
-                            frontend.cartridge[currentModule].polarization[currentBiasModule].
-                                sideband[currentPolarizationModule].sis.resistor);
-                #endif /* DEBUG_STARTUP */
-            }
-        }
-        printf("    done!\n"); // Sense resistor
-    #endif // CHECK_HW_AVAIL
-    
-    #ifdef DEBUG_STARTUP    
-        printf("  - Temperature sensor offsets!\n"); 
-    #endif // DEBUG_STARTUP
-
-    /* Cartridge temp sensors offsets */
-    for(sensor = 0;
-        sensor < CARTRIDGE_TEMP_SENSORS_NUMBER;
-        sensor++)
-    {
-        dataIn.Name=SENSOR_OFFSET_KEY;
-        dataIn.VarType=Cfg_Float;
-        dataIn.DataPtr=&frontend.cartridge[currentModule].cartridgeTemp[sensor].offset;
-
-        /* Access configuration file, if error, skip the configuration. */
-        if(myReadCfg(frontend.cartridge[currentModule].configFile,
-                     SENSOR_OFFSET_SECTION(sensor),
-                     &dataIn,
-                     SENSOR_OFFSET_EXPECTED) != NO_ERROR)
-        {
-            printf("Error reading cartridge:%d sensor:%d\n", currentModule, sensor);
-        }
-        #ifdef DEBUG_STARTUP
-            printf("    - Sensor %d [%s] offset=%f\n",
-                    sensor,
-                    SENSOR_OFFSET_SECTION(sensor),
-                    frontend.cartridge[currentModule].cartridgeTemp[sensor].offset);
-        #endif /* DEBUG_STARTUP */
+    /* Assign current sense resistor value */
+    switch (currentModule + 1) {
+        case 3:
+            resistor = 5.0;
+            break;
+        case 4:
+            resistor = 5.0;
+            break;
+        case 5:
+            resistor = 5.1;
+            break;
+        case 6:
+            resistor = 5.0;
+            break;
+        case 7:
+            resistor = 50.0;
+            break;
+        case 8:
+            resistor = 5.0;
+            break;
+        case 9:
+            resistor = 10.0;
+            break;
+        case 10:
+            resistor = 10.0;
+            break;
+        default:
+            resistor = 1.0;
+            break;
     }
 
-    #ifdef DEBUG_STARTUP    
-        printf("    done!\n"); // Temperature sensor offsets
-        printf(" done!\n\n"); // Cartridge
-    #endif // DEBUG_STARTUP
+    /* Polarization Level */
+    for (currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
+        /* Sideband Level */
+        for (currentPolarizationModule = 0; currentPolarizationModule < SIDEBANDS_NUMBER; currentPolarizationModule++) {
+            /* SIS availability for bands 3-10: */
+            frontend.cartridge[currentModule]
+                .polarization[currentBiasModule]
+                .sideband[currentPolarizationModule]
+                .sis.available = ((currentModule + 1) >= 3);
+
+            /* SIS current sense resistor */
+            frontend.cartridge[currentModule]
+                .polarization[currentBiasModule]
+                .sideband[currentPolarizationModule]
+                .sis.resistor = resistor;
+
+            /* SIS magnet availability for bands 5-10: */
+            /* Configure the read array for SIS magnet availability info */
+            frontend.cartridge[currentModule]
+                .polarization[currentBiasModule]
+                .sideband[currentPolarizationModule]
+                .sisMagnet.available = ((currentModule + 1) >= 5);
+        }
+        /* SIS heater availability for bands 3-10: */
+        frontend.cartridge[currentModule].polarization[currentBiasModule].sisHeater.available =
+            ((currentModule + 1) >= 3);
+        ;
+    }
+
+#else  // CHECK_HW_AVAIL
+
+    printf(" Cartridge %d configuration file: %s\n", currentModule + 1, frontend.cartridge[currentModule].configFile);
+
+    /* Load the hardware availability information for the selected cartridge. */
+    printf("  - Hardware availability...\n");
+
+    /* Polarization Level */
+    for (currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
+        /* Sideband Level */
+        for (currentPolarizationModule = 0; currentPolarizationModule < SIDEBANDS_NUMBER; currentPolarizationModule++) {
+            /* SIS availability */
+            /* Configure the read array for SIS availability info */
+            dataIn.Name = SIS_AVAIL_KEY;
+            dataIn.VarType = Cfg_Boolean;
+            dataIn.DataPtr = &frontend.cartridge[currentModule]
+                                  .polarization[currentBiasModule]
+                                  .sideband[currentPolarizationModule]
+                                  .sis.available;
+
+            /* Access configuration file, if error, then skip the configuration. */
+            if (myReadCfg(frontend.cartridge[currentModule].configFile,
+                          SIS_AVAIL_SECT(currentBiasModule, currentPolarizationModule), &dataIn,
+                          SIS_AVAIL_EXPECTED) != NO_ERROR) {
+                return NO_ERROR;
+            }
+
+#ifdef DEBUG_STARTUP
+            /* Print the availability info */
+            printf("        - SIS available: %d\n", frontend.cartridge[currentModule]
+                                                        .polarization[currentBiasModule]
+                                                        .sideband[currentPolarizationModule]
+                                                        .sis.available);
+#endif /* DEBUG_STARTUP */
+
+            /* SIS magnet availability */
+            /* Configure the read array for SIS magnet availability info */
+            dataIn.Name = SIS_MAG_AVAIL_KEY;
+            dataIn.VarType = Cfg_Boolean;
+            dataIn.DataPtr = &frontend.cartridge[currentModule]
+                                  .polarization[currentBiasModule]
+                                  .sideband[currentPolarizationModule]
+                                  .sisMagnet.available;
+
+            /* Access configuration file, if error, then skip the configuration. */
+            if (myReadCfg(frontend.cartridge[currentModule].configFile,
+                          SIS_MAG_AVAIL_SECT(currentBiasModule, currentPolarizationModule), &dataIn,
+                          SIS_MAG_AVAIL_EXPECTED) != NO_ERROR) {
+                return NO_ERROR;
+            }
+
+#ifdef DEBUG_STARTUP
+            /* Print the availability info */
+            printf("        - SIS magnet available: %d\n", frontend.cartridge[currentModule]
+                                                               .polarization[currentBiasModule]
+                                                               .sideband[currentPolarizationModule]
+                                                               .sisMagnet.available);
+#endif /* DEBUG_STARTUP */
+        }
+
+        /* SIS heater availability */
+        /* Configure the read array for SIS heater availability info */
+        dataIn.Name = SIS_HEATER_AVAIL_KEY;
+        dataIn.VarType = Cfg_Boolean;
+        dataIn.DataPtr = &frontend.cartridge[currentModule].polarization[currentBiasModule].sisHeater.available;
+
+        /* Access configuration file, if error, then skip the configuration. */
+        if (myReadCfg(frontend.cartridge[currentModule].configFile, SIS_HEATER_AVAIL_SECT(currentBiasModule), &dataIn,
+                      SIS_HEATER_AVAIL_EXPECTED) != NO_ERROR) {
+            return NO_ERROR;
+        }
+
+#ifdef DEBUG_STARTUP
+        /* Print the availability info */
+        printf("      - SIS heater available: %d\n",
+               frontend.cartridge[currentModule].polarization[currentBiasModule].sisHeater.available);
+#endif /* DEBUG_STARTUP */
+    }
+    printf("    done!\n");  // Hardware availability
+
+    // Resistor value is expected for bands 3-10:
+    if ((currentModule + 1) >= 3) {
+        /* Load the SIS current sense resistor value. This assumes that all the
+           sidebands in all the polarizations have the same sense resistor. If this
+           is not the case then the software and the configuration files will have
+           to be update to allow for different values for different sidebands and
+           polarizations.
+           Also the availability of polarization and sideband should be checked
+           before this step. The check is skipped because no harm is done if the
+           value of the resistor is set for a not installed*/
+        printf("  - Sense resistor...\n");
+
+        /* Configure read array */
+        dataIn.Name = RESISTOR_VALUE_KEY;
+        dataIn.VarType = Cfg_Float;
+        dataIn.DataPtr = &resistor;
+
+        /* Access configuration file, if error, skip the configuration. */
+        if (myReadCfg(frontend.cartridge[currentModule].configFile, RESISTOR_VALUE_SECTION, &dataIn,
+                      RESISTOR_VALUE_EXPECTED) != NO_ERROR) {
+            return NO_ERROR;
+        }
+    }
+
+    /* Store the value in all polarizations sidebands. */
+    for (currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
+        for (currentPolarizationModule = 0; currentPolarizationModule < SIDEBANDS_NUMBER; currentPolarizationModule++) {
+            /* Store in the frontend variable */
+            frontend.cartridge[currentModule]
+                .polarization[currentBiasModule]
+                .sideband[currentPolarizationModule]
+                .sis.resistor = resistor;
+
+#ifdef DEBUG_STARTUP
+            printf("    - Polarization %d Sideband %d (%f ohm)...done!\n", currentBiasModule, currentPolarizationModule,
+                   frontend.cartridge[currentModule]
+                       .polarization[currentBiasModule]
+                       .sideband[currentPolarizationModule]
+                       .sis.resistor);
+#endif  /* DEBUG_STARTUP */
+        }
+    }
+    printf("    done!\n");  // Sense resistor
+#endif  // CHECK_HW_AVAIL
+
+#ifdef DEBUG_STARTUP
+    printf("  - Temperature sensor offsets!\n");
+#endif  // DEBUG_STARTUP
+
+    /* Cartridge temp sensors offsets */
+    for (sensor = 0; sensor < CARTRIDGE_TEMP_SENSORS_NUMBER; sensor++) {
+        dataIn.Name = SENSOR_OFFSET_KEY;
+        dataIn.VarType = Cfg_Float;
+        dataIn.DataPtr = &frontend.cartridge[currentModule].cartridgeTemp[sensor].offset;
+
+        /* Access configuration file, if error, skip the configuration. */
+        if (myReadCfg(frontend.cartridge[currentModule].configFile, SENSOR_OFFSET_SECTION(sensor), &dataIn,
+                      SENSOR_OFFSET_EXPECTED) != NO_ERROR) {
+            printf("Error reading cartridge:%d sensor:%d\n", currentModule, sensor);
+        }
+#ifdef DEBUG_STARTUP
+        printf("    - Sensor %d [%s] offset=%f\n", sensor, SENSOR_OFFSET_SECTION(sensor),
+               frontend.cartridge[currentModule].cartridgeTemp[sensor].offset);
+#endif /* DEBUG_STARTUP */
+    }
+
+#ifdef DEBUG_STARTUP
+    printf("    done!\n");  // Temperature sensor offsets
+    printf(" done!\n\n");   // Cartridge
+#endif                      // DEBUG_STARTUP
 
     return NO_ERROR;
 }
-
 
 /* Cartrige init */
 /*! This function performs the operations necessary to initialize a cartridge at
@@ -497,23 +448,22 @@ int cartridgeStartup(void){
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int cartridgeInit(unsigned char cartridge){
-
+int cartridgeInit(unsigned char cartridge) {
     /* Set currentModule variable to reflect the selected cartridge.
        This is necessary because currentModule is the global variable pointing
        to the selected cartridge. */
     currentModule = cartridge;
 
     /* Check if the receiver is outfitted with the cartridge */
-    if(frontend.cartridge[currentModule].available==UNAVAILABLE) {
-        storeError(ERR_CARTRIDGE, ERC_MODULE_ABSENT); //Cartridge not installed
-        CAN_STATUS = HARDW_RNG_ERR; // Notify incoming CAN message of error
+    if (frontend.cartridge[currentModule].available == UNAVAILABLE) {
+        storeError(ERR_CARTRIDGE, ERC_MODULE_ABSENT);  // Cartridge not installed
+        CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of error
         return ERROR;
     }
-    
-    #ifdef DEBUG_INIT
-        printf("Initializing cartridge (%d)\n", currentModule+1);
-    #endif // DEBUG_INIT
+
+#ifdef DEBUG_INIT
+    printf("Initializing cartridge (%d)\n", currentModule + 1);
+#endif  // DEBUG_INIT
 
     /* Enable the 10MHz communication for the BIAS and the LO and update the
        relative state variable. Initialize both polarization even if there might
@@ -523,43 +473,39 @@ int cartridgeInit(unsigned char cartridge){
 
     /* Polarizations */
     /* Set current cartridge subsystem to bias */
-    currentCartridgeSubsystem=CARTRIDGE_SUBSYSTEM_BIAS;
+    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_BIAS;
     /* Set the 10MHz */
-    for(currentBiasModule = 0;
-        currentBiasModule < POLARIZATIONS_NUMBER;
-        currentBiasModule++)
-    {
+    for (currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
         /* Initialize the polarizations */
-        if(polarizationInit()==ERROR) {
+        if (polarizationInit() == ERROR) {
             return ERROR;
         }
     }
 
     /* LO */
     /* Set current cartridge subsystem to LO */
-    currentCartridgeSubsystem=CARTRIDGE_SUBSYSTEM_LO;
+    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_LO;
 
     /* Initialize the LO */
-    if(loInit()==ERROR) {
+    if (loInit() == ERROR) {
         return ERROR;
     }
 
-    /* Change the state of the addressed cartridge to CARTRDIGE_READY (powered
-       and initialized) */
-    #ifdef DEBUG_INIT
-        printf(" - Turning cartridge ON...");
-    #endif // DEBUG_INIT
+/* Change the state of the addressed cartridge to CARTRDIGE_READY (powered
+   and initialized) */
+#ifdef DEBUG_INIT
+    printf(" - Turning cartridge ON...");
+#endif  // DEBUG_INIT
 
     /* Actual turn-on handled below in cartridgeAsync() */
 
-    #ifdef DEBUG_INIT
-        printf(" done!\n"); // Turning cartridge on
-        printf("done!\n\n"); // Cartridge
-    #endif // DEBUG_INIT
+#ifdef DEBUG_INIT
+    printf(" done!\n");   // Turning cartridge on
+    printf("done!\n\n");  // Cartridge
+#endif                    // DEBUG_INIT
 
     return NO_ERROR;
 }
-
 
 /* Cartrdige async */
 /*! This function deals with the asynchronous operations related to a cartridge
@@ -567,8 +513,7 @@ int cartridgeInit(unsigned char cartridge){
         - \ref NO_ERROR     -> if no error occured
         - \ref ASYNC_DONE   -> once all the async operations are done
         - \ref ERROR        -> if something went wrong */
-int cartridgeAsync(void){
-
+int cartridgeAsync(void) {
     /* A static to keep track of the currently addressed cartridge */
     static unsigned char currentAsyncCartridge = 0;
 
@@ -579,25 +524,23 @@ int cartridgeAsync(void){
         ASYNC_CARTRIDGE_GO_STANDBY2
     } asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
     /* Address the current async cartridge */
-    currentModule=currentAsyncCartridge;
+    currentModule = currentAsyncCartridge;
 
     /* Switch depending on the cartridge task */
-    switch(asyncCartridgeTask){
+    switch (asyncCartridgeTask) {
         case ASYNC_CARTRIDGE_IDLE:
             // Check if the cartridge was turned on
-            if(frontend.cartridge[currentAsyncCartridge].state==CARTRIDGE_ON) {
-
+            if (frontend.cartridge[currentAsyncCartridge].state == CARTRIDGE_ON) {
                 // If CARTRIDGE_ON, then next task is initialization
-                asyncCartridgeTask=ASYNC_CARTRIDGE_INIT;
+                asyncCartridgeTask = ASYNC_CARTRIDGE_INIT;
 
                 // Stay with this cartridge
                 return NO_ERROR;
             }
             // Check if the cartridge was put from CARTRIDGE_READY into STANDBY2 mode:
-            if(frontend.cartridge[currentAsyncCartridge].state==CARTRIDGE_GO_STANDBY2) {
-
+            if (frontend.cartridge[currentAsyncCartridge].state == CARTRIDGE_GO_STANDBY2) {
                 // If CARTRIDGE_ON, then next task is entering STANDBY2 mode
-                asyncCartridgeTask=ASYNC_CARTRIDGE_GO_STANDBY2;
+                asyncCartridgeTask = ASYNC_CARTRIDGE_GO_STANDBY2;
 
                 // Stay with this cartridge
                 return NO_ERROR;
@@ -606,19 +549,19 @@ int cartridgeAsync(void){
 
         case ASYNC_CARTRIDGE_INIT:
             /* Initialize cartridge and switch on result */
-            switch(asyncCartridgeInit()) {
+            switch (asyncCartridgeInit()) {
                 case NO_ERROR:
                     return NO_ERROR;
                     break;
                 case ASYNC_DONE:
-                    asyncCartridgeTask=ASYNC_CARTRIDGE_IDLE;
+                    asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
                     break;
                 case ERROR:
                     /* If there was an error in the initialization, attempt to
                        turn off the cartridge. */
 
                     /* Turn off the power to the cartridge. */
-                    if(setPdModuleEnable(PD_MODULE_DISABLE)==ERROR){
+                    if (setPdModuleEnable(PD_MODULE_DISABLE) == ERROR) {
                         /* If we end up in here, it means that something very major
                            has happened and the communication within the FEMC
                            module is compromised. At this point all the bets on
@@ -627,32 +570,29 @@ int cartridgeAsync(void){
                            module that there was an urecoverable error with the
                            initialization and allow for a restart of the cartridge. */
                         /* Store the Error state in the last control message variable */
-                        frontend.powerDistribution.pdModule[currentAsyncCartridge].
-                            lastEnable.status=ERROR;
+                        frontend.powerDistribution.pdModule[currentAsyncCartridge].lastEnable.status = ERROR;
 
                         /* Set the state of the cartridge to 'error' */
-                        frontend.cartridge[currentAsyncCartridge].
-                            state=CARTRIDGE_ERROR;
+                        frontend.cartridge[currentAsyncCartridge].state = CARTRIDGE_ERROR;
 
                         /* Next state: IDLE */
-                        asyncCartridgeTask=ASYNC_CARTRIDGE_IDLE;
-                        break; //TODO:  this break is confusing.  I think it exits the case stmt.
-                               //       so none of the next steps execute.
+                        asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
+                        break;  // TODO:  this break is confusing.  I think it exits the case stmt.
+                                //        so none of the next steps execute.
                     }
 
                     /*  If it worked. Mark the catridge as off. */
-                    if(cartridgeStop(currentAsyncCartridge)==ERROR){
+                    if (cartridgeStop(currentAsyncCartridge) == ERROR) {
                         /* Store the Error state in the last control message variable */
-                        frontend.powerDistribution.pdModule[currentAsyncCartridge].
-                            lastEnable.status=ERROR;
+                        frontend.powerDistribution.pdModule[currentAsyncCartridge].lastEnable.status = ERROR;
                     }
 
                     /* Decrease the number of currently turned on cartridges. */
                     frontend.powerDistribution.poweredModules--;
 
-                    #ifdef DEBUG_POWERDIS
-                        printPoweredModuleCounts();
-                    #endif /* DEBUG_POWERDIS */
+#ifdef DEBUG_POWERDIS
+                    printPoweredModuleCounts();
+#endif /* DEBUG_POWERDIS */
 
                     asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
                     break;
@@ -663,15 +603,15 @@ int cartridgeAsync(void){
             break;
 
         case ASYNC_CARTRIDGE_GO_STANDBY2:
-            switch(asyncCartridgeGoStandby2()) {
+            switch (asyncCartridgeGoStandby2()) {
                 case NO_ERROR:
                     return NO_ERROR;
                     break;
                 case ASYNC_DONE:
-                    asyncCartridgeTask=ASYNC_CARTRIDGE_IDLE;
+                    asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
                     break;
                 case ERROR:
-                    asyncCartridgeTask=ASYNC_CARTRIDGE_IDLE;
+                    asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
                     return ERROR;
                     break;
             }
@@ -682,7 +622,7 @@ int cartridgeAsync(void){
     }
 
     /* Next cartridge, if wrap around, then we are done with cartridges. */
-    if(++currentAsyncCartridge == CARTRIDGES_NUMBER) {
+    if (++currentAsyncCartridge == CARTRIDGES_NUMBER) {
         currentAsyncCartridge = 0;
 
         /* If all the cartrdiges have been handled then we are done */
@@ -691,10 +631,8 @@ int cartridgeAsync(void){
     return NO_ERROR;
 }
 
-
 /* Asynchronously initialize a cartridge */
-int asyncCartridgeInit(void){
-
+int asyncCartridgeInit(void) {
     /* A static enum to track the state of the async init function */
     static enum {
         ASYNC_CARTRIDGE_INIT_SET_WAIT,
@@ -703,81 +641,75 @@ int asyncCartridgeInit(void){
     } asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_SET_WAIT;
 
     /* Check if the cartridge was turned off in the meantime */
-    if(frontend.cartridge[currentModule].state==CARTRIDGE_OFF) {
-
+    if (frontend.cartridge[currentModule].state == CARTRIDGE_OFF) {
         /* If CARTRIDGE_OFF, then next task is idle */
-        asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_SET_WAIT;
+        asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_SET_WAIT;
 
         /* Clear the timer */
-        if(stopAsyncTimer(TIMER_CARTRIDGE_INIT)==ERROR){
+        if (stopAsyncTimer(TIMER_CARTRIDGE_INIT) == ERROR) {
             return ERROR;
         }
 
         /* Cartridge was turned off so nothing else to do */
         return ASYNC_DONE;
-
     }
 
     /* Switch depening on the current initialization state */
-    switch(asyncCartridgeInitState){
+    switch (asyncCartridgeInitState) {
         case ASYNC_CARTRIDGE_INIT_SET_WAIT:
             /* Set the state of the cartridge to 'initializing' */
-            frontend.cartridge[currentModule].state=CARTRIDGE_INITING;
+            frontend.cartridge[currentModule].state = CARTRIDGE_INITING;
 
             /* Setup timer to wait before initializing the cartridge */
-            if(startAsyncTimer(TIMER_CARTRIDGE_INIT,
-                               TIMER_TO_CARTRIDGE_INIT,
-                               FALSE)==ERROR){
-
+            if (startAsyncTimer(TIMER_CARTRIDGE_INIT, TIMER_TO_CARTRIDGE_INIT, FALSE) == ERROR) {
                 /* Next state: start state */
-                asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_SET_WAIT;
+                asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_SET_WAIT;
 
                 return ERROR;
             }
 
             /* Set next state */
-            asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_WAIT;
+            asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_WAIT;
 
             break;
 
-        case ASYNC_CARTRIDGE_INIT_WAIT:
-            {
-                /* A temporaty variable to deal with the timer */
-                int timedOut;
+        case ASYNC_CARTRIDGE_INIT_WAIT: {
+            /* A temporaty variable to deal with the timer */
+            int timedOut;
 
-                /* Query the async timer */
-                timedOut=queryAsyncTimer(TIMER_CARTRIDGE_INIT);
+            /* Query the async timer */
+            timedOut = queryAsyncTimer(TIMER_CARTRIDGE_INIT);
 
-                if(timedOut==ERROR){
-                    /* Next state: start state */
-                    asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_SET_WAIT;
+            if (timedOut == ERROR) {
+                /* Next state: start state */
+                asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_SET_WAIT;
 
-                    return ERROR;
-                }
-
-                /* Wait until timer expires. No need to clear the timer because
-                   it is done by the queryAsyncTimer function if expired. */
-                if(timedOut==TIMER_EXPIRED){
-                    /* Set next state */
-                    asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_INIT;
-                }
-
-                break;
+                return ERROR;
             }
+
+            /* Wait until timer expires. No need to clear the timer because
+               it is done by the queryAsyncTimer function if expired. */
+            if (timedOut == TIMER_EXPIRED) {
+                /* Set next state */
+                asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_INIT;
+            }
+
+            break;
+        }
         case ASYNC_CARTRIDGE_INIT_INIT:
             /* Perform the actual initialization */
-            if(cartridgeInit(currentModule)==ERROR){
+            if (cartridgeInit(currentModule) == ERROR) {
                 /* Set next state */
-                asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_INIT;
+                asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_INIT;
 
                 return ERROR;
             }
 
             /* Set the state of the cartridge to 'ready' */
-            frontend.cartridge[currentModule].state=CARTRIDGE_READY;
+            frontend.cartridge[currentModule].state = CARTRIDGE_READY;
 
             /* Next state: start state */
-            asyncCartridgeInitState=ASYNC_CARTRIDGE_INIT_SET_WAIT;
+            asyncCartridgeInitState = ASYNC_CARTRIDGE_INIT_SET_WAIT;
 
             return ASYNC_DONE;
             break;
@@ -792,10 +724,8 @@ int asyncCartridgeInit(void){
 
 // Asynchronously set a cartridge to STANDBY2 mode:
 int asyncCartridgeGoStandby2(void) {
-
     // Check if the cartridge was turned off in the meantime
-    if(frontend.cartridge[currentModule].state == CARTRIDGE_OFF) {
-
+    if (frontend.cartridge[currentModule].state == CARTRIDGE_OFF) {
         // Cartridge was turned off so nothing else to do
         return ASYNC_DONE;
     }
@@ -886,7 +816,7 @@ int asyncCartridgeGoStandby2(void) {
     lnaLedGoStandby2();
 
     // Set the state of the cartridge to READY:
-    frontend.cartridge[currentModule].state=CARTRIDGE_READY;
-            
+    frontend.cartridge[currentModule].state = CARTRIDGE_READY;
+
     return ASYNC_DONE;
 }

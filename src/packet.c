@@ -18,25 +18,23 @@
    time spend to check if the software is initializing, we use a trick where the
    function pointer is shifted by 3 during initialization. This saves time
    during normal execution. */
-static HANDLER classesHandler[CLASSES_NUMBER] = {
-    standardRCAsHandler, standardRCAsHandler,
-    specialRCAsHandler};  // The classes handler array is initialized.
-static HANDLER modulesHandler[MODULES_NUMBER] = {
-    cartridgeHandler,  // Cartridge 0 -> Band 1
-    cartridgeHandler,  // Cartridge 1 -> Band 2
-    cartridgeHandler,  // Cartridge 2 -> Band 3
-    cartridgeHandler,  // Cartridge 3 -> Band 4
-    cartridgeHandler,  // Cartridge 4 -> Band 5
-    cartridgeHandler,  // Cartridge 5 -> Band 6
-    cartridgeHandler,  // Cartridge 6 -> Band 7
-    cartridgeHandler,  // Cartridge 7 -> Band 8
-    cartridgeHandler,  // Cartridge 8 -> Band 9
-    cartridgeHandler,  // Cartridge 9 -> Band 10
-    powerDistributionHandler,
-    ifSwitchHandler,
-    cryostatHandler,
-    lprHandler,
-    fetimHandler};  // The modules handler array is initialized
+static HANDLER classesHandler[CLASSES_NUMBER] = {standardRCAsHandler, standardRCAsHandler,
+                                                 specialRCAsHandler};  // The classes handler array is initialized.
+static HANDLER modulesHandler[MODULES_NUMBER] = {cartridgeHandler,     // Cartridge 0 -> Band 1
+                                                 cartridgeHandler,     // Cartridge 1 -> Band 2
+                                                 cartridgeHandler,     // Cartridge 2 -> Band 3
+                                                 cartridgeHandler,     // Cartridge 3 -> Band 4
+                                                 cartridgeHandler,     // Cartridge 4 -> Band 5
+                                                 cartridgeHandler,     // Cartridge 5 -> Band 6
+                                                 cartridgeHandler,     // Cartridge 6 -> Band 7
+                                                 cartridgeHandler,     // Cartridge 7 -> Band 8
+                                                 cartridgeHandler,     // Cartridge 8 -> Band 9
+                                                 cartridgeHandler,     // Cartridge 9 -> Band 10
+                                                 powerDistributionHandler,
+                                                 ifSwitchHandler,
+                                                 cryostatHandler,
+                                                 lprHandler,
+                                                 fetimHandler};  // The modules handler array is initialized
 
 void CANMessageHandler(void) {
     /* Redirect to the correct class handler depending on the RCA */
@@ -86,8 +84,7 @@ static void standardRCAsHandler(void) {
            handler */
         if (currentModule >= MODULES_NUMBER) {
             storeError(ERR_CAN, ERC_MODULE_RANGE);  // Sub-module out of range
-            CAN_STATUS =
-                HARDW_RNG_ERR;  // Notify incoming CAN message of the error
+            CAN_STATUS = HARDW_RNG_ERR;             // Notify incoming CAN message of the error
         } else {
             /* Redirect to the correct module handler depending on the RCA */
             (modulesHandler[currentModule])();  // Call the appropriate module
@@ -214,10 +211,8 @@ static void specialRCAsHandler(void) {
                 break;
             case GET_ERRORS_NUMBER:  // 0x2000C -> Returns the number of unread
                                      // errors
-                CONV_UINT(0) = (errorNewest >= errorOldest)
-                                   ? errorNewest - errorOldest
-                                   : ERROR_HISTORY_LENGTH -
-                                         (errorOldest - errorNewest) + 1;
+                CONV_UINT(0) = (errorNewest >= errorOldest) ? errorNewest - errorOldest
+                                                            : ERROR_HISTORY_LENGTH - (errorOldest - errorNewest) + 1;
                 CAN_DATA(0) = CONV_CHR(1);
                 CAN_DATA(1) = CONV_CHR(0);
                 CAN_SIZE = CAN_INT_SIZE;
@@ -260,10 +255,7 @@ static void specialRCAsHandler(void) {
                 // called
                 //  even if the cartridge is powered off.
                 {
-                    char *str = frontend
-                                    .cartridge[(CAN_ADDRESS -
-                                                GET_LO_PA_LIMITS_TABLE_ESN)]
-                                    .lo.maxSafeLoPaESN;
+                    char *str = frontend.cartridge[(CAN_ADDRESS - GET_LO_PA_LIMITS_TABLE_ESN)].lo.maxSafeLoPaESN;
 
                     CAN_DATA(7) = str[7];
                     CAN_DATA(6) = str[6];
@@ -313,8 +305,7 @@ static void specialRCAsHandler(void) {
                     }
                     frontend.mode = MAINTENANCE_MODE;
 
-                } else if (CAN_BYTE == OPERATIONAL_MODE ||
-                           CAN_BYTE == TROUBLESHOOTING_MODE ||
+                } else if (CAN_BYTE == OPERATIONAL_MODE || CAN_BYTE == TROUBLESHOOTING_MODE ||
                            CAN_BYTE == SIMULATION_MODE) {
                     if (frontend.mode == MAINTENANCE_MODE) {
                         // leaving maintenance mode, stop the ftp service:
@@ -341,8 +332,7 @@ static void specialRCAsHandler(void) {
                 // handlers for PA limits table is here so they can be called
                 //  even if the cartridge is powered off.
                 {
-                    unsigned char band =
-                        (unsigned char)(CAN_ADDRESS - SET_LO_CLEAR_PA_LIMITS);
+                    unsigned char band = (unsigned char)(CAN_ADDRESS - SET_LO_CLEAR_PA_LIMITS);
                     loResetPaLimitsTable(band);
                 }
                 break;
@@ -364,8 +354,7 @@ static void specialRCAsHandler(void) {
                     unsigned int ytoTuning;
                     float maxVD;
 
-                    band = (unsigned char)(CAN_ADDRESS -
-                                           SET_LO_SET_PA_LIMITS_ENTRY);
+                    band = (unsigned char)(CAN_ADDRESS - SET_LO_SET_PA_LIMITS_ENTRY);
 
                     // extract the polarization.  It can be 0, 1, or 2 meaning
                     // 'both'
@@ -416,39 +405,4 @@ static void sendCANMessage(int appendStatusByte) {
     if (appendStatusByte && CAN_SIZE < CAN_TX_MAX_PAYLOAD_SIZE) {
         CAN_DATA(CAN_SIZE++) = CAN_STATUS;
     }
-
-    /* If it was coming from console, deal with the console */
-    switch (CAN_SIZE) {
-        case CAN_FLOAT_SIZE + 1:
-            if (currentClass ==
-                CONTROL_CLASS) {  // If it was a monitor on a control RCA
-                changeEndian(CONV_CHR_ADD, CAN_DATA_ADD);
-            }
-            printf("%f", CONV_FLOAT);
-            break;
-        case CAN_FLOAT_SIZE + 2:
-            if (currentClass ==
-                CONTROL_CLASS) {  // If it was a monitor on a control RCA
-                changeEndian(CONV_CHR_ADD, CAN_DATA_ADD);
-            }
-            printf("%f %u", CONV_FLOAT, CAN_DATA(4));
-            break;
-        case CAN_INT_SIZE + 1:
-            if (currentClass ==
-                CONTROL_CLASS) {  // If it was a monitor on a control RCA
-                changeEndianInt(CONV_CHR_ADD, CAN_DATA_ADD);
-            }
-            printf("%u", CONV_UINT(0));
-            break;
-        case CAN_BYTE_SIZE + 1:
-            printf("%u", CAN_BYTE);
-            break;
-        default:
-            for (cnt = 0; cnt < CAN_SIZE; cnt++) {
-                printf("%02X ", CAN_DATA(cnt));
-            }
-            break;
-    }
-
-    printf(" (status: 0x%02X)\n\n", CAN_STATUS);
 }

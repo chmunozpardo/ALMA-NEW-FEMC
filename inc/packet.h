@@ -16,8 +16,7 @@
 /* Defines */
 /* General */
 #define CAN_MESSAGE_PAYLOAD_SIZE 0x08  // Max size of the CAN message payload
-#define CAN_RX_HEADER_SIZE \
-    0x05  // Size of the the message header (RCA + Payload size)
+#define CAN_RX_HEADER_SIZE 0x05        // Size of the the message header (RCA + Payload size)
 #define CAN_RX_MESSAGE_SIZE \
     0x0D  // Maximum size of the can message transmitted by the AMBSI1 on the
           // parallel port
@@ -25,18 +24,17 @@
     (CAN_MESSAGE_PAYLOAD_SIZE)  // Max payload size to receive from parallel
                                 // port
 #define CAN_TX_MAX_PAYLOAD_SIZE \
-    (CAN_MESSAGE_PAYLOAD_SIZE)  // Maximum size of the can message to be
-                                // transmitted to the AMBSI1 on the parallel
-                                // port
-#define CAN_MONITOR 0x00        // Size of a monitor message
-#define CAN_FULL_SIZE (CAN_MESSAGE_PAYLOAD_SIZE)  // Size of a full payload
-#define CAN_FLOAT_SIZE 0x04                       // Size of a float payload
-#define CAN_REV_SIZE 0x03      // Size of a revision level message
-#define CAN_INT_SIZE 0x02      // Size of an int payload
-#define CAN_BYTE_SIZE 0x01     // Siza of a char payload
-#define CAN_BOOLEAN_SIZE 0x01  // Size of a enable/disable state payload
-#define CAN_LAST_CONTROL_MESSAGE_SIZE \
-    (CAN_MESSAGE_PAYLOAD_SIZE + 2)  // Size of the last control message
+    (CAN_MESSAGE_PAYLOAD_SIZE)                                        // Maximum size of the can message to be
+                                                                      // transmitted to the AMBSI1 on the parallel
+                                                                      // port
+#define CAN_MONITOR 0x00                                              // Size of a monitor message
+#define CAN_FULL_SIZE (CAN_MESSAGE_PAYLOAD_SIZE)                      // Size of a full payload
+#define CAN_FLOAT_SIZE 0x04                                           // Size of a float payload
+#define CAN_REV_SIZE 0x03                                             // Size of a revision level message
+#define CAN_INT_SIZE 0x02                                             // Size of an int payload
+#define CAN_BYTE_SIZE 0x01                                            // Siza of a char payload
+#define CAN_BOOLEAN_SIZE 0x01                                         // Size of a enable/disable state payload
+#define CAN_LAST_CONTROL_MESSAGE_SIZE (CAN_MESSAGE_PAYLOAD_SIZE + 2)  // Size of the last control message
 /* Type substitution macros for CAN data import/export */
 #define CAN_MSG CANMessage
 #define CAN_DATA_ADD CANMessage.data
@@ -92,15 +90,13 @@
     available in the firmware. Address 0x00000 is reserved within the
     AMBSI1 to return the ID. */
 #define BASE_MONITOR_RCA 0x00001L
-#define LAST_MONITOR_RCA \
-    (BASE_MONITOR_RCA + 0x0FFFF - 1)  // Last possible monitor RCA
+#define LAST_MONITOR_RCA (BASE_MONITOR_RCA + 0x0FFFF - 1)  // Last possible monitor RCA
 /* Control */
 //! \b 0x10000 -> Base address for the control RCAs
 /*! This is the starting relative CAN address for the control requests
     available in the firmware. */
 #define BASE_CONTROL_RCA 0x10000L
-#define LAST_CONTROL_RCA \
-    (BASE_CONTROL_RCA + 0x0FFFF)  // Last possible control RCA
+#define LAST_CONTROL_RCA (BASE_CONTROL_RCA + 0x0FFFF)  // Last possible control RCA
 
 /* Special RCAs */
 /* Monitor */
@@ -143,52 +139,42 @@
               //!< (Don't change the offset of this RCA, since it is register
               //!< with the same number in the AMBSI1)
 #define GET_PPCOMM_TIME \
-    0x20007L  //!< \b BASE+0x07 -> Returns 8 bytes message allowing to evaluate
-              //!< the longest communication time on the parallel port (Don't
-              //!< change the offset of this RCA, since it is register with the
-              //!< same number in the AMBSI1)
-#define GET_FPGA_VERSION_INFO \
-    0x20008L  //!< \b BASE+0x08 -> Information about the FPGA firmware version.
+    0x20007L                            //!< \b BASE+0x07 -> Returns 8 bytes message allowing to evaluate
+                                        //!< the longest communication time on the parallel port (Don't
+                                        //!< change the offset of this RCA, since it is register with the
+                                        //!< same number in the AMBSI1)
+#define GET_FPGA_VERSION_INFO 0x20008L  //!< \b BASE+0x08 -> Information about the FPGA firmware version.
 #define GET_CONSOLE_ENABLE \
-    0x20009L  //!< \b BASE+0x09 -> Returns the current state of the console
-              //!< (0->disabled 1->enabled)
-#define GET_ESNS_FOUND \
-    0x2000AL  //!< \b BASE+0x0A -> Returns the number of ESNs found
-#define GET_ESNS \
-    0x2000BL  //!< \b BASE+0x0B -> Returns the list of the found ESNs
+    0x20009L                     //!< \b BASE+0x09 -> Returns the current state of the console
+                                 //!< (0->disabled 1->enabled)
+#define GET_ESNS_FOUND 0x2000AL  //!< \b BASE+0x0A -> Returns the number of ESNs found
+#define GET_ESNS 0x2000BL        //!< \b BASE+0x0B -> Returns the list of the found ESNs
 #define GET_ERRORS_NUMBER \
-    0x2000CL  //!< \b BASE+0x0C -> Returns the number unread errors in the error
-              //!< buffer
-#define GET_NEXT_ERROR \
-    0x2000DL  //!< \b BASE+0x0D -> Returns the next unread error
-#define GET_FE_MODE \
-    0x2000EL  //!< \b BASE+0x0E -> Returns the current FE operating mode
+    0x2000CL                     //!< \b BASE+0x0C -> Returns the number unread errors in the error
+                                 //!< buffer
+#define GET_NEXT_ERROR 0x2000DL  //!< \b BASE+0x0D -> Returns the next unread error
+#define GET_FE_MODE 0x2000EL     //!< \b BASE+0x0E -> Returns the current FE operating mode
 #define GET_TCPIP_ADDRESS \
     0x2000FL  //!< \b BASE+0x0E -> Returns the IP address of the FEMC module
               //!< ethernet port
 #define GET_LO_PA_LIMITS_TABLE_ESN \
     0x20010L  //!< \b BASE+0x10 through 0x19 return the PA LIMITS table ESN for
               //!< band 1-10
-#define LAST_SPECIAL_MONITOR_RCA \
-    (BASE_SPECIAL_MONITOR_RCA + 0x00FFF)  // Last possible special monitor RCA
+#define LAST_SPECIAL_MONITOR_RCA (BASE_SPECIAL_MONITOR_RCA + 0x00FFF)  // Last possible special monitor RCA
 /* Control */
 //! \b 0x21000 -> Base address for the special control RCAs
 /*! This is the starting relative CAN address for the special control
     requests available in the firmware. */
 
 #define BASE_SPECIAL_CONTROL_RCA 0x21000L
-#define SET_EXIT_PROGRAM \
-    0x21000L  //!< \b BASE+0x00 -> Ends the execution of the main program
-#define SET_REBOOT 0x21001L  //!< \b BASE+0x01 -> Reboots the ARCOM board
+#define SET_EXIT_PROGRAM 0x21000L  //!< \b BASE+0x00 -> Ends the execution of the main program
+#define SET_REBOOT 0x21001L        //!< \b BASE+0x01 -> Reboots the ARCOM board
 #define SET_PPCOMM_BYTES \
-    0x21007L  //!< \b BASE+0x07 -> Bytes to return from GET_PPCOMM_TIME.
-              //!< Defaults to 8 0xFF.
-#define SET_CONSOLE_ENABLE \
-    0x21009L  //!< \b BASE+0x09 -> Enables/Disables the console
-#define SET_WRITE_NV_MEMORY \
-    0x2100DL  //!< \b BASE+0x0D -> Writes cold head hours to the flash disk
-#define SET_FE_MODE \
-    0x2100EL  //!< \b BASE+0x0E -> Changes the current FE operating mode
+    0x21007L                          //!< \b BASE+0x07 -> Bytes to return from GET_PPCOMM_TIME.
+                                      //!< Defaults to 8 0xFF.
+#define SET_CONSOLE_ENABLE 0x21009L   //!< \b BASE+0x09 -> Enables/Disables the console
+#define SET_WRITE_NV_MEMORY 0x2100DL  //!< \b BASE+0x0D -> Writes cold head hours to the flash disk
+#define SET_FE_MODE 0x2100EL          //!< \b BASE+0x0E -> Changes the current FE operating mode
 #define SET_READ_ESN \
     0x2100FL  //!< \b BASE+0x0F -> Forces the firmware to read again the ESN
               //!< available on the OWB
@@ -198,8 +184,7 @@
 #define SET_LO_SET_PA_LIMITS_ENTRY \
     0x21030L  //!< \b BASE+0x30 through 0x39 upload a PA LIMITS table entry for
               //!< band 1-10
-#define LAST_SPECIAL_CONTROL_RCA \
-    (BASE_SPECIAL_CONTROL_RCA + 0x00FFF)  // Last possible special monitor RCA
+#define LAST_SPECIAL_CONTROL_RCA (BASE_SPECIAL_CONTROL_RCA + 0x00FFF)  // Last possible special monitor RCA
 
 /* Typedefs */
 //! CAN message format
@@ -289,10 +274,9 @@ typedef struct {
 /* Externs */
 extern volatile unsigned char newCANMsg;  //!< Notifier to the main program that
                                           //!< a new CAN message has arrived
-extern CAN_MESSAGE CANMessage;  //!< A global to deal with the received message
-extern unsigned char currentClass;  //!< A global to store the current RCA class
-extern unsigned char
-    currentModule;  //!< A global to store the current module info
+extern CAN_MESSAGE CANMessage;            //!< A global to deal with the received message
+extern unsigned char currentClass;        //!< A global to store the current RCA class
+extern unsigned char currentModule;       //!< A global to store the current module info
 
 /* Prototypes */
 /* Statics */
@@ -303,5 +287,8 @@ static void sendCANMessage(int appendStatusByte);
 /* Classes */
 static void standardRCAsHandler(void);
 static void specialRCAsHandler(void);
+
+/* Externs */
+extern void CANMessageHandler(void);  //!< This function deals with the incoming can message
 
 #endif /* _CAN_H */

@@ -36,11 +36,10 @@ LO_REGISTERS loRegisters[CARTRIDGES_NUMBER];
 // Macro to busy-wait the specified number of MICROSECONDS
 // factor of 5 determined experimentally
 static unsigned long delayCounter;
-#define DELAY(MICROSECONDS)                                     \
-    {                                                           \
-        for (delayCounter = MICROSECONDS * 5; delayCounter > 0; \
-             delayCounter--) {                                  \
-        }                                                       \
+#define DELAY(MICROSECONDS)                                                       \
+    {                                                                             \
+        for (delayCounter = MICROSECONDS * 5; delayCounter > 0; delayCounter--) { \
+        }                                                                         \
     }
 
 /* LO analog monitor request core.
@@ -72,10 +71,8 @@ static int getLoAnalogMonitor(void) {
 
     /* The function to write the data to the hardware is called passing the
        intermediate buffer. If an error occurs, notify the calling function. */
-    if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                     &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                     LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                     SERIAL_WRITE) == ERROR) {
+    if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                     LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
         return ERROR;
     }
 
@@ -90,8 +87,7 @@ static int getLoAnalogMonitor(void) {
 #endif /* DEBUG */
 
     /* If an error occurs, notify the calling function */
-    if (serialAccess(LO_ADC_CONVERT_STROBE, NULL, LO_ADC_STROBE_SIZE,
-                     LO_ADC_STROBE_SHIFT_SIZE, LO_ADC_STROBE_SHIFT_DIR,
+    if (serialAccess(LO_ADC_CONVERT_STROBE, NULL, LO_ADC_STROBE_SIZE, LO_ADC_STROBE_SHIFT_SIZE, LO_ADC_STROBE_SHIFT_DIR,
                      SERIAL_WRITE) == ERROR) {
         return ERROR;
     }
@@ -99,8 +95,7 @@ static int getLoAnalogMonitor(void) {
     /* Wait on ADC ready status:
        - parallel input */
     /* Setup for 1 second and start the asynchronous timer */
-    if (startAsyncTimer(TIMER_LO_ADC_RDY, TIMER_LO_TO_ADC_RDY, FALSE) ==
-        ERROR) {
+    if (startAsyncTimer(TIMER_LO_ADC_RDY, TIMER_LO_TO_ADC_RDY, FALSE) == ERROR) {
         return ERROR;
     }
 
@@ -110,10 +105,8 @@ static int getLoAnalogMonitor(void) {
 #endif /* DEBUG */
 
         /* If an error occurs, notify the calling function */
-        if (serialAccess(LO_PARALLEL_READ,
-                         &loRegisters[currentModule].statusReg.integer,
-                         LO_STATUS_REG_SIZE, LO_STATUS_REG_SHIFT_SIZE,
-                         LO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+        if (serialAccess(LO_PARALLEL_READ, &loRegisters[currentModule].statusReg.integer, LO_STATUS_REG_SIZE,
+                         LO_STATUS_REG_SHIFT_SIZE, LO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
             /* Stop the timer */
             if (stopAsyncTimer(TIMER_LO_ADC_RDY) == ERROR) {
                 return ERROR;
@@ -125,9 +118,7 @@ static int getLoAnalogMonitor(void) {
         if (timedOut == ERROR) {
             return ERROR;
         }
-    } while ((loRegisters[currentModule].statusReg.bitField.adcReady ==
-              LO_ADC_BUSY) &&
-             (timedOut == TIMER_RUNNING));
+    } while ((loRegisters[currentModule].statusReg.bitField.adcReady == LO_ADC_BUSY) && (timedOut == TIMER_RUNNING));
 
     /* If timer has expired signal the error */
     if (timedOut == TIMER_EXPIRED) {
@@ -148,8 +139,7 @@ static int getLoAnalogMonitor(void) {
 #endif /* DEBUG */
 
     /* If error return the state to the calling function */
-    if (serialAccess(LO_ADC_DATA_READ, &tempAdcValue, LO_ADC_DATA_SIZE,
-                     LO_ADC_DATA_SHIFT_SIZE, LO_ADC_DATA_SHIFT_DIR,
+    if (serialAccess(LO_ADC_DATA_READ, &tempAdcValue, LO_ADC_DATA_SIZE, LO_ADC_DATA_SHIFT_SIZE, LO_ADC_DATA_SHIFT_DIR,
                      SERIAL_READ) == ERROR) {
         return ERROR;
     }
@@ -188,10 +178,8 @@ int setYtoCoarseTune(void) {
         printf("         - Writing AREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_AREG),
-                         &loRegisters[currentModule].aReg.integer, LO_AREG_SIZE,
-                         LO_AREG_SHIFT_SIZE, LO_AREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_AREG), &loRegisters[currentModule].aReg.integer, LO_AREG_SIZE,
+                         LO_AREG_SHIFT_SIZE, LO_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore AREG to its original saved value */
             loRegisters[currentModule].aReg.integer = tempAReg;
 
@@ -231,18 +219,15 @@ int setPhotomixerEnable(unsigned char enable) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Update BREG */
         loRegisters[currentModule].bReg.bitField.photomixerBiasEnable =
-            (enable == PHOTOMIXER_ENABLE) ? PHOTOMIXER_ENABLE
-                                          : PHOTOMIXER_DISABLE;
+            (enable == PHOTOMIXER_ENABLE) ? PHOTOMIXER_ENABLE : PHOTOMIXER_DISABLE;
 
 /* 1 - Parallel write BREG */
 #ifdef DEBUG
         printf("         - Writing BREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                         &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore BREG to its original saved value */
             loRegisters[currentModule].bReg.integer = tempBReg;
             return ERROR;
@@ -285,8 +270,7 @@ int getPhotomixer(unsigned char port) {
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        loRegisters[currentModule].bReg.bitField.monitorPoint =
-            LO_BREG_PHOTOMIXER(port);
+        loRegisters[currentModule].bReg.bitField.monitorPoint = LO_BREG_PHOTOMIXER(port);
 
         /* 2->5 - Call the getLoAnalogMonitor function */
         if (getLoAnalogMonitor() == ERROR) {
@@ -298,16 +282,12 @@ int getPhotomixer(unsigned char port) {
             /* The photomixer bias voltage is given by: -10*(adcData/65536) */
             case PHOTOMIXER_BIAS_V:
                 frontend.cartridge[currentModule].lo.photomixer.voltage =
-                    (LO_ADC_PHOTOMIXER_BIAS_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_ADC_PHOTOMIXER_BIAS_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The photomixer bias current is given by: -10*(adcData/65536) */
             case PHOTOMIXER_BIAS_C:
                 frontend.cartridge[currentModule].lo.photomixer.current =
-                    fabs((LO_ADC_PHOTOMIXER_BIAS_C_SCALE *
-                          loRegisters[currentModule].adcData) /
-                         LO_ADC_RANGE);
+                    fabs((LO_ADC_PHOTOMIXER_BIAS_C_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE);
                 break;
             default:
                 break;
@@ -317,17 +297,11 @@ int getPhotomixer(unsigned char port) {
         switch (port) {
             case PHOTOMIXER_BIAS_V:
                 frontend.cartridge[currentModule].lo.photomixer.voltage =
-                    (float)frontend.cartridge[currentModule]
-                            .lo.photomixer.enable *
-                        2.0 +
-                    0.2;
+                    (float)frontend.cartridge[currentModule].lo.photomixer.enable * 2.0 + 0.2;
                 break;
             case PHOTOMIXER_BIAS_C:
                 frontend.cartridge[currentModule].lo.photomixer.current =
-                    (float)frontend.cartridge[currentModule]
-                            .lo.photomixer.enable *
-                        0.8 +
-                    0.01;
+                    (float)frontend.cartridge[currentModule].lo.photomixer.enable * 0.8 + 0.01;
                 // absurdly long delay in SIMULATION_MODE:
                 DELAY(300);
                 break;
@@ -376,8 +350,7 @@ int getPll(unsigned char port) {
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        loRegisters[currentModule].bReg.bitField.monitorPoint =
-            LO_BREG_PLL(port);
+        loRegisters[currentModule].bReg.bitField.monitorPoint = LO_BREG_PLL(port);
 
         /* 2->5 - Call the getLoAnalogMonitor function */
         if (getLoAnalogMonitor() == ERROR) {
@@ -389,46 +362,34 @@ int getPll(unsigned char port) {
             /* The lock detect voltage is given by 210/11*(adcData/65536) */
             case PLL_LOCK_DETECT_VOLTAGE:
                 frontend.cartridge[currentModule].lo.pll.lockDetectVoltage =
-                    (LO_LOCK_DETECT_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_LOCK_DETECT_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The correction voltage coefficient is stored in the configuration
                file. */
             case PLL_CORRECTION_VOLTAGE:
                 frontend.cartridge[currentModule].lo.pll.correctionVoltage =
-                    (LO_PLL_CORRECTION_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_PLL_CORRECTION_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The assembly temperature is given by 1000*(adcData/65536) */
             case PLL_ASSEMBLY_TEMP:
                 frontend.cartridge[currentModule].lo.pll.assemblyTemp =
-                    (LO_PLL_ASSEMBLY_TEMP_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_PLL_ASSEMBLY_TEMP_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The YIG heater current is given by 10*[(40*adcData/65536)+15] */
             case PLL_YIG_HEATER_CURRENT:
                 frontend.cartridge[currentModule].lo.pll.YIGHeaterCurrent =
                     LO_YIG_HEATER_I_OFFSET +
-                    (LO_YIG_HEATER_I_SCALE *
-                     loRegisters[currentModule].adcData) /
-                        LO_ADC_RANGE;
+                    (LO_YIG_HEATER_I_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The REF total power is given by 10*(adcData/65536) */
             case PLL_REF_TOTAL_POWER:
                 frontend.cartridge[currentModule].lo.pll.refTotalPower =
-                    (LO_PLL_TTL_PWR_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_PLL_TTL_PWR_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The IF total power is given by 10*(adcData/65536) */
             case PLL_IF_TOTAL_POWER:
                 frontend.cartridge[currentModule].lo.pll.ifTotalPower =
-                    (LO_PLL_TTL_PWR_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_PLL_TTL_PWR_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             default:
                 break;
@@ -437,19 +398,16 @@ int getPll(unsigned char port) {
         // SIMULATION_MODE
         switch (port) {
             case PLL_LOCK_DETECT_VOLTAGE:
-                frontend.cartridge[currentModule].lo.pll.lockDetectVoltage =
-                    0.1;
+                frontend.cartridge[currentModule].lo.pll.lockDetectVoltage = 0.1;
                 break;
             case PLL_CORRECTION_VOLTAGE:
-                frontend.cartridge[currentModule].lo.pll.correctionVoltage =
-                    -8.9;
+                frontend.cartridge[currentModule].lo.pll.correctionVoltage = -8.9;
                 break;
             case PLL_ASSEMBLY_TEMP:
                 frontend.cartridge[currentModule].lo.pll.assemblyTemp = 35.7;
                 break;
             case PLL_YIG_HEATER_CURRENT:
-                frontend.cartridge[currentModule].lo.pll.YIGHeaterCurrent =
-                    22.2;
+                frontend.cartridge[currentModule].lo.pll.YIGHeaterCurrent = 22.2;
                 break;
             case PLL_REF_TOTAL_POWER:
                 frontend.cartridge[currentModule].lo.pll.refTotalPower = 2.2;
@@ -475,10 +433,8 @@ int getPllStates(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Read the status register, if an error occurs, notify the calling
            function. */
-        if (serialAccess(LO_PARALLEL_READ,
-                         &loRegisters[currentModule].statusReg.integer,
-                         LO_STATUS_REG_SIZE, LO_STATUS_REG_SHIFT_SIZE,
-                         LO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+        if (serialAccess(LO_PARALLEL_READ, &loRegisters[currentModule].statusReg.integer, LO_STATUS_REG_SIZE,
+                         LO_STATUS_REG_SHIFT_SIZE, LO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
             return ERROR;
         }
 
@@ -517,18 +473,15 @@ int setClearUnlockDetectLatch(void) {
 
     if (frontend.mode != SIMULATION_MODE) {
         /* Update BREG (toggle to 0) */
-        loRegisters[currentModule].bReg.bitField.clearUnlockDetectLatch =
-            PLL_UNLOCK_DETECT_LATCH_CLEAR;
+        loRegisters[currentModule].bReg.bitField.clearUnlockDetectLatch = PLL_UNLOCK_DETECT_LATCH_CLEAR;
 
 /* 1 - Parallel write BREG */
 #ifdef DEBUG
         printf("         - Writing BREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                         &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore BREG to its original saved value */
             loRegisters[currentModule].bReg.integer = tempBReg;
 
@@ -536,18 +489,15 @@ int setClearUnlockDetectLatch(void) {
         }
 
         /* Update BREG (toggle back to 1) */
-        loRegisters[currentModule].bReg.bitField.clearUnlockDetectLatch =
-            PLL_UNLOCK_DETECT_LATCH_OPERATE;
+        loRegisters[currentModule].bReg.bitField.clearUnlockDetectLatch = PLL_UNLOCK_DETECT_LATCH_OPERATE;
 
 /* 1 - Parallel write BREG */
 #ifdef DEBUG
         printf("         - Writing BREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                         &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore BREG to its original saved value */
             loRegisters[currentModule].bReg.integer = tempBReg;
 
@@ -590,19 +540,15 @@ int setLoopBandwidthSelect(unsigned char bandwidth) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Update BREG */
         loRegisters[currentModule].bReg.bitField.loopBandwidthSelect =
-            (bandwidth == PLL_LOOP_BANDWIDTH_ALTERNATE)
-                ? PLL_LOOP_BANDWIDTH_ALTERNATE
-                : PLL_LOOP_BANDWIDTH_DEFAULT;
+            (bandwidth == PLL_LOOP_BANDWIDTH_ALTERNATE) ? PLL_LOOP_BANDWIDTH_ALTERNATE : PLL_LOOP_BANDWIDTH_DEFAULT;
 
 /* 1 - Parallel write BREG */
 #ifdef DEBUG
         printf("         - Writing BREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                         &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore BREG to its original saved value */
             loRegisters[currentModule].bReg.integer = tempBReg;
             return ERROR;
@@ -611,9 +557,7 @@ int setLoopBandwidthSelect(unsigned char bandwidth) {
     /* Since there is no real hardware read back, if no error occurred the
        current state is updated to reflect the issued command. */
     frontend.cartridge[currentModule].lo.pll.loopBandwidthSelect =
-        (bandwidth == PLL_LOOP_BANDWIDTH_ALTERNATE)
-            ? PLL_LOOP_BANDWIDTH_ALTERNATE
-            : PLL_LOOP_BANDWIDTH_DEFAULT;
+        (bandwidth == PLL_LOOP_BANDWIDTH_ALTERNATE) ? PLL_LOOP_BANDWIDTH_ALTERNATE : PLL_LOOP_BANDWIDTH_DEFAULT;
 
     return NO_ERROR;
 }
@@ -644,19 +588,16 @@ int setSidebandLockPolaritySelect(unsigned char sideband) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Update BREG */
         loRegisters[currentModule].bReg.bitField.sidebandLockPolaritySelect =
-            (sideband == PLL_SIDEBAND_LOCK_POLARITY_USB)
-                ? PLL_SIDEBAND_LOCK_POLARITY_USB
-                : PLL_SIDEBAND_LOCK_POLARITY_LSB;
+            (sideband == PLL_SIDEBAND_LOCK_POLARITY_USB) ? PLL_SIDEBAND_LOCK_POLARITY_USB
+                                                         : PLL_SIDEBAND_LOCK_POLARITY_LSB;
 
 /* 1 - Parallel write BREG */
 #ifdef DEBUG
         printf("         - Writing BREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                         &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore BREG to its original saved valur */
             loRegisters[currentModule].bReg.integer = tempBReg;
             return ERROR;
@@ -665,9 +606,7 @@ int setSidebandLockPolaritySelect(unsigned char sideband) {
     /* Since there is no real hardware read back, if no error occurred the
        current state is updated to reflect the issued command. */
     frontend.cartridge[currentModule].lo.pll.sidebandLockPolaritySelect =
-        (sideband == PLL_SIDEBAND_LOCK_POLARITY_USB)
-            ? PLL_SIDEBAND_LOCK_POLARITY_USB
-            : PLL_SIDEBAND_LOCK_POLARITY_LSB;
+        (sideband == PLL_SIDEBAND_LOCK_POLARITY_USB) ? PLL_SIDEBAND_LOCK_POLARITY_USB : PLL_SIDEBAND_LOCK_POLARITY_LSB;
 
     return NO_ERROR;
 }
@@ -698,19 +637,15 @@ int setNullLoopIntegrator(unsigned char state) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Update BREG */
         loRegisters[currentModule].bReg.bitField.nullLoopIntegrator =
-            (state == PLL_NULL_LOOP_INTEGRATOR_NULL)
-                ? PLL_NULL_LOOP_INTEGRATOR_NULL
-                : PLL_NULL_LOOP_INTEGRATOR_OPERATE;
+            (state == PLL_NULL_LOOP_INTEGRATOR_NULL) ? PLL_NULL_LOOP_INTEGRATOR_NULL : PLL_NULL_LOOP_INTEGRATOR_OPERATE;
 
 /* 1 - Parallel write BREG */
 #ifdef DEBUG
         printf("         - Writing BREG\n");
 #endif /* DEBUG */
 
-        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG),
-                         &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
-                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PARALLEL_WRITE(LO_BREG), &loRegisters[currentModule].bReg.integer, LO_BREG_SIZE,
+                         LO_BREG_SHIFT_SIZE, LO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             /* Restore BREG to its original saved valur */
             loRegisters[currentModule].bReg.integer = tempBReg;
             return ERROR;
@@ -719,9 +654,7 @@ int setNullLoopIntegrator(unsigned char state) {
     /* Since there is no real hardware read back, if no error occurred the
        current state is updated to reflect the issued command. */
     frontend.cartridge[currentModule].lo.pll.nullLoopIntegrator =
-        (state == PLL_NULL_LOOP_INTEGRATOR_NULL)
-            ? PLL_NULL_LOOP_INTEGRATOR_NULL
-            : PLL_NULL_LOOP_INTEGRATOR_OPERATE;
+        (state == PLL_NULL_LOOP_INTEGRATOR_NULL) ? PLL_NULL_LOOP_INTEGRATOR_NULL : PLL_NULL_LOOP_INTEGRATOR_OPERATE;
 
     return NO_ERROR;
 }
@@ -773,8 +706,7 @@ int getAmc(unsigned char port) {
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        loRegisters[currentModule].bReg.bitField.monitorPoint =
-            LO_BREG_AMC(port);
+        loRegisters[currentModule].bReg.bitField.monitorPoint = LO_BREG_AMC(port);
 
         /* 2->5 - Call the getLoAnalogMonitor function */
         if (getLoAnalogMonitor() == ERROR) {
@@ -786,75 +718,57 @@ int getAmc(unsigned char port) {
             /* The A gate voltage is given by  10*(adcData/65536) */
             case AMC_GATE_A_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.gateAVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The A drain voltage is given by  10*(adcData/65536) */
             case AMC_DRAIN_A_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.drainAVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The A drain current is given by  1000*(adcData/65536) */
             case AMC_DRAIN_A_CURRENT:
                 frontend.cartridge[currentModule].lo.amc.drainACurrent =
-                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The B gate voltage is given by  10*(adcData/65536) */
             case AMC_GATE_B_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.gateBVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The B drain voltage is given by  10*(adcData/65536) */
             case AMC_DRAIN_B_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.drainBVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The B drain current is given by  1000*(adcData/65536) */
             case AMC_DRAIN_B_CURRENT:
                 frontend.cartridge[currentModule].lo.amc.drainBCurrent =
-                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The 5V supply voltage is given by 10*(adcData/65536) */
             case AMC_5V_SUPPLY_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.supplyVoltage5V =
-                    (LO_SUPPLY_V_SCALE * loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_SUPPLY_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The D multiplier current is given by 100*(adcData/65536) */
             case AMC_MULTIPLIER_D_CURRENT:
                 frontend.cartridge[currentModule].lo.amc.multiplierDCurrent =
-                    (LO_AMC_MULTIPLIER_I_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_AMC_MULTIPLIER_I_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The E gate voltage is given by  10*(adcData/65536) */
             case AMC_GATE_E_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.gateEVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The E drain voltage is given by  10*(adcData/65536) */
             case AMC_DRAIN_E_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.drainEVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             /* The E drain current is given by  1000*(adcData/65536) */
             case AMC_DRAIN_E_CURRENT:
                 frontend.cartridge[currentModule].lo.amc.drainECurrent =
-                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData) /
-                    LO_ADC_RANGE;
+                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData) / LO_ADC_RANGE;
                 break;
             default:
                 break;
@@ -884,8 +798,7 @@ int getAmc(unsigned char port) {
                 frontend.cartridge[currentModule].lo.amc.supplyVoltage5V = 4.95;
                 break;
             case AMC_MULTIPLIER_D_CURRENT:
-                frontend.cartridge[currentModule].lo.amc.multiplierDCurrent =
-                    0.5;
+                frontend.cartridge[currentModule].lo.amc.multiplierDCurrent = 0.5;
                 break;
             case AMC_GATE_E_VOLTAGE:
                 frontend.cartridge[currentModule].lo.amc.gateEVoltage = 0.5;
@@ -930,18 +843,15 @@ int setAmc(unsigned char port) {
         /* 1 - Setup the POT message */
         /* Set the stack bits for the 4 pots. These are always 0 because of the
            hardware configuration. */
-        loRegisters[currentModule].amcPotReg.bitField.stackBit10 =
-            LO_AMC_POT_STACK_BIT_0;
-        loRegisters[currentModule].amcPotReg.bitField.stackBit32 =
-            LO_AMC_POT_STACK_BIT_0;
+        loRegisters[currentModule].amcPotReg.bitField.stackBit10 = LO_AMC_POT_STACK_BIT_0;
+        loRegisters[currentModule].amcPotReg.bitField.stackBit32 = LO_AMC_POT_STACK_BIT_0;
 
         /* 2 - Scale the data according to the selected pot */
         switch (port) {
             /* The drain B voltage is given by: (v=CONV_FLOAT)
                - 51*v */
             case AMC_DRAIN_B_VOLTAGE:
-                loRegisters[currentModule].amcPotReg.bitField.pot3 =
-                    LO_AMC_POT_DRAIN_B_V_SCALE(CONV_FLOAT);
+                loRegisters[currentModule].amcPotReg.bitField.pot3 = LO_AMC_POT_DRAIN_B_V_SCALE(CONV_FLOAT);
                 break;
             /* The multiplier D voltage is given by the straight count */
             case AMC_MULTIPLIER_D_VOLTAGE:
@@ -952,13 +862,11 @@ int setAmc(unsigned char port) {
                round(51*(5*v+4.25-((5*v+4.25)^2-4*(v-0.15)*(3.75-25*v))^0.5)/(2*(v-0.15)))
                (otherwise) */
             case AMC_GATE_E_VOLTAGE:
-                loRegisters[currentModule].amcPotReg.bitField.pot0 =
-                    LO_AMC_POT_GATE_E_V_SCALE(CONV_FLOAT);
+                loRegisters[currentModule].amcPotReg.bitField.pot0 = LO_AMC_POT_GATE_E_V_SCALE(CONV_FLOAT);
             /* The drain E voltage is given by: (v=CONV_FLOAT)
                - 102*v */
             case AMC_DRAIN_E_VOLTAGE:
-                loRegisters[currentModule].amcPotReg.bitField.pot1 =
-                    LO_AMC_POT_DRAIN_E_V_SCALE(CONV_FLOAT);
+                loRegisters[currentModule].amcPotReg.bitField.pot1 = LO_AMC_POT_DRAIN_E_V_SCALE(CONV_FLOAT);
                 break;
             default:
                 break;
@@ -971,10 +879,8 @@ int setAmc(unsigned char port) {
 
         /* If there is a problem writing POT, return it so that the value in the
            frontend variable is not going to be updates. */
-        if (serialAccess(LO_AMC_DATA_WRITE,
-                         loRegisters[currentModule].amcPotReg.integer,
-                         LO_AMC_POT_DATA_SIZE, LO_AMC_POT_DATA_SHIFT_SIZE,
-                         LO_AMC_POT_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_AMC_DATA_WRITE, loRegisters[currentModule].amcPotReg.integer, LO_AMC_POT_DATA_SIZE,
+                         LO_AMC_POT_DATA_SHIFT_SIZE, LO_AMC_POT_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             return ERROR;
         }
     }
@@ -1022,8 +928,7 @@ int getPa(unsigned char port) {
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        loRegisters[currentModule].bReg.bitField.monitorPoint =
-            LO_BREG_PA(port);
+        loRegisters[currentModule].bReg.bitField.monitorPoint = LO_BREG_PA(port);
 
         /* 2->5 - Call the getLoAnalogMonitor function */
         if (getLoAnalogMonitor() == ERROR) {
@@ -1035,14 +940,12 @@ int getPa(unsigned char port) {
             /* The 3V supply voltage is given by 10*(adcData/65536) */
             case PA_3V_SUPPLY_VOLTAGE:
                 frontend.cartridge[currentModule].lo.pa.supplyVoltage3V =
-                    (LO_SUPPLY_V_SCALE * loRegisters[currentModule].adcData /
-                     LO_ADC_RANGE);
+                    (LO_SUPPLY_V_SCALE * loRegisters[currentModule].adcData / LO_ADC_RANGE);
                 break;
             /* The 5V supply voltage is given by 10*(adcData/65536) */
             case PA_5V_SUPPLY_VOLTAGE:
                 frontend.cartridge[currentModule].lo.pa.supplyVoltage5V =
-                    (LO_SUPPLY_V_SCALE * loRegisters[currentModule].adcData /
-                     LO_ADC_RANGE);
+                    (LO_SUPPLY_V_SCALE * loRegisters[currentModule].adcData / LO_ADC_RANGE);
                 break;
             default:
                 break;
@@ -1086,8 +989,7 @@ int getPaChannel(void) {
 
         /* 1 - Select the desired monitor point
                a - update BREG */
-        loRegisters[currentModule].bReg.bitField.monitorPoint =
-            LO_BREG_PA_CHANNEL(currentPaChannelModule);
+        loRegisters[currentModule].bReg.bitField.monitorPoint = LO_BREG_PA_CHANNEL(currentPaChannelModule);
 
         /* 2 - Call the getLoAnalogMonitor function */
         if (getLoAnalogMonitor() == ERROR) {
@@ -1098,27 +1000,18 @@ int getPaChannel(void) {
         switch (currentPaChannelModule) {
             /* The gate voltage is given by 10*(adcData/65536) */
             case PA_CHANNEL_GATE_VOLTAGE:
-                frontend.cartridge[currentModule]
-                    .lo.pa.paChannel[currentPaChannel()]
-                    .gateVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData / LO_ADC_RANGE);
+                frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].gateVoltage =
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData / LO_ADC_RANGE);
                 break;
             /* The drain voltage is given by 10*(adcData/65536) */
             case PA_CHANNEL_DRAIN_VOLTAGE:
-                frontend.cartridge[currentModule]
-                    .lo.pa.paChannel[currentPaChannel()]
-                    .drainVoltage =
-                    (LO_GATE_DRAIN_V_SCALE *
-                     loRegisters[currentModule].adcData / LO_ADC_RANGE);
+                frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainVoltage =
+                    (LO_GATE_DRAIN_V_SCALE * loRegisters[currentModule].adcData / LO_ADC_RANGE);
                 break;
             /* The drain current is given by 1000*(adcData/65536) */
             case PA_CHANNEL_DRAIN_CURRENT:
-                frontend.cartridge[currentModule]
-                    .lo.pa.paChannel[currentPaChannel()]
-                    .drainCurrent =
-                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData /
-                     LO_ADC_RANGE);
+                frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainCurrent =
+                    (LO_DRAIN_C_SCALE * loRegisters[currentModule].adcData / LO_ADC_RANGE);
                 break;
             default:
                 break;
@@ -1128,19 +1021,13 @@ int getPaChannel(void) {
         // SIMULATION_MODE
         switch (currentPaChannelModule) {
             case PA_CHANNEL_GATE_VOLTAGE:
-                frontend.cartridge[currentModule]
-                    .lo.pa.paChannel[currentPaChannel()]
-                    .gateVoltage = -0.5;
+                frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].gateVoltage = -0.5;
                 break;
             case PA_CHANNEL_DRAIN_VOLTAGE:
-                frontend.cartridge[currentModule]
-                    .lo.pa.paChannel[currentPaChannel()]
-                    .drainVoltage = 2.5;
+                frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainVoltage = 2.5;
                 break;
             case PA_CHANNEL_DRAIN_CURRENT:
-                frontend.cartridge[currentModule]
-                    .lo.pa.paChannel[currentPaChannel()]
-                    .drainCurrent = 65.4;
+                frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainCurrent = 65.4;
                 break;
             default:
                 break;
@@ -1175,10 +1062,8 @@ int setPaChannel(void) {
         /* 1 - Setup the POT message */
         /* Set the stack bits for the 4 pots. These are always 0 because of the
            hardware configuration. */
-        loRegisters[currentModule].paPotReg.bitField.stackBit10 =
-            LO_PA_POT_STACK_BIT_0;
-        loRegisters[currentModule].paPotReg.bitField.stackBit32 =
-            LO_PA_POT_STACK_BIT_0;
+        loRegisters[currentModule].paPotReg.bitField.stackBit10 = LO_PA_POT_STACK_BIT_0;
+        loRegisters[currentModule].paPotReg.bitField.stackBit32 = LO_PA_POT_STACK_BIT_0;
 
         /* 2 - Scale the data according to the selected pot. */
 
@@ -1210,23 +1095,17 @@ int setPaChannel(void) {
                  */
                 case POT0:
                     // base voltage:
-                    loRegisters[currentModule].paPotReg.bitField.pot0 =
-                        scaledData;
+                    loRegisters[currentModule].paPotReg.bitField.pot0 = scaledData;
                     // collector voltage:
                     loRegisters[currentModule].paPotReg.bitField.pot1 =
-                        (CONV_FLOAT > 0) ? frontend.cartridge[currentModule]
-                                               .lo.pa.teledyneCollectorByte[0]
-                                         : 0;
+                        (CONV_FLOAT > 0) ? frontend.cartridge[currentModule].lo.pa.teledyneCollectorByte[0] : 0;
                     break;
                 case POT2:
                     // base voltage:
-                    loRegisters[currentModule].paPotReg.bitField.pot2 =
-                        scaledData;
+                    loRegisters[currentModule].paPotReg.bitField.pot2 = scaledData;
                     // collector voltage:
                     loRegisters[currentModule].paPotReg.bitField.pot3 =
-                        (CONV_FLOAT > 0) ? frontend.cartridge[currentModule]
-                                               .lo.pa.teledyneCollectorByte[1]
-                                         : 0;
+                        (CONV_FLOAT > 0) ? frontend.cartridge[currentModule].lo.pa.teledyneCollectorByte[1] : 0;
                     break;
                 default:
                     break;
@@ -1253,23 +1132,19 @@ int setPaChannel(void) {
             switch (LO_PA_CURRENT_POT(currentPaChannelModule)) {
                 case POT0:
                     // drain voltage:
-                    loRegisters[currentModule].paPotReg.bitField.pot0 =
-                        scaledData;
+                    loRegisters[currentModule].paPotReg.bitField.pot0 = scaledData;
                     break;
                 case POT1:
                     // gate voltage:
-                    loRegisters[currentModule].paPotReg.bitField.pot1 =
-                        scaledData;
+                    loRegisters[currentModule].paPotReg.bitField.pot1 = scaledData;
                     break;
                 case POT2:
                     // drain voltage:
-                    loRegisters[currentModule].paPotReg.bitField.pot2 =
-                        scaledData;
+                    loRegisters[currentModule].paPotReg.bitField.pot2 = scaledData;
                     break;
                 case POT3:
                     // gate voltage
-                    loRegisters[currentModule].paPotReg.bitField.pot3 =
-                        scaledData;
+                    loRegisters[currentModule].paPotReg.bitField.pot3 = scaledData;
                     break;
                 default:
                     break;
@@ -1283,10 +1158,8 @@ int setPaChannel(void) {
 
         /* If there is a problem writing POT, return it so that the value in the
            frontend variable is not going to be updated. */
-        if (serialAccess(LO_PA_DATA_WRITE,
-                         loRegisters[currentModule].paPotReg.integer,
-                         LO_PA_POT_DATA_SIZE, LO_PA_POT_DATA_SHIFT_SIZE,
-                         LO_PA_POT_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+        if (serialAccess(LO_PA_DATA_WRITE, loRegisters[currentModule].paPotReg.integer, LO_PA_POT_DATA_SIZE,
+                         LO_PA_POT_DATA_SHIFT_SIZE, LO_PA_POT_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
             return ERROR;
         }
     }

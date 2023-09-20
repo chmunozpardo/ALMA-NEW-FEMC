@@ -64,8 +64,7 @@ static char *chgext(char *path, char *oldext, char *newext) {
 
     /* Find extension or point to end for appending */
 
-    if (NULL == (p = strrchr(path, '.')) || NULL != strchr(p, '\\'))
-        p = strcpy(&path[strlen(path)], ".");
+    if (NULL == (p = strrchr(path, '.')) || NULL != strchr(p, '\\')) p = strcpy(&path[strlen(path)], ".");
     ++p;
 
     /* Check for old extension */
@@ -195,8 +194,7 @@ static int ReadLine(FILE *fp, char *line) {
     **  Allow both DOS and Unix style newlines.
     */
 
-    while (strlen(line) && strchr("\n\r", LAST_CHAR(line)))
-        LAST_CHAR(line) = NUL;
+    while (strlen(line) && strchr("\n\r", LAST_CHAR(line))) LAST_CHAR(line) = NUL;
 
     return strlen(line);
 }
@@ -251,8 +249,7 @@ static void ParseLine(char *line, char *var, char *data) {
             while (line && '=' == *line) line = StripLeadingSpaces(line + 1);
             if (line) {
                 strcpy(data, line);
-                if (NULL != (ptr = strrchr(data, ';')) &&
-                    NULL == strchr(ptr, '\"')) {
+                if (NULL != (ptr = strrchr(data, ';')) && NULL == strchr(ptr, '\"')) {
                     *ptr = NUL;
                 }
                 StripTrailingSpaces(data);
@@ -276,8 +273,7 @@ static void ParseLine(char *line, char *var, char *data) {
 **  Returns: Line type.
 */
 
-static enum LineTypes SectionLine(char *line, char *SectionWanted,
-                                  char *CurrentSection) {
+static enum LineTypes SectionLine(char *line, char *SectionWanted, char *CurrentSection) {
     enum LineTypes linetype;
 
     line = StripLeadingSpaces(line);
@@ -372,14 +368,12 @@ int ReadCfg(const char *FileName, char *SectionName, CFG_STRUCT *MyVars) {
                                 break;
 
                             case Cfg_Byte:
-                                *((unsigned char *)mv->DataPtr) =
-                                    (unsigned char)atoi(data);
+                                *((unsigned char *)mv->DataPtr) = (unsigned char)atoi(data);
                                 ++retval;
                                 break;
 
                             case Cfg_Ushort:
-                                *((unsigned int *)mv->DataPtr) =
-                                    (unsigned int)atoi(data);
+                                *((unsigned int *)mv->DataPtr) = (unsigned int)atoi(data);
                                 ++retval;
                                 break;
 
@@ -389,8 +383,7 @@ int ReadCfg(const char *FileName, char *SectionName, CFG_STRUCT *MyVars) {
                                 break;
 
                             case Cfg_Ulong:
-                                *((unsigned long *)mv->DataPtr) =
-                                    (unsigned long)atol(data);
+                                *((unsigned long *)mv->DataPtr) = (unsigned long)atol(data);
                                 ++retval;
                                 break;
 
@@ -412,8 +405,7 @@ int ReadCfg(const char *FileName, char *SectionName, CFG_STRUCT *MyVars) {
                             case Cfg_Boolean:
                                 *((unsigned char *)mv->DataPtr) = 0;
                                 data[0] = tolower(data[0]);
-                                if (('y' == data[0]) || ('t' == data[0]) ||
-                                    ('1' == data[0]))
+                                if (('y' == data[0]) || ('t' == data[0]) || ('1' == data[0]))
                                     *((unsigned char *)mv->DataPtr) = 1;
                                 ++retval;
                                 break;
@@ -434,11 +426,8 @@ int ReadCfg(const char *FileName, char *SectionName, CFG_STRUCT *MyVars) {
                                         val = str[cnt];
 
                                         if (isalnum(val)) {
-                                            bas = val > 64
-                                                      ? (val > 96 ? 87 : 55)
-                                                      : 48;
-                                            *ip += (val - bas) *
-                                                   pow(16, len - cnt - 1);
+                                            bas = val > 64 ? (val > 96 ? 87 : 55) : 48;
+                                            *ip += (val - bas) * pow(16, len - cnt - 1);
                                         }
                                     }
 
@@ -551,8 +540,7 @@ int ReadCfg(const char *FileName, char *SectionName, CFG_STRUCT *MyVars) {
 **           -2 for file error
 */
 
-int SearchCfg(const char *FileName, char *SectionName, char *VarName,
-              void *DataPtr, enum CfgTypes VarType) {
+int SearchCfg(const char *FileName, char *SectionName, char *VarName, void *DataPtr, enum CfgTypes VarType) {
     CFG_STRUCT MyVars[2];
 
     MyVars[0].Name = VarName;
@@ -587,8 +575,7 @@ int SearchCfg(const char *FileName, char *SectionName, char *VarName,
 **         4. New sections are created at the end of the file.
 */
 
-int UpdateCfg(const char *FileName, char *SectionName, char *VarWanted,
-              char *NewData) {
+int UpdateCfg(const char *FileName, char *SectionName, char *VarWanted, char *NewData) {
     FILE *CfgFile;
     char line[BUFFERSIZE];
     char SectionWanted[BUFFERSIZE];
@@ -653,8 +640,7 @@ int UpdateCfg(const char *FileName, char *SectionName, char *VarWanted,
 
     if (!updated) { /* We may have hit EOF while still in our section. */
         /* If so, we don't need to add the section header. */
-        if (!StrEq(CurrentSection, SectionWanted))
-            fprintf(NewCfgFile, "%s\n", SectionWanted);
+        if (!StrEq(CurrentSection, SectionWanted)) fprintf(NewCfgFile, "%s\n", SectionWanted);
         fprintf(NewCfgFile, "%s = %s\n", VarWanted, NewData);
     }
 

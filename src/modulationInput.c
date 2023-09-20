@@ -8,38 +8,37 @@
     input port. */
 
 /* Includes */
-#include <string.h>     /* memcpy */
-#include <stdio.h>      /* printf */
+#include <stdio.h>  /* printf */
+#include <string.h> /* memcpy */
 
+#include "debug.h"
 #include "error_local.h"
 #include "frontend.h"
 #include "lprSerialInterface.h"
-#include "debug.h"
 
 /* Globals */
-unsigned char   currentModulationInputModule=0;
+unsigned char currentModulationInputModule = 0;
 /* Statics */
-static HANDLER  modulationInputModulesHandler[MODULATION_INPUT_MODULES_NUMBER]={valueHandler,
-                                                                                miSpecialMsgsHandler};
+static HANDLER modulationInputModulesHandler[MODULATION_INPUT_MODULES_NUMBER] = {valueHandler, miSpecialMsgsHandler};
 
 /* EDFA modulation input handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the EDFA modulation input. */
-void modulationInputHandler(void){
-
-    #ifdef DEBUG_LPR
-        printf("   Modulation Input\n");
-    #endif /* DEBUG_LPR */
+void modulationInputHandler(void) {
+#ifdef DEBUG_LPR
+    printf("   Modulation Input\n");
+#endif /* DEBUG_LPR */
 
     /* Since the LPR is always outfitted with all the modules, no hardware check
        is performed. */
 
     /* Check if the submodule is in range */
-    currentModulationInputModule=(CAN_ADDRESS&MODULATION_INPUT_MODULES_RCA_MASK)>>MODULATION_INPUT_MODULES_MASK_SHIFT;
-    if(currentModulationInputModule>=MODULATION_INPUT_MODULES_NUMBER){
-        storeError(ERR_MODULATION_INPUT, ERC_MODULE_RANGE); //Modulation Input submodule out of range
+    currentModulationInputModule =
+        (CAN_ADDRESS & MODULATION_INPUT_MODULES_RCA_MASK) >> MODULATION_INPUT_MODULES_MASK_SHIFT;
+    if (currentModulationInputModule >= MODULATION_INPUT_MODULES_NUMBER) {
+        storeError(ERR_MODULATION_INPUT, ERC_MODULE_RANGE);  // Modulation Input submodule out of range
 
-        CAN_STATUS = HARDW_RNG_ERR; // Notify incoming CAN message of error
+        CAN_STATUS = HARDW_RNG_ERR;  // Notify incoming CAN message of error
         return;
     }
 
@@ -47,36 +46,25 @@ void modulationInputHandler(void){
     (modulationInputModulesHandler[currentModulationInputModule])();
 }
 
-
 /* EDFA modulation input value handler */
-static void valueHandler(void){
-    #ifdef DEBUG
-        printf("    Value\n");
-    #endif /* DEBUG */
+static void valueHandler(void) {
+#ifdef DEBUG
+    printf("    Value\n");
+#endif /* DEBUG */
 
     /* If control (size !=0) */
-    if(CAN_SIZE){
+    if (CAN_SIZE) {
         // save the incoming message:
-        SAVE_LAST_CONTROL_MESSAGE(frontend.
-                                   lpr.
-                                    edfa.
-                                     modulationInput.
-                                      lastValue)
+        SAVE_LAST_CONTROL_MESSAGE(frontend.lpr.edfa.modulationInput.lastValue)
 
         /* Extract the float from the can message. */
-        changeEndian(CONV_CHR_ADD,
-                     CAN_DATA_ADD);
+        changeEndian(CONV_CHR_ADD, CAN_DATA_ADD);
 
         /* Set the lna stage. If an error occurs then store the state and
            then return. */
-        if(setModulationInputValue()==ERROR){
+        if (setModulationInputValue() == ERROR) {
             /* Store the ERROR state in the last control message varibale */
-            frontend.
-             lpr.
-              edfa.
-               modulationInput.
-                lastValue.
-                 status=ERROR;
+            frontend.lpr.edfa.modulationInput.lastValue.status = ERROR;
 
             return;
         }
@@ -86,13 +74,9 @@ static void valueHandler(void){
     }
 
     /* If monitor on control RCA */
-    if(currentClass==CONTROL_CLASS){
+    if (currentClass == CONTROL_CLASS) {
         // return the last control message and status
-        RETURN_LAST_CONTROL_MESSAGE(frontend.
-                                     lpr.
-                                      edfa.
-                                       modulationInput.
-                                        lastValue)
+        RETURN_LAST_CONTROL_MESSAGE(frontend.lpr.edfa.modulationInput.lastValue)
         return;
     }
 
@@ -102,32 +86,16 @@ static void valueHandler(void){
        updated when a new modulation input value is sent with a control
        message. */
     /* Extract the float from the last CAN message data. */
-    changeEndian(CONV_CHR_ADD,
-                 frontend.
-                  lpr.
-                   edfa.
-                    modulationInput.
-                     lastValue.
-                      data);
+    changeEndian(CONV_CHR_ADD, frontend.lpr.edfa.modulationInput.lastValue.data);
     /* Copy the last issued message to the current value */
-    frontend.
-     lpr.
-      edfa.
-       modulationInput.
-        value=CONV_FLOAT;
+    frontend.lpr.edfa.modulationInput.value = CONV_FLOAT;
 
-    CONV_FLOAT=frontend.
-               lpr.
-                edfa.
-                 modulationInput.
-                  value;
+    CONV_FLOAT = frontend.lpr.edfa.modulationInput.value;
 
     /* Load the CAN message payload with the returned value and set the
        size. The value has to be converted from little endian (Intel) to
        big endian (CAN). It is done directly instead of using a function
        to save some time. */
-    changeEndian(CAN_DATA_ADD,
-                 CONV_CHR_ADD);
-    CAN_SIZE=CAN_FLOAT_SIZE;
+    changeEndian(CAN_DATA_ADD, CONV_CHR_ADD);
+    CAN_SIZE = CAN_FLOAT_SIZE;
 }
-

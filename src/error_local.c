@@ -18,10 +18,10 @@
 
 /* Globals */
 /* Externs */
-unsigned char errorNewest = 0; /*!< This variable stores the current index to
-                                  the location for the next newest error. */
-unsigned char errorOldest = 0; /*!< This variable stores the current index to
-                                  the location of oldest unread error. */
+unsigned char errorNewest = 0;                         /*!< This variable stores the current index to
+                                                          the location for the next newest error. */
+unsigned char errorOldest = 0;                         /*!< This variable stores the current index to
+                                                          the location of oldest unread error. */
 unsigned int errorHistory[ERROR_HISTORY_LENGTH] = {0}; /*!< This is a pointer to
                                  the array that will contain the error history
                                  if the malloc succeeds. */
@@ -151,8 +151,7 @@ void storeError(unsigned char moduleNo, unsigned char errorNo) {
     /* Check if the error reporting is turned on */
     if (errorOn) {
         /* Stores the error at the current start index */
-        errorHistory[errorNewest] =
-            (((unsigned int)moduleNo) << 8) + ((unsigned int)errorNo);
+        errorHistory[errorNewest] = (((unsigned int)moduleNo) << 8) + ((unsigned int)errorNo);
 
         ++errorNewest;  // Increase the start index
 
@@ -188,9 +187,7 @@ void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
             break;
 
         case ERC_IRQ_RANGE:  // IRQ out ot range
-            sprintf(
-                error,
-                "Error: The IRQ number for the parallel port is out of range");
+            sprintf(error, "Error: The IRQ number for the parallel port is out of range");
             break;
 
         case ERC_AMBSI_WAIT:  // AMBSI not ready
@@ -238,28 +235,26 @@ void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
             break;
 
         case ERC_MODULE_RANGE:  // Sub-module out of range
-            sprintf(error, "%s%d%s", "Error: The addressed sub-module (",
-                    currentModule, ") is outside the allowed range");
+            sprintf(error, "%s%d%s", "Error: The addressed sub-module (", currentModule,
+                    ") is outside the allowed range");
             break;
 
         case ERC_MODULE_ABSENT:  // Sub-module not installed
-            sprintf(error, "%s%d%s", "Error: The addressed sub-module (",
-                    currentModule, ") is not installed");
+            sprintf(error, "%s%d%s", "Error: The addressed sub-module (", currentModule, ") is not installed");
             break;
 
         case ERC_MODULE_POWER:  // Sub-module not powered
-            sprintf(error, "%s%d%s", "Error: The addressed sub-module (",
-                    currentModule, ") is powered off");
+            sprintf(error, "%s%d%s", "Error: The addressed sub-module (", currentModule, ") is powered off");
             break;
 
         case ERC_RCA_CLASS:  // RCA class out of range
-            sprintf(error, "%s0x%lX%s", "Warning: The monitor or command RCA (",
-                    CAN_ADDRESS, ") class is out of the defined range");
+            sprintf(error, "%s0x%lX%s", "Warning: The monitor or command RCA (", CAN_ADDRESS,
+                    ") class is out of the defined range");
             break;
 
         case ERC_RCA_RANGE:  // RCA out of range
-            sprintf(error, "%s0x%lX%s", "Warning: The monitor or command RCA (",
-                    CAN_ADDRESS, ") is out of the defined range");
+            sprintf(error, "%s0x%lX%s", "Warning: The monitor or command RCA (", CAN_ADDRESS,
+                    ") is out of the defined range");
             break;
 
         case ERC_COMMAND_VAL:  // Command value out of range
@@ -272,15 +267,13 @@ void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
 
         case ERC_0F:
         default:  // Undefined error
-            sprintf(error, "%s%d%s", "The specified error (", errorNo,
-                    ") is not defined for this module");
+            sprintf(error, "%s%d%s", "The specified error (", errorNo, ") is not defined for this module");
             break;
     }
 
     printf(
         "\nError %lu (%d/255): 0x%02X (module: %d, error: %d)\n Message from "
         "module %s:\n %s\n\n",
-        errorTotal, errorNewest, errorHistory[errorNewest - 1],
-        (unsigned char)(errorHistory[errorNewest - 1] >> 8),
+        errorTotal, errorNewest, errorHistory[errorNewest - 1], (unsigned char)(errorHistory[errorNewest - 1] >> 8),
         (unsigned char)errorHistory[errorNewest - 1], module, error);
 }

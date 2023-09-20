@@ -8,12 +8,13 @@
     the 3rd party INI file reader library. */
 
 /* Includes */
-#include <stdio.h>      /* printf */
-#include <errno.h>      /* errno */
-
 #include "iniWrapper.h"
-#include "error_local.h"
+
+#include <errno.h> /* errno */
+#include <stdio.h> /* printf */
+
 #include "debug.h"
+#include "error_local.h"
 
 /* Write info to the configuration file */
 /*! This function will write information to the selected configuration file.
@@ -31,30 +32,18 @@
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something went wrong */
-extern int myWriteCfg(const char *fileName,
-                      char *sectionName,
-                      char *varWanted,
-                      char *newData){
-    #ifdef DEBUG_INI
-        printf("\n     Opening file: %s\n     Serching for section: %s\n     Key: %s\n",
-               fileName,
-               sectionName,
-               varWanted);
-    #endif // DEBUG_INI
+extern int myWriteCfg(const char *fileName, char *sectionName, char *varWanted, char *newData) {
+#ifdef DEBUG_INI
+    printf("\n     Opening file: %s\n     Serching for section: %s\n     Key: %s\n", fileName, sectionName, varWanted);
+#endif  // DEBUG_INI
 
-    if(UpdateCfg(fileName,
-                 sectionName,
-                 varWanted,
-                 newData)==ERROR){
-        storeError(ERR_INI, ERC_FLASH_ERROR); //Error updating the configuration file
+    if (UpdateCfg(fileName, sectionName, varWanted, newData) == ERROR) {
+        storeError(ERR_INI, ERC_FLASH_ERROR);  // Error updating the configuration file
         return ERROR;
     }
 
     return NO_ERROR;
 }
-
-
-
 
 /* Read info from the configuration file */
 /*! This function will read information from the selected configuration file.
@@ -72,51 +61,41 @@ extern int myWriteCfg(const char *fileName,
         - \ref FILE_CLOSE_ERROR -> if there was an error closing the file
         - \ref ITEMS_NO_ERROR   -> if the returned number of items found is not
                                    in agreement with the specified number */
-int myReadCfg(const char *fileName,
-              char *sectionName,
-              CFG_STRUCT *searchVar,
-              unsigned char expectedItems){
-
+int myReadCfg(const char *fileName, char *sectionName, CFG_STRUCT *searchVar, unsigned char expectedItems) {
     /* A variable to deal with the return value */
-    int returnValue=NO_ERROR;
+    int returnValue = NO_ERROR;
 
-    #ifdef DEBUG_INI
-        printf("\n     Opening file: %s\n     Serching for section: %s\n     Key: %s\n",
-               fileName,
-               sectionName,
-               searchVar->Name);
-    #endif /* DEBUG_INI */
-
-
+#ifdef DEBUG_INI
+    printf("\n     Opening file: %s\n     Serching for section: %s\n     Key: %s\n", fileName, sectionName,
+           searchVar->Name);
+#endif /* DEBUG_INI */
 
     /* Call the original function */
-    returnValue=ReadCfg(fileName,
-                        sectionName,
-                        searchVar);
+    returnValue = ReadCfg(fileName, sectionName, searchVar);
 
     /* Deal with the return value */
-    switch(returnValue){
+    switch (returnValue) {
         case DATA_NOT_FOUND:
-            storeError(ERR_INI, ERC_FLASH_ERROR); //The data wasn't found in the configuration file
+            storeError(ERR_INI, ERC_FLASH_ERROR);  // The data wasn't found in the configuration file
             return DATA_NOT_FOUND;
             break;
         case FILE_OPEN_ERROR:
-            storeError(ERR_INI, ERC_FLASH_ERROR); //Error 0x02 -> Error opening the required file
+            storeError(ERR_INI, ERC_FLASH_ERROR);  // Error 0x02 -> Error opening the required file
             return FILE_OPEN_ERROR;
             break;
         case FILE_ERROR:
-            storeError(ERR_INI, ERC_FLASH_ERROR); //Error handling the required file
+            storeError(ERR_INI, ERC_FLASH_ERROR);  // Error handling the required file
             return FILE_ERROR;
             break;
         case FILE_CLOSE_ERROR:
-            storeError(ERR_INI, ERC_FLASH_ERROR); //Error closing the required file
+            storeError(ERR_INI, ERC_FLASH_ERROR);  // Error closing the required file
             return FILE_CLOSE_ERROR;
             break;
         default:
             /* If no errors, check if the number of returned items is the same
                as the requested ones. */
-            if (expectedItems && returnValue!=expectedItems) {
-                storeError(ERR_INI, ERC_FLASH_ERROR); //Number of returned items different from expected
+            if (expectedItems && returnValue != expectedItems) {
+                storeError(ERR_INI, ERC_FLASH_ERROR);  // Number of returned items different from expected
                 return ITEMS_NO_ERROR;
             }
             return NO_ERROR;
@@ -125,5 +104,3 @@ int myReadCfg(const char *fileName,
 
     return NO_ERROR;
 }
-
-

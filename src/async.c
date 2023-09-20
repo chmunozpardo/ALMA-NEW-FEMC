@@ -8,38 +8,37 @@
     the cpu is idle between incoming CAN messages. */
 
 /* Includes */
-#include <stdio.h>      /* printf */
-
 #include "async.h"
-#include "frontend.h"
-#include "error_local.h"
+
+#include <stdio.h> /* printf */
+
 #include "debug.h"
+#include "error_local.h"
+#include "frontend.h"
 
 /* Globals */
 ASYNC_STATE asyncState = ASYNC_CRYOSTAT; /*!< This variable contains the current status
                                               of the async process. */
 /* Externs */
 
-
 /* Statics */
 
 /* Executes async operations. This could be in its own module. */
 /*! This function handles the async operations. These are tasks the FEMC will
     execute while idle between can messages. */
-void async(void){
-
+void async(void) {
     /* Switch to the correct subsystem */
-    switch(asyncState){
+    switch (asyncState) {
         /* Run the cryostat async functions */
         case ASYNC_CRYOSTAT:
             /* If done or error, go to next subsystem */
-            switch(cryostatAsync()){
+            switch (cryostatAsync()) {
                 case NO_ERROR:
                     return;
                     break;
                 case ASYNC_DONE:
                 case ERROR:
-                    asyncState=ASYNC_CARTRIDGE;
+                    asyncState = ASYNC_CARTRIDGE;
                     break;
                 default:
                     break;
@@ -47,13 +46,13 @@ void async(void){
             break;
         /* Run the cartridge async functions */
         case ASYNC_CARTRIDGE:
-            switch(cartridgeAsync()){
+            switch (cartridgeAsync()) {
                 case NO_ERROR:
                     return;
                     break;
                 case ASYNC_DONE:
                 case ERROR:
-                    asyncState=ASYNC_FETIM;
+                    asyncState = ASYNC_FETIM;
                     break;
                 default:
                     break;
@@ -61,17 +60,17 @@ void async(void){
             break;
         /* Run the FETIM async functions */
         case ASYNC_FETIM:
-            #ifdef DEBUG_FETIM_ASYNC
-                printf("Async -> FETIM\n");
-            #endif /* DEBUG_FETIM_ASYNC */
+#ifdef DEBUG_FETIM_ASYNC
+            printf("Async -> FETIM\n");
+#endif /* DEBUG_FETIM_ASYNC */
 
-            switch(fetimAsync()){
+            switch (fetimAsync()) {
                 case NO_ERROR:
                     return;
                     break;
                 case ASYNC_DONE:
                 case ERROR:
-                    asyncState=ASYNC_CRYOSTAT;
+                    asyncState = ASYNC_CRYOSTAT;
                     break;
                 default:
                     break;
@@ -79,11 +78,11 @@ void async(void){
             break;
         /* Turn off the async functions */
         case ASYNC_OFF:
-            asyncState=ASYNC_OFF;
+            asyncState = ASYNC_OFF;
             break;
         /* Turn on the async functions */
         case ASYNC_ON:
-            asyncState=ASYNC_CRYOSTAT;
+            asyncState = ASYNC_CRYOSTAT;
             break;
 
         default:

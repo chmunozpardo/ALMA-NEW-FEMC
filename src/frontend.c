@@ -176,8 +176,7 @@ int frontendWriteNVMemory(void) {
         sprintf(buf, "%lu", frontend.cryostat.coldHeadHours);
         // Write the current number of hours back to the cryostat hours log
         // file:
-        UpdateCfg(frontend.cryostat.coldHeadHoursFile, CRYO_HOURS_FILE_SECTION,
-                  CRYO_HOURS_KEY, buf);
+        UpdateCfg(frontend.cryostat.coldHeadHoursFile, CRYO_HOURS_FILE_SECTION, CRYO_HOURS_KEY, buf);
         frontend.cryostat.coldHeadHoursDirty = 0;
 #ifdef DEBUG_CRYOSTAT_ASYNC
         printf("frontend -> frontendWriteNVMemory wrote %s hours\n", buf);
@@ -190,73 +189,39 @@ int feAndCartridgesConfigurationReport(void) {
     unsigned char band;
     printf("FE and cartridges configuration report:\n");
     printf("FE Mode:%d\n", frontend.mode);
-    printf("IP Address:%d.%d.%d.%d\n", frontend.ipaddress[0],
-           frontend.ipaddress[1], frontend.ipaddress[2], frontend.ipaddress[3]);
-    printf("Cryostat: available:%d hardwRevision:%d\n",
-           frontend.cryostat.available, frontend.cryostat.hardwRevision);
-    printf("IF Switch: hardwRevision:%d bandSelect:%d\n",
-           frontend.ifSwitch.hardwRevision, frontend.ifSwitch.bandSelect);
+    printf("IP Address:%d.%d.%d.%d\n", frontend.ipaddress[0], frontend.ipaddress[1], frontend.ipaddress[2],
+           frontend.ipaddress[3]);
+    printf("Cryostat: available:%d hardwRevision:%d\n", frontend.cryostat.available, frontend.cryostat.hardwRevision);
+    printf("IF Switch: hardwRevision:%d bandSelect:%d\n", frontend.ifSwitch.hardwRevision,
+           frontend.ifSwitch.bandSelect);
     printf("LPR: bandSelect:%d\n", frontend.lpr.opticalSwitch.port);
-    printf("FETIM: available:%d hardwRevision:%d\n", frontend.fetim.available,
-           frontend.fetim.hardwRevision);
-    printf("Bands powered:%d Standby2:%d\n",
-           frontend.powerDistribution.poweredModules,
+    printf("FETIM: available:%d hardwRevision:%d\n", frontend.fetim.available, frontend.fetim.hardwRevision);
+    printf("Bands powered:%d Standby2:%d\n", frontend.powerDistribution.poweredModules,
            frontend.powerDistribution.standby2Modules);
 
     for (band = 0; band < CARTRIDGES_NUMBER; band++) {
-        printf(
-            "Band%d: available:%d files:%s %s resistor:%.1f powered:%d\n",
-            band + 1, frontend.cartridge[band].available,
-            frontend.cartridge[band].configFile,
-            frontend.cartridge[band].lo.configFile,
-            frontend.cartridge[band].polarization[0].sideband[0].sis.resistor,
-            frontend.powerDistribution.pdModule[band].enable);
+        printf("Band%d: available:%d files:%s %s resistor:%.1f powered:%d\n", band + 1,
+               frontend.cartridge[band].available, frontend.cartridge[band].configFile,
+               frontend.cartridge[band].lo.configFile,
+               frontend.cartridge[band].polarization[0].sideband[0].sis.resistor,
+               frontend.powerDistribution.pdModule[band].enable);
 
         if (frontend.cartridge[band].available) {
-            printf(
-                " Pol0 sis1:%d sis2:%d sisMag1:%d sisMag2:%d sisHeat:%d\n",
-                frontend.cartridge[band]
-                    .polarization[0]
-                    .sideband[0]
-                    .sis.available,
-                frontend.cartridge[band]
-                    .polarization[0]
-                    .sideband[1]
-                    .sis.available,
-                frontend.cartridge[band]
-                    .polarization[0]
-                    .sideband[0]
-                    .sisMagnet.available,
-                frontend.cartridge[band]
-                    .polarization[0]
-                    .sideband[1]
-                    .sisMagnet.available,
-                frontend.cartridge[band].polarization[0].sisHeater.available);
-            printf(
-                " Pol1 sis1:%d sis2:%d sisMag1:%d sisMag2:%d sisHeat:%d\n",
-                frontend.cartridge[band]
-                    .polarization[1]
-                    .sideband[0]
-                    .sis.available,
-                frontend.cartridge[band]
-                    .polarization[1]
-                    .sideband[1]
-                    .sis.available,
-                frontend.cartridge[band]
-                    .polarization[1]
-                    .sideband[0]
-                    .sisMagnet.available,
-                frontend.cartridge[band]
-                    .polarization[1]
-                    .sideband[1]
-                    .sisMagnet.available,
-                frontend.cartridge[band].polarization[1].sisHeater.available);
-            printf(" Temp offsets: %.3f %.3f %.3f %.3f %.3f %.3f\n",
-                   frontend.cartridge[band].cartridgeTemp[0].offset,
-                   frontend.cartridge[band].cartridgeTemp[1].offset,
-                   frontend.cartridge[band].cartridgeTemp[2].offset,
-                   frontend.cartridge[band].cartridgeTemp[3].offset,
-                   frontend.cartridge[band].cartridgeTemp[4].offset,
+            printf(" Pol0 sis1:%d sis2:%d sisMag1:%d sisMag2:%d sisHeat:%d\n",
+                   frontend.cartridge[band].polarization[0].sideband[0].sis.available,
+                   frontend.cartridge[band].polarization[0].sideband[1].sis.available,
+                   frontend.cartridge[band].polarization[0].sideband[0].sisMagnet.available,
+                   frontend.cartridge[band].polarization[0].sideband[1].sisMagnet.available,
+                   frontend.cartridge[band].polarization[0].sisHeater.available);
+            printf(" Pol1 sis1:%d sis2:%d sisMag1:%d sisMag2:%d sisHeat:%d\n",
+                   frontend.cartridge[band].polarization[1].sideband[0].sis.available,
+                   frontend.cartridge[band].polarization[1].sideband[1].sis.available,
+                   frontend.cartridge[band].polarization[1].sideband[0].sisMagnet.available,
+                   frontend.cartridge[band].polarization[1].sideband[1].sisMagnet.available,
+                   frontend.cartridge[band].polarization[1].sisHeater.available);
+            printf(" Temp offsets: %.3f %.3f %.3f %.3f %.3f %.3f\n", frontend.cartridge[band].cartridgeTemp[0].offset,
+                   frontend.cartridge[band].cartridgeTemp[1].offset, frontend.cartridge[band].cartridgeTemp[2].offset,
+                   frontend.cartridge[band].cartridgeTemp[3].offset, frontend.cartridge[band].cartridgeTemp[4].offset,
                    frontend.cartridge[band].cartridgeTemp[5].offset);
         }
     }

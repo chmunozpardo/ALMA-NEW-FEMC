@@ -79,8 +79,7 @@ int writeMux(void) {
            returned if the addressed device is not available. */
 
     /* 3 - Load the data registers. */
-    pico_mem[DATAWR] =
-        (frame.data[FRAME_DATA_MDL] << 16) + frame.data[FRAME_DATA_LSW];
+    pico_mem[DATAWR] = frame.data[FRAME_DATA_LSW];
 
     /* 4 - Write the outgoing data lenght register with the number of bits to be
            sent. */
@@ -149,27 +148,23 @@ int readMux(void) {
     check_done();
 
     /* 6 - Load the data registers */
-    frame.data[FRAME_DATA_MSW] = pico_mem[DATARD1] & 0xFFFF;
-    frame.data[FRAME_DATA_MDL] = (pico_mem[DATARD0] & 0xFFFF0000) >> 16;
-    frame.data[FRAME_DATA_LSW] = pico_mem[DATARD0] & 0xFFFF;
+    frame.data[FRAME_DATA_MSW] = pico_mem[DATARD1] & 0xFF;
+    frame.data[FRAME_DATA_LSW] = pico_mem[DATARD0];
 
     return NO_ERROR;
 }
 
 unsigned char init_mem_map(void) {
     if ((fd_mem = open("/dev/mem", O_RDWR | O_SYNC)) == -1) {
-        fprintf(stderr, "Error at line %d, file %s (%d) [%s]\n", __LINE__,
-                __FILE__, errno, strerror(errno));
+        fprintf(stderr, "Error at line %d, file %s (%d) [%s]\n", __LINE__, __FILE__, errno, strerror(errno));
         exit(1);
     };
     printf("/dev/mem opened.\n");
     fflush(stdout);
 
-    pico_mem = mmap(NULL, BASE_LPR + MAP_SIZE, PROT_READ | PROT_WRITE,
-                    MAP_SHARED, fd_mem, BASE_LPR);
+    pico_mem = mmap(NULL, BASE_LPR + MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, BASE_LPR);
     if (pico_mem == (void *)-1) {
-        fprintf(stderr, "Error at line %d, file %s (%d) [%s]\n", __LINE__,
-                __FILE__, errno, strerror(errno));
+        fprintf(stderr, "Error at line %d, file %s (%d) [%s]\n", __LINE__, __FILE__, errno, strerror(errno));
         exit(1);
     }
     printf("Memory mapped at address %p.\n", pico_mem);

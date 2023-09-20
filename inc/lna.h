@@ -20,20 +20,9 @@
 #define _LNA_H
 
 /* Extra includes */
-/* CAN module defines */
-#ifndef _CAN_H
-#include "packet.h"
-#endif /* _CAN_H */
-
-/* GLOBAL DEFINITIONS Defines */
-#ifndef _GLOBALDEFINITIONS_H
 #include "globalDefinitions.h"
-#endif /* _GLOBALDEFINITIONS_H */
-
-/* LNA Stage */
-#ifndef _LNA_STAGE_H
 #include "lnaStage.h"
-#endif /* _LNA_STAGE */
+#include "packet.h"
 
 /* Submodules definitions */
 #define LNA_MODULES_NUMBER 7  // See list below
@@ -77,10 +66,8 @@ extern unsigned char currentLnaModule;  //!< Current addressed LNA submodule
 /* Statics */
 static void enableHandler(void);
 /* Externs */
-extern void lnaHandler(
-    void);  //!< This function deals with the incoming can message
-extern void RESERVEDLNAHandler(
-    void);  //!< Handler for LNA stages 4,5,6 which don't exist
+extern void lnaHandler(void);          //!< This function deals with the incoming can message
+extern void RESERVEDLNAHandler(void);  //!< Handler for LNA stages 4,5,6 which don't exist
 extern void lnaGoStandby2();
 //!< set the specified LNA to STANDBY2 mode
 

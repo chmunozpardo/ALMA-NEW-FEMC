@@ -23,8 +23,8 @@
 /* Externs */
 unsigned char currentLprModule = 0;
 /* Statics */
-static HANDLER lprModulesHandler[LPR_MODULES_NUMBER] = {
-    lprTempHandler, lprTempHandler, opticalSwitchHandler, edfaHandler};
+static HANDLER lprModulesHandler[LPR_MODULES_NUMBER] = {lprTempHandler, lprTempHandler, opticalSwitchHandler,
+                                                        edfaHandler};
 
 /* LPR handler */
 /*! This function will be called by the CAN message handler when the received
@@ -38,8 +38,7 @@ void lprHandler(void) {
        performed. */
 
     /* Check if the submodule is in range */
-    currentLprModule =
-        (CAN_ADDRESS & LPR_MODULES_RCA_MASK) >> LPR_MODULES_MASK_SHIFT;
+    currentLprModule = (CAN_ADDRESS & LPR_MODULES_RCA_MASK) >> LPR_MODULES_MASK_SHIFT;
     if (currentLprModule >= LPR_MODULES_NUMBER) {
         storeError(ERR_LPR, ERC_MODULE_RANGE);  // LPR submodule out of range
 
@@ -74,8 +73,7 @@ int lprStartup(void) {
     dataIn.DataPtr = frontend.lpr.configFile;
 
     /* Access configuration file, if error, return skip the configuration. */
-    if (myReadCfg(FRONTEND_CONF_FILE, LPR_CONF_FILE_SECTION, &dataIn,
-                  LPR_CONF_FILE_EXPECTED) != NO_ERROR) {
+    if (myReadCfg(FRONTEND_CONF_FILE, LPR_CONF_FILE_SECTION, &dataIn, LPR_CONF_FILE_EXPECTED) != NO_ERROR) {
         return NO_ERROR;
     }
 
@@ -91,8 +89,7 @@ int lprStartup(void) {
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
     currentModule = LPR_MODULE;
-    if (serialAccess(LPR_10MHZ_MODE, NULL, LPR_10MHZ_MODE_SIZE,
-                     LPR_10MHZ_MODE_SHIFT_SIZE, LPR_10MHZ_MODE_SHIFT_DIR,
+    if (serialAccess(LPR_10MHZ_MODE, NULL, LPR_10MHZ_MODE_SIZE, LPR_10MHZ_MODE_SHIFT_SIZE, LPR_10MHZ_MODE_SHIFT_DIR,
                      SERIAL_WRITE) == ERROR) {
         return ERROR;
     }
@@ -107,8 +104,7 @@ int lprStartup(void) {
     }
 
     /* Setup for 5 seconds and start the asynchornous timer */
-    if (startAsyncTimer(TIMER_LPR_SWITCH_RDY, TIMER_LPR_TO_SWITCH_RDY, FALSE) ==
-        ERROR) {
+    if (startAsyncTimer(TIMER_LPR_SWITCH_RDY, TIMER_LPR_TO_SWITCH_RDY, FALSE) == ERROR) {
         return ERROR;
     }
 
@@ -119,8 +115,7 @@ int lprStartup(void) {
         if (timedOut == ERROR) {
             return ERROR;
         }
-    } while ((setOpticalSwitchShutter(STANDARD) == ERROR) &&
-             (timedOut == TIMER_RUNNING));
+    } while ((setOpticalSwitchShutter(STANDARD) == ERROR) && (timedOut == TIMER_RUNNING));
 
     /* If the timer has expired, signal the error and force the shutter */
     if (timedOut == TIMER_EXPIRED) {
@@ -174,8 +169,7 @@ int lprStop(void) {
     }
 
     /* Setup for 5 seconds and start the asynchornous timer */
-    if (startAsyncTimer(TIMER_LPR_SWITCH_RDY, TIMER_LPR_TO_SWITCH_RDY, FALSE) ==
-        ERROR) {
+    if (startAsyncTimer(TIMER_LPR_SWITCH_RDY, TIMER_LPR_TO_SWITCH_RDY, FALSE) == ERROR) {
         return ERROR;
     }
 
@@ -186,8 +180,7 @@ int lprStop(void) {
         if (timedOut == ERROR) {
             return ERROR;
         }
-    } while ((setOpticalSwitchShutter(STANDARD) == ERROR) &&
-             (timedOut == TIMER_RUNNING));
+    } while ((setOpticalSwitchShutter(STANDARD) == ERROR) && (timedOut == TIMER_RUNNING));
 
     /* If the timer has expired, signal the error and force the shutter */
     if (timedOut == TIMER_EXPIRED) {

@@ -60,9 +60,8 @@
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int serialAccess(unsigned int command, int *reg, unsigned char regSize,
-                 unsigned char shiftAmount, unsigned char shiftDir,
-                 unsigned char write) {
+int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned char shiftAmount,
+                 unsigned char shiftDir, unsigned char write) {
     /* Intermediate data buffer
        An intermediate buffer variable is defined. This is going to be used
        to implement all the shifting needed before writing the data and after
@@ -143,8 +142,7 @@ int serialAccess(unsigned int command, int *reg, unsigned char regSize,
         }
         /* Store the data from the frame into the register. This time the size
            does matter since the register has a well define size. */
-        memcpy(reg, &intermediateBuffer,
-               1 + (unsigned char)(regSize / FRAME_DATA_UNIT_SIZE));
+        memcpy(reg, &intermediateBuffer, 1 + (unsigned char)(regSize / FRAME_DATA_UNIT_SIZE));
     }
 
     return NO_ERROR;

@@ -19,15 +19,8 @@
 #define _SIS_H
 
 /* Extra includes */
-/* GLOBAL DEFINITIONS Defines */
-#ifndef _GLOBALDEFINITIONS_H
-#include "globalDefinitions.h"
-#endif /* _GLOBALDEFINITIONS_H */
-
-/* CAN module defines */
-#ifndef _CAN_H
+#include "globalDefinitions.h" /
 #include "packet.h"
-#endif /* _CAN_H */
 
 /* Submodules definitions */
 #define SIS_MODULES_NUMBER 4  // See list below
@@ -87,8 +80,7 @@ static void voltageHandler(void);
 static void currentHandler(void);
 static void openLoopHandler(void);
 /* Externs */
-extern void sisHandler(
-    void);  //!< This function deals with the incoming can message
+extern void sisHandler(void);  //!< This function deals with the incoming can message
 
 extern void sisGoStandby2();
 //!< set the specified SIS to STANDBY2 mode

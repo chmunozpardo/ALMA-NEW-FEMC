@@ -19,44 +19,38 @@
 #define _SERIALMUX_H
 
 /* Defines */
-#define FRAME_DATA_LENGTH 3  // Maximum communication frame length in words
-#define FRAME_DATA_LENGTH_BYTES \
-    (2 * FRAME_DATA_LENGTH)     // Maximum communication frame length in bytes
-#define FRAME_DATA_UNIT_SIZE 8  // 8-bit per unit of data
-#define FRAME_DATA_BIT_SIZE 40  // Maximum data payload in bits
-#define FRAME_DATA_MSW 2        // Most significant word of data
-#define FRAME_DATA_MDL 1        // Middle word of data
-#define FRAME_DATA_LSW 0        // Least significant word of data
+#define FRAME_DATA_LENGTH 2                              // Maximum communication frame length in words
+#define FRAME_DATA_LENGTH_BYTES (2 * FRAME_DATA_LENGTH)  // Maximum communication frame length in bytes
+#define FRAME_DATA_UNIT_SIZE 8                           // 8-bit per unit of data
+#define FRAME_DATA_BIT_SIZE 40                           // Maximum data payload in bits
+#define FRAME_DATA_MSW 1                                 // Most significant word of data
+#define FRAME_DATA_LSW 0                                 // Least significant word of data
 /* I/O register defines */
 #define FPGA_READY 0x5A5A  //!< FPGA ready data
 #define MUX_BASE 0x300     //!< I/O base address used by the multiplexing board
 
-#define SSC_BASE MUX_BASE      //!< I/O base address used by the SSC
-#define MUX_PORT_ADD SSC_BASE  //!< Port select register address
-#define MUX_DATA_ADD(Wo) \
-    (2 * Wo + SSC_BASE + 0x02)             //!< Data words register address
-#define MUX_WLENGTH_ADD (SSC_BASE + 0x08)  //!< Write length register
-#define MUX_RLENGTH_ADD (SSC_BASE + 0x0A)  //!< Read length register
-#define MUX_COMMAND_ADD (SSC_BASE + 0x0C)  //!< Command word register
-#define MUX_BUSY_ADD (SSC_BASE + 0x0C)     //!< Busy status register
+#define SSC_BASE MUX_BASE                            //!< I/O base address used by the SSC
+#define MUX_PORT_ADD SSC_BASE                        //!< Port select register address
+#define MUX_DATA_ADD(Wo) (2 * Wo + SSC_BASE + 0x02)  //!< Data words register address
+#define MUX_WLENGTH_ADD (SSC_BASE + 0x08)            //!< Write length register
+#define MUX_RLENGTH_ADD (SSC_BASE + 0x0A)            //!< Read length register
+#define MUX_COMMAND_ADD (SSC_BASE + 0x0C)            //!< Command word register
+#define MUX_BUSY_ADD (SSC_BASE + 0x0C)               //!< Busy status register
 
-#define FPGA_BASE (MUX_BASE + 0x10)  //!< I/O base address used by the FPGA
-#define MUX_FPGA_RDY_ADD FPGA_BASE   //!< FPGA ready register (0x5A5A -> Ready)
+#define FPGA_BASE (MUX_BASE + 0x10)          //!< I/O base address used by the FPGA
+#define MUX_FPGA_RDY_ADD FPGA_BASE           //!< FPGA ready register (0x5A5A -> Ready)
 #define MUX_FPGA_VERSION (FPGA_BASE + 0x02)  //!< FPGA version info register
 #define MUX_BUSY_MASK 0x0001                 // Busy status register mask
 
-#define OWB_BASE (MUX_BASE + 0x20)      //!< I/O base address used by the OWB
-#define MUX_OWB_COMMAND OWB_BASE        //!< OWB command register (R/W)
-#define MUX_OWB_TXRX (OWB_BASE + 0x01)  //!< OWB Transmit(W)/Receive(R) Buffer
-#define MUX_OWB_IRQ (OWB_BASE + 0x02)   //!< OWB Interrupt register (R)
-#define MUX_OWB_IRQ_EN \
-    (OWB_BASE + 0x03)  //!< OWB Interrupt enable regiaster (R/W)
+#define OWB_BASE (MUX_BASE + 0x20)         //!< I/O base address used by the OWB
+#define MUX_OWB_COMMAND OWB_BASE           //!< OWB command register (R/W)
+#define MUX_OWB_TXRX (OWB_BASE + 0x01)     //!< OWB Transmit(W)/Receive(R) Buffer
+#define MUX_OWB_IRQ (OWB_BASE + 0x02)      //!< OWB Interrupt register (R)
+#define MUX_OWB_IRQ_EN (OWB_BASE + 0x03)   //!< OWB Interrupt enable regiaster (R/W)
 #define MUX_OWB_CLK_DIV (OWB_BASE + 0x04)  //!< OWB Clock divisor register (R/W)
 #define MUX_OWB_CONTROL (OWB_BASE + 0x05)  //!< OWB Control Register (R/W)
-#define MUX_OWB_ENABLE \
-    (OWB_BASE + 0x0E)  //!< Enables the bus extending outside the FEMC (W)
-#define MUX_OWB_RESET \
-    (OWB_BASE + 0x0F)  //!< Reset the one wire master in the FPGA (W)
+#define MUX_OWB_ENABLE (OWB_BASE + 0x0E)   //!< Enables the bus extending outside the FEMC (W)
+#define MUX_OWB_RESET (OWB_BASE + 0x0F)    //!< Reset the one wire master in the FPGA (W)
 
 #include <errno.h>
 #include <fcntl.h>
@@ -141,9 +135,8 @@ typedef struct {
     /*! The largest trasmissible frame is 40-bit wide. The content is spread
         over the 3 unsigned int in the data array. It must be left justified
         and the data is distributed as follows:
-            - Element 0 -> (bit 15-0) least significant word
-            - Element 1 -> (bit 31-16) middle word
-            - Element 2 -> (bit 39-32) most significant word */
+            - Element 0 -> (bit 31-0) least significant word
+            - Element 1 -> (bit 39-32) most significant word */
     int data[FRAME_DATA_LENGTH];
     //! Data length
     /*! The ammount of bits to be written or read during an access cycle. */
