@@ -19,7 +19,7 @@
 #define _SIS_H
 
 /* Extra includes */
-#include "globalDefinitions.h" /
+#include "globalDefinitions.h"
 #include "packet.h"
 
 /* Submodules definitions */
