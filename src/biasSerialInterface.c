@@ -223,7 +223,7 @@ static int getBiasAnalogMonitor(void) {
     }
 
     /* Drop the not needed bits and store the data */
-    biasRegisters[currentModule].adcData = tempAdcValue[0];
+    biasRegisters[currentModule].adcData = tempAdcValue[0] & 0xFFFF;
 
     return NO_ERROR;
 }

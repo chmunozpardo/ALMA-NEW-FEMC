@@ -20,21 +20,15 @@
 #define ERROR_HISTORY_LENGTH 0xFF  //!< Max length of the error circular buffer
 /* CAN Message Errors */
 /* General */
-#define HARDW_RNG_ERR \
-    (-2)                     //!< The addressed or connected hardware it is not installed or
-                             //!< activated
+#define HARDW_RNG_ERR (-2)   //!< The addressed or connected hardware it is not installed or activated
 #define HARDW_BLKD_ERR (-3)  //!< The addressed hardware is locked
 #define HARDW_CON_ERR (-5)   //!< There was an error while applying a conversion calculation
-#define HARDW_ERROR \
-    (-7)  //!< The selected hardware is in error state. Follow ICD instruction
-          //!< to proceed.
+#define HARDW_ERROR (-7)     //!< The selected hardware is in error state. Follow ICD instruction to proceed.
 /* Monitor */
 #define MON_CAN_RNG (-12)    //!< Monitor message on non existing RCA
 #define MON_ERROR_ACT (-13)  //!< Monitor message detected a problem and an action was taken
 /* Control */
-#define CON_ERROR_RNG \
-    (-10)  //!< Value of last control message received is outside the allowed
-           //!< range
+#define CON_ERROR_RNG (-10)  //!< Value of last control message received is outside the allowed range
 /* Modules */
 #define ERR_ERROR 0x00               //!< Error in the Error Module
 #define ERR_unassigned01 0x01        //!< Unassigned
@@ -127,9 +121,9 @@
 
 /* Globals */
 /* Externs */
-extern unsigned char errorNewest;    //!< A global to keep track of the newest error index
-extern unsigned char errorOldest;    //!< A global to keep track of the oldest error index
-extern unsigned int errorHistory[];  //!< A global pointer to the error history
+extern unsigned char errorNewest;   //!< A global to keep track of the newest error index
+extern unsigned char errorOldest;   //!< A global to keep track of the oldest error index
+extern unsigned int* errorHistory;  //!< A global pointer to the error history
 
 /* Prototypes */
 /* Statics */
@@ -144,4 +138,4 @@ extern void storeError(unsigned char moduleNo,
 extern void criticalError(unsigned char moduleNo,
                           unsigned char errorNo);  //!< Report critical error
 
-#endif /* _ERROR_LOCAL_H */
+#endif /* _ERROR_H */

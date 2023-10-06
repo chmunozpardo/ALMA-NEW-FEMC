@@ -18,18 +18,20 @@
 
 /* Globals */
 /* Externs */
-unsigned char errorNewest = 0;                         /*!< This variable stores the current index to
-                                                          the location for the next newest error. */
-unsigned char errorOldest = 0;                         /*!< This variable stores the current index to
-                                                          the location of oldest unread error. */
-unsigned int errorHistory[ERROR_HISTORY_LENGTH] = {0}; /*!< This is a pointer to
-                                 the array that will contain the error history
-                                 if the malloc succeeds. */
+unsigned char errorNewest = 0; /*!< This variable stores the current index to the
+                                    location for the next newest error. */
+unsigned char errorOldest = 0; /*!< This variable stores the current index to the
+                                    location of oldest unread error. */
+unsigned int *errorHistory;    /*!< This is a pointer to the array that will
+                                    contain the error history if the malloc
+                                    succeeds. */
 
 /* Statics */
 static unsigned int errorNoErrorHistory = 1;
 static unsigned char errorOn = 0;
 static unsigned long errorTotal = 0;
+
+#ifdef ERROR_REPORT
 
 static char *moduleNames[0x41] = {"Error",  // 0x00
                                   "unassigned",
@@ -98,6 +100,8 @@ static char *moduleNames[0x41] = {"Error",  // 0x00
                                   "FETIM He2 Pressure"  // 0x40
                                   "Teledyne PA"};
 
+#endif  // ERROR_REPORT
+
 /*! Initializes the error routines trying to allocate enough space in memory for
     the circular buffer containing the latest 255 errors. If there isn't enough
     space in memory to hold the entire array, the error routines are disabled.
@@ -109,11 +113,54 @@ int errorInit(void) {
     printf("Initializing Error Library...\n");
 #endif /* DEBUG_STARTUP */
 
+    // If error initializing the error array, disable error reporting and notify
+    errorHistory = (unsigned int *)malloc(ERROR_HISTORY_LENGTH * sizeof(unsigned int));
+    if (errorHistory == NULL) {
+        errorOn = 0;
+
+        /* If there is no error reporting, we need to store that fact in the
+           error history so that the can message can read it. */
+        errorHistory = &errorNoErrorHistory;
+        ++errorNewest;
+
+#ifdef DEBUG_STARTUP
+        printf("\n\nERROR - Not enough memory to store the error array\n\n");
+#endif /* DEBUG_STARTUP */
+
+#ifdef ERROR_REPORT
+        reportErrorConsole(ERR_ERROR, ERC_NO_MEMORY);
+#endif /* ERROR_REPORT */
+
+        return NO_ERROR;
+    }
+
     // Otherwise enable error reporting
     errorOn = 1;
 
+    /* Redirect stderr to avoid message on the screen. */
+    freopen(NULL, "w", stderr);
+
 #ifdef DEBUG_STARTUP
     printf("done!\n\n");
+#endif /* DEBUG_STARTUP */
+    return NO_ERROR;
+}
+
+/*! This function performs the operation necessary to stop the error handling
+    routine.
+    \return
+        - \ref NO_ERROR -> if no error occurred
+        - \ref ERROR    -> if something wrong happened */
+int errorStop(void) {
+#ifdef DEBUG_STARTUP
+    printf("Shutting down error handling...\n");
+#endif /* DEBUG_STARTUP */
+
+    // Free allocated memory
+    free(errorHistory);
+
+#ifdef DEBUG_STARTUP
+    printf("done!\n");
 #endif /* DEBUG_STARTUP */
     return NO_ERROR;
 }
@@ -144,8 +191,7 @@ void criticalError(unsigned char moduleNo, unsigned char errorNo) {
     \param moduleNo     This is the module where the error occured
     \param errorNo      This is the error number for the specified module */
 void storeError(unsigned char moduleNo, unsigned char errorNo) {
-    /* Increases the total error counter even if the error routine is not
-     * enabled */
+    /* Increases the total error counter even if the error routine is not enabled */
     errorTotal++;
 
     /* Check if the error reporting is turned on */
@@ -161,9 +207,13 @@ void storeError(unsigned char moduleNo, unsigned char errorNo) {
             errorOldest++;
         }
 
-        // reportErrorConsole(moduleNo, errorNo);
+#ifdef ERROR_REPORT
+        reportErrorConsole(moduleNo, errorNo);
+#endif /* ERROR_REPORT */
     }
 }
+
+#ifdef ERROR_REPORT
 
 /* Print error information on the ARCOM Pegasus console. */
 void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
@@ -175,15 +225,13 @@ void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
     /* Print error information on screen */
     switch (errorNo) {
         case ERC_NO_MEMORY:  // Not enough memory for the error array
-            sprintf(error, "%s",
-                    "Warning: not enough memory for error reporting. Error "
-                    "reporting disabled");
+            sprintf(error, "%s", "Warning: not enough memory for error reporting. Error reporting disabled");
             break;
 
         case ERC_IRQ_DISABLED:  // IRQ not enabled
-            sprintf(error, "%s",
-                    "Warning: The IRQ for the parallel port was disabled.\nIt "
-                    "was enable and assigned the value:");
+            sprintf(error, "%s%d",
+                    "Warning: The IRQ for the parallel port was disabled.\nIt was enable and assigned the value:",
+                    PP_DEFAULT_IRQ_NO);
             break;
 
         case ERC_IRQ_RANGE:  // IRQ out ot range
@@ -191,26 +239,20 @@ void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
             break;
 
         case ERC_AMBSI_WAIT:  // AMBSI not ready
-            sprintf(error,
-                    "Warning: Waiting for AMBSI to get ready for parallel "
-                    "communication");
+            sprintf(error, "Warning: Waiting for AMBSI to get ready for parallel communication");
             break;
 
         case ERC_AMBSI_EXPIRED:  // AMBSI ready timer expired
             sprintf(error,
-                    "Error: Timer expired while waiting for AMBSI to get "
-                    "ready. CAN disabled! Only console operations available");
+                    "Error: Timer expired while waiting for AMBSI to get ready. CAN disabled! Only console operations "
+                    "available");
             break;
 
-        case ERC_MAINT_MODE:  // Front End in maintenance mode: standard RCAs
-                              // blocked
-            sprintf(error,
-                    "The Front End is in Maintenance mode: only the special "
-                    "RCAs are available");
+        case ERC_MAINT_MODE:  // Front End in maintenance mode: standard RCAs blocked
+            sprintf(error, "The Front End is in Maintenance mode: only the special RCAs are available");
             break;
 
-        case ERC_HARDWARE_TIMEOUT:  // Timed out waiting for hardware to become
-                                    // ready
+        case ERC_HARDWARE_TIMEOUT:  // Timed out waiting for hardware to become ready
             sprintf(error, "Timeout waiting for hardware to become ready");
             break;
 
@@ -271,9 +313,8 @@ void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo) {
             break;
     }
 
-    printf(
-        "\nError %lu (%d/255): 0x%02X (module: %d, error: %d)\n Message from "
-        "module %s:\n %s\n\n",
-        errorTotal, errorNewest, errorHistory[errorNewest - 1], (unsigned char)(errorHistory[errorNewest - 1] >> 8),
-        (unsigned char)errorHistory[errorNewest - 1], module, error);
+    printf("\nError %lu (%d/255): 0x%02X (module: %d, error: %d)\n Message from module %s:\n %s\n\n", errorTotal,
+           errorNewest, errorHistory[errorNewest - 1], (unsigned char)(errorHistory[errorNewest - 1] >> 8),
+           (unsigned char)errorHistory[errorNewest - 1], module, error);
 }
+#endif /* ERROR_REPORT */

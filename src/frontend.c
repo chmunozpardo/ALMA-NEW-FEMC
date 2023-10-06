@@ -56,112 +56,100 @@ int frontendInit(void) {
     CFG_STRUCT dataIn;
 #endif
 
-    // #ifndef CHECK_HW_AVAIL
+#ifndef CHECK_HW_AVAIL
 
-    //     /* Cartridge availability and INI filenames */
-    //     for (currentModule = 0; currentModule < CARTRIDGES_NUMBER;
-    //          currentModule++) {
-    //         frontend.cartridge[currentModule].available = TRUE;
-    //         sprintf(frontend.cartridge[currentModule].configFile,
-    //         "CART%d.INI",
-    //                 currentModule + 1);
-    //         sprintf(frontend.cartridge[currentModule].lo.configFile,
-    //         "WCA%d.INI",
-    //                 currentModule + 1);
-    //     }
+    /* Cartridge availability and INI filenames */
+    for (currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
+        frontend.cartridge[currentModule].available = TRUE;
+        sprintf(frontend.cartridge[currentModule].configFile, "CART%d.INI", currentModule + 1);
+        sprintf(frontend.cartridge[currentModule].lo.configFile, "WCA%d.INI", currentModule + 1);
+    }
 
-    // #else
+#else
 
-    //     /* Search for available cartridges and initialize them */
-    //     for (currentModule = 0; currentModule < CARTRIDGES_NUMBER;
-    //          currentModule++) {
-    //         /* Load the configuration for the available cartridges */
-    //         dataIn.Name = BAND_AVAIL_KEY;
-    //         dataIn.VarType = Cfg_Boolean;
-    //         dataIn.DataPtr = &frontend.cartridge[currentModule].available;
+    /* Search for available cartridges and initialize them */
+    for (currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
+        /* Load the configuration for the available cartridges */
+        dataIn.Name = BAND_AVAIL_KEY;
+        dataIn.VarType = Cfg_Boolean;
+        dataIn.DataPtr = &frontend.cartridge[currentModule].available;
 
-    //         /* Access configuration file, if error, return skip the
-    //         configuration.
-    //          */
-    //         if (myReadCfg(FRONTEND_CONF_FILE,
-    //         BAND_AVAIL_SECTION(currentModule),
-    //                       &dataIn, BAND_AVAIL_EXPECTED) != NO_ERROR) {
-    //             return NO_ERROR;
-    //         }
+        /* Access configuration file, if error, return skip the
+        configuration.
+         */
+        if (myReadCfg(FRONTEND_CONF_FILE, BAND_AVAIL_SECTION(currentModule), &dataIn, BAND_AVAIL_EXPECTED) !=
+            NO_ERROR) {
+            return NO_ERROR;
+        }
 
-    //         if (frontend.cartridge[currentModule].available) {
-    //             /* If available, read the name of the CCA.INI file. */
-    //             dataIn.Name = CART_FILE_KEY;
-    //             dataIn.VarType = Cfg_String;
-    //             dataIn.DataPtr =
-    //             frontend.cartridge[currentModule].configFile;
+        if (frontend.cartridge[currentModule].available) {
+            /* If available, read the name of the CCA.INI file. */
+            dataIn.Name = CART_FILE_KEY;
+            dataIn.VarType = Cfg_String;
+            dataIn.DataPtr = frontend.cartridge[currentModule].configFile;
 
-    //             /* Access configuration file, if error, return skip the
-    //                configuration. */
-    //             if (myReadCfg(FRONTEND_CONF_FILE,
-    //             CART_FILE_SECTION(currentModule),
-    //                           &dataIn, CART_FILE_EXPECTED) != NO_ERROR) {
-    //                 return NO_ERROR;
-    //             }
+            /* Access configuration file, if error, return skip the
+               configuration. */
+            if (myReadCfg(FRONTEND_CONF_FILE, CART_FILE_SECTION(currentModule), &dataIn, CART_FILE_EXPECTED) !=
+                NO_ERROR) {
+                return NO_ERROR;
+            }
 
-    //             /* If available, read the name of the WCA.INI file. */
-    //             dataIn.Name = WCA_FILE_KEY;
-    //             dataIn.VarType = Cfg_String;
-    //             dataIn.DataPtr =
-    //             frontend.cartridge[currentModule].lo.configFile;
+            /* If available, read the name of the WCA.INI file. */
+            dataIn.Name = WCA_FILE_KEY;
+            dataIn.VarType = Cfg_String;
+            dataIn.DataPtr = frontend.cartridge[currentModule].lo.configFile;
 
-    //             /* Access configuration file, if error, return skip the
-    //                configuration. */
-    //             if (myReadCfg(FRONTEND_CONF_FILE,
-    //             WCA_FILE_SECTION(currentModule),
-    //                           &dataIn, WCA_FILE_EXPECTED) != NO_ERROR) {
-    //                 return NO_ERROR;
-    //             }
-    //         }
-    //     }
+            /* Access configuration file, if error, return skip the
+               configuration. */
+            if (myReadCfg(FRONTEND_CONF_FILE, WCA_FILE_SECTION(currentModule), &dataIn, WCA_FILE_EXPECTED) !=
+                NO_ERROR) {
+                return NO_ERROR;
+            }
+        }
+    }
 
-    // #endif  // CHECK_HW_AVAIL
+#endif  // CHECK_HW_AVAIL
 
-    //     /* Perform CCA and LO startup */
-    //     for (currentModule = 0; currentModule < CARTRIDGES_NUMBER;
-    //          currentModule++) {
-    //         if (frontend.cartridge[currentModule].available) {
-    //             /* Perform cartridge startup configuration */
-    //             if (cartridgeStartup() == ERROR) {
-    //                 return ERROR;
-    //             }
+    /* Perform CCA and LO startup */
+    for (currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
+        if (frontend.cartridge[currentModule].available) {
+            /* Perform cartridge startup configuration */
+            if (cartridgeStartup() == ERROR) {
+                return ERROR;
+            }
 
-    //             /* Perform LO startup configuration */
-    //             if (loStartup() == ERROR) {
-    //                 return ERROR;
-    //             }
-    //         }
-    //     }
+            /* Perform LO startup configuration */
+            if (loStartup() == ERROR) {
+                return ERROR;
+            }
+        }
+    }
 
     /* Initialize the LPR */
     if (lprStartup() == ERROR) {
         return ERROR;
     }
 
-    // /* Initialize the cryostat system */
-    // if (cryostatStartup() == ERROR) {
-    //     return ERROR;
-    // }
+    /* Initialize the cryostat system */
+    if (cryostatStartup() == ERROR) {
+        return ERROR;
+    }
 
-    // /* Initialize the power distribution system */
-    // if (powerDistributionStartup() == ERROR) {
-    //     return ERROR;
-    // }
+    /* Initialize the power distribution system */
+    if (powerDistributionStartup() == ERROR) {
+        return ERROR;
+    }
 
-    // /* Initialize the IF switch system */
-    // if (ifSwitchStartup() == ERROR) {
-    //     return ERROR;
-    // }
+    /* Initialize the IF switch system */
+    if (ifSwitchStartup() == ERROR) {
+        return ERROR;
+    }
 
-    // /* Initialize the FETIM system */
-    // if (fetimStartup() == ERROR) {
-    //     return ERROR;
-    // }
+    /* Initialize the FETIM system */
+    if (fetimStartup() == ERROR) {
+        return ERROR;
+    }
 
     return NO_ERROR;
 }

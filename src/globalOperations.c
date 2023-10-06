@@ -10,6 +10,7 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 #include "main.h"
+#include "owb.h"
 #include "serialMux.h"
 #include "timer.h"
 
@@ -23,12 +24,27 @@ volatile unsigned int *pico_mem;
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
 int initialization(void) {
+#ifdef DEBUG_STARTUP
+    printf("Initializing...\n\n");
+#endif
+
     /* Initialize the error library */
     if (errorInit() == ERROR) {
         return ERROR;
     }
 
     init_mem_map();
+
+/* One wire bus initialization */
+#ifdef OWB
+    if (owbInit() == ERROR) {
+        return ERROR;
+    }
+
+    if (owbGetEsn() == ERROR) {
+        return ERROR;
+    }
+#endif /* OWB */
 
     /* Switch to maintenance while initializing frontend and before enabling
      * interrupt. */
@@ -45,6 +61,10 @@ int initialization(void) {
     /* Switch to operational mode */
     frontend.mode = OPERATIONAL_MODE;
 
+#ifdef DEBUG_STARTUP
+    printf("End initialization!\n\n");
+#endif
+
     return NO_ERROR;
 }
 
@@ -53,7 +73,9 @@ int initialization(void) {
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
 int shutDown(void) {
+#ifdef DEBUG_STARTUP
     printf("Shutting down...\n\n");
+#endif
 
     /* Switch to maintenance so no commands will be processed during shutdown.
      */
@@ -62,7 +84,12 @@ int shutDown(void) {
     /* Shut down the frontend */
     frontendStop();
 
+    /* Shut down the error handling */
+    errorStop();
+
+#ifdef DEBUG_STARTUP
     printf("Shut down complete! Exiting...\n\n");
+#endif
 
     return NO_ERROR;
 }

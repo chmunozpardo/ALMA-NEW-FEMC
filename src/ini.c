@@ -350,146 +350,145 @@ int ReadCfg(const char *FileName, char *SectionName, CFG_STRUCT *MyVars) {
             {
                 ParseLine(line, var, data);
 
-                for (mv = MyVars; mv->Name; ++mv) {
-                    if (StrEq(mv->Name, var)) {
-                        switch (mv->VarType) {
-                            case Cfg_String:
-                                if ('\"' == *data) {
-                                    dp = data + 1;
-                                    data[strlen(data) - 1] = NUL;
-                                } else
-                                    dp = data;
-                                /*
-                                ** Use sprintf to assure embedded
-                                ** escape sequences are handled.
-                                */
-                                sprintf(mv->DataPtr, dp);
-                                ++retval;
-                                break;
+                mv = MyVars;
+                if (StrEq(mv->Name, var)) {
+                    switch (mv->VarType) {
+                        case Cfg_String:
+                            if ('\"' == *data) {
+                                dp = data + 1;
+                                data[strlen(data) - 1] = NUL;
+                            } else
+                                dp = data;
+                            /*
+                            ** Use sprintf to assure embedded
+                            ** escape sequences are handled.
+                            */
+                            sprintf(mv->DataPtr, dp);
+                            ++retval;
+                            break;
 
-                            case Cfg_Byte:
-                                *((unsigned char *)mv->DataPtr) = (unsigned char)atoi(data);
-                                ++retval;
-                                break;
+                        case Cfg_Byte:
+                            *((unsigned char *)mv->DataPtr) = (unsigned char)atoi(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Ushort:
-                                *((unsigned int *)mv->DataPtr) = (unsigned int)atoi(data);
-                                ++retval;
-                                break;
+                        case Cfg_Ushort:
+                            *((unsigned int *)mv->DataPtr) = (unsigned int)atoi(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Short:
-                                *((int *)mv->DataPtr) = atoi(data);
-                                ++retval;
-                                break;
+                        case Cfg_Short:
+                            *((int *)mv->DataPtr) = atoi(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Ulong:
-                                *((unsigned long *)mv->DataPtr) = (unsigned long)atol(data);
-                                ++retval;
-                                break;
+                        case Cfg_Ulong:
+                            *((unsigned long *)mv->DataPtr) = (unsigned long)atol(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Long:
-                                *((long *)mv->DataPtr) = atol(data);
-                                ++retval;
-                                break;
+                        case Cfg_Long:
+                            *((long *)mv->DataPtr) = atol(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Float:
-                                *((float *)mv->DataPtr) = atof(data);
-                                ++retval;
-                                break;
+                        case Cfg_Float:
+                            *((float *)mv->DataPtr) = atof(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Double:
-                                *((double *)mv->DataPtr) = atof(data);
-                                ++retval;
-                                break;
+                        case Cfg_Double:
+                            *((double *)mv->DataPtr) = atof(data);
+                            ++retval;
+                            break;
 
-                            case Cfg_Boolean:
-                                *((unsigned char *)mv->DataPtr) = 0;
-                                data[0] = tolower(data[0]);
-                                if (('y' == data[0]) || ('t' == data[0]) || ('1' == data[0]))
-                                    *((unsigned char *)mv->DataPtr) = 1;
-                                ++retval;
-                                break;
+                        case Cfg_Boolean:
+                            *((unsigned char *)mv->DataPtr) = 0;
+                            data[0] = tolower(data[0]);
+                            if (('y' == data[0]) || ('t' == data[0]) || ('1' == data[0]))
+                                *((unsigned char *)mv->DataPtr) = 1;
+                            ++retval;
+                            break;
 
-                            case Cfg_HB_Array: {
-                                unsigned char *ip;
-                                char *str;
-                                unsigned char len, val, cnt, bas;
+                        case Cfg_HB_Array: {
+                            unsigned char *ip;
+                            char *str;
+                            unsigned char len, val, cnt, bas;
 
-                                ip = ((unsigned char *)mv->DataPtr);
-                                str = strtok(data, " ,\t");
-                                while (NULL != str) {
-                                    len = strlen(str);
+                            ip = ((unsigned char *)mv->DataPtr);
+                            str = strtok(data, " ,\t");
+                            while (NULL != str) {
+                                len = strlen(str);
 
-                                    *ip = 0;
+                                *ip = 0;
 
-                                    for (cnt = 0; cnt < len; cnt++) {
-                                        val = str[cnt];
+                                for (cnt = 0; cnt < len; cnt++) {
+                                    val = str[cnt];
 
-                                        if (isalnum(val)) {
-                                            bas = val > 64 ? (val > 96 ? 87 : 55) : 48;
-                                            *ip += (val - bas) * pow(16, len - cnt - 1);
-                                        }
+                                    if (isalnum(val)) {
+                                        bas = val > 64 ? (val > 96 ? 87 : 55) : 48;
+                                        *ip += (val - bas) * pow(16, len - cnt - 1);
                                     }
-
-                                    ip++;
-                                    str = strtok(NULL, " ,\t");
                                 }
-                                ++retval;
-                                break;
+
+                                ip++;
+                                str = strtok(NULL, " ,\t");
                             }
-
-                            case Cfg_I_Array: {
-                                int *ip;
-                                char *str;
-
-                                ip = ((int *)mv->DataPtr);
-                                str = strtok(data, " ,\t");
-                                while (NULL != str) {
-                                    *ip = atoi(str);
-                                    ip++;
-                                    str = strtok(NULL, " ,\t");
-                                }
-                                ++retval;
-                                break;
-                            }
-
-                            case Cfg_F_Array: {
-                                float *ip;
-                                char *str;
-
-                                ip = ((float *)mv->DataPtr);
-                                str = strtok(data, " ,\t");
-                                while (NULL != str) {
-                                    *ip = atof(str);
-                                    ip++;
-                                    str = strtok(NULL, " ,\t");
-                                }
-                                ++retval;
-                                break;
-                            }
-
-                            case Cfg_D_Array: {
-                                double *ip;
-                                char *str;
-
-                                ip = ((double *)mv->DataPtr);
-                                str = strtok(data, " ,\t");
-                                while (NULL != str) {
-                                    *ip = atof(str);
-                                    ip++;
-                                    str = strtok(NULL, " ,\t");
-                                }
-                                ++retval;
-                                break;
-                            }
-
-                            default:
-                                retval = -1;
-                                break;
+                            ++retval;
+                            break;
                         }
+
+                        case Cfg_I_Array: {
+                            int *ip;
+                            char *str;
+
+                            ip = ((int *)mv->DataPtr);
+                            str = strtok(data, " ,\t");
+                            while (NULL != str) {
+                                *ip = atoi(str);
+                                ip++;
+                                str = strtok(NULL, " ,\t");
+                            }
+                            ++retval;
+                            break;
+                        }
+
+                        case Cfg_F_Array: {
+                            float *ip;
+                            char *str;
+
+                            ip = ((float *)mv->DataPtr);
+                            str = strtok(data, " ,\t");
+                            while (NULL != str) {
+                                *ip = atof(str);
+                                ip++;
+                                str = strtok(NULL, " ,\t");
+                            }
+                            ++retval;
+                            break;
+                        }
+
+                        case Cfg_D_Array: {
+                            double *ip;
+                            char *str;
+
+                            ip = ((double *)mv->DataPtr);
+                            str = strtok(data, " ,\t");
+                            while (NULL != str) {
+                                *ip = atof(str);
+                                ip++;
+                                str = strtok(NULL, " ,\t");
+                            }
+                            ++retval;
+                            break;
+                        }
+
+                        default:
+                            retval = -1;
+                            break;
                     }
-                    if (-1 == retval) break;
-                };
+                }
+                if (-1 == retval) break;
 
                 /*
                 ** Variable wasn't found.  If we don't want it,

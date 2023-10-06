@@ -46,25 +46,24 @@ unsigned char currentClass = 0;       /*!< This variable stores the current clas
                                            type of message: monitor, control or
                                            special that has been received. */
 
-#define MAX 64
-#define PORT 2300
+#define SOCK_BUFF_SIZE 64
+#define PORT 2000
 #define SA struct sockaddr
 
 int amb_port = 0;
-int abm_mach = 0;
+int abm_machine = 0;
 
-unsigned char buff_sock[MAX] = {0};
-unsigned char out_buff_sock[MAX] = {0};
+unsigned char buff_sock[SOCK_BUFF_SIZE] = {0};
+unsigned char out_buff_sock[SOCK_BUFF_SIZE] = {0};
 
 // Function designed for chat between client and server.
 static inline void func_sock(int connfd) {
     int n = 0;
-    // infinite loop for chat
     for (;;) {
-        bzero(buff_sock, MAX);
+        bzero(buff_sock, SOCK_BUFF_SIZE);
 
-        // read the message from client and copy it in buffer
-        int x = read(connfd, buff_sock, MAX);
+        // Read the message from client and copy it in buffer
+        int x = read(connfd, buff_sock, SOCK_BUFF_SIZE);
 
         // print buffer which contains the client contents
         switch (x) {
@@ -73,15 +72,19 @@ static inline void func_sock(int connfd) {
                 return;
             case 0:
                 printf("Empty\n");
-                break;
+                return;
             case 18:
                 amb_port = buff_sock[0];
-                abm_mach = buff_sock[1];
+                abm_machine = buff_sock[1];
+                // Get RCA from socket message
                 unsigned long rca =
                     ((buff_sock[4] & 0xFF) << 24) + ((buff_sock[5] & 0xFF) << 16) + (buff_sock[6] << 8) + buff_sock[7];
+                // Get X from socket message
                 unsigned long type = buff_sock[8];
+                // Get length from socket message
                 unsigned long length = buff_sock[9];
                 switch (rca & 0xFFFFF) {
+                    /* Slave software revision level */
                     case 0x30004:
                         out_buff_sock[4] = 3;
                         out_buff_sock[5] = 1;
@@ -89,6 +92,7 @@ static inline void func_sock(int connfd) {
                         out_buff_sock[7] = 3;
                         write(connfd, out_buff_sock, 13 * sizeof(char));
                         break;
+                    /* Slave protocol revision level */
                     case 0x30000:
                         out_buff_sock[4] = 3;
                         out_buff_sock[5] = 1;
@@ -96,6 +100,7 @@ static inline void func_sock(int connfd) {
                         out_buff_sock[7] = 3;
                         write(connfd, out_buff_sock, 13 * sizeof(char));
                         break;
+                    /* Number of transactions */
                     case 0x30002:
                         out_buff_sock[4] = 4;
                         out_buff_sock[5] = 0;
@@ -104,6 +109,7 @@ static inline void func_sock(int connfd) {
                         out_buff_sock[8] = 1;
                         write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
                         break;
+                    /* Ambient temperature */
                     case 0x30003:
                         out_buff_sock[4] = 4;
                         out_buff_sock[5] = 0x40;
@@ -112,10 +118,13 @@ static inline void func_sock(int connfd) {
                         out_buff_sock[8] = 1;
                         write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
                         break;
+                    /* Number of errors and last error */
                     case 0x30001:
                         out_buff_sock[4] = 4;
                         write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
                         break;
+                    /* GET_ESNS */
+                    /* Fake values */
                     case 0x2000B:
                         n++;
                         if (n != 2) {
@@ -134,6 +143,7 @@ static inline void func_sock(int connfd) {
                         }
                         write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
                         break;
+                    /* Request by LabVIEW I don't understand yet */
                     case 0:
                         out_buff_sock[4] = 1;
                         write(connfd, out_buff_sock, 13 * sizeof(char));
@@ -146,6 +156,7 @@ static inline void func_sock(int connfd) {
                             write(connfd, out_buff_sock, 12 * sizeof(char));
                         }
                         break;
+                    /* Process RCAs */
                     default:
                         CAN_ADDRESS = (rca & 0xFFFFF);
                         if (type == 0x1) {
@@ -164,8 +175,9 @@ static inline void func_sock(int connfd) {
                         write(connfd, out_buff_sock, 13 * sizeof(char));
                         break;
                 }
-                bzero(out_buff_sock, MAX);
+                bzero(out_buff_sock, SOCK_BUFF_SIZE);
                 break;
+            /* Default printing the message */
             default:
                 printf("From client: %d\n", x);
                 for (int i = 0; i < x; i++) {
@@ -177,19 +189,10 @@ static inline void func_sock(int connfd) {
     }
 }
 
-int main(void) {
-    /* Print version information */
-    displayVersion();
+int sockfd, connfd, len;
+struct sockaddr_in servaddr, cli;
 
-    /* Initialize the frontend */
-    if (initialization() == ERROR) {
-        return ERROR;
-    }
-
-    int sockfd, connfd, len;
-    struct sockaddr_in servaddr, cli;
-
-    // socket create and verification
+void create_socket() {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     int reuse = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse, sizeof(reuse)) < 0) {
@@ -233,8 +236,19 @@ int main(void) {
     } else {
         printf("server accept the client...\n");
     }
+}
 
-    // Function for chatting between client and server
+int main(void) {
+    /* Print version information */
+    displayVersion();
+
+    /* Initialize the frontend */
+    if (initialization() == ERROR) {
+        return ERROR;
+    }
+
+    /* Initialize socket */
+    create_socket();
 
     /* Main loop */
     func_sock(connfd);
@@ -243,7 +257,7 @@ int main(void) {
     if (shutDown() == ERROR) {
     }
 
-    // After chatting close the socket
+    // Close socket
     shutdown(sockfd, SHUT_RDWR);
 
     return NO_ERROR;

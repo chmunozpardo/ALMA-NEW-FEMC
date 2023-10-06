@@ -78,6 +78,9 @@ int writeMux(void) {
            handlers. At the point of this call the software should already have
            returned if the addressed device is not available. */
 
+    // TODO - Port function
+    // outpw(MUX_PORT_ADD, frame.port);
+
     /* 3 - Load the data registers. */
     pico_mem[DATAWR] = frame.data[FRAME_DATA_LSW];
 
@@ -90,6 +93,17 @@ int writeMux(void) {
     pico_mem[COMMAND] = frame.command;
 
     pico_mem[STATUS] = WR_SSC;
+
+#ifdef DEBUG_SERIAL_WRITE
+    if (LATCH_DEBUG_SERIAL_WRITE) {
+        LATCH_DEBUG_SERIAL_WRITE = 0;
+        printf("            (0x%04X) <- Frame.port: 0x%04X\n", MUX_PORT_ADD, frame.port);
+        printf("            (0x%04X) <- Frame.data[LSW]: 0x%04X\n", MUX_DATA_ADD(FRAME_DATA_LSW),
+               frame.data[FRAME_DATA_LSW]);
+        printf("            (0x%04X) <- Frame.dataLength: 0x%04X\n", MUX_WLENGTH_ADD, frame.dataLength);
+        printf("            (0x%04X) <- Frame.command: 0x%04X\n", MUX_COMMAND_ADD, frame.command);
+    }
+#endif /* DEBUG_SERIAL_WRITE */
 
     check_done();
 
@@ -134,6 +148,8 @@ int readMux(void) {
            device on the selected port should have been done by the CAN message
            handlers. At the point of this call the software should already have
            returned if the addressed device is not available. */
+    // TODO - Port function
+    // outpw(MUX_PORT_ADD, frame.port);
 
     /* 3 - Write the incoming data lenght register with the number of bits to be
            received. */
@@ -146,6 +162,12 @@ int readMux(void) {
     pico_mem[STATUS] = RD_SSC;
 
     check_done();
+
+#ifdef DEBUG_SERIAL_READ
+    printf("            (0x%04X) <- Frame.port: 0x%04X\n", MUX_PORT_ADD, frame.port);
+    printf("            (0x%04X) <- Frame.dataLength: 0x%04X\n", MUX_RLENGTH_ADD, frame.dataLength);
+    printf("            (0x%04X) <- Frame.command: 0x%04X\n", MUX_COMMAND_ADD, frame.command);
+#endif /* DEBUG_SERIAL_READ */
 
     /* 6 - Load the data registers */
     frame.data[FRAME_DATA_MSW] = pico_mem[DATARD1] & 0xFF;

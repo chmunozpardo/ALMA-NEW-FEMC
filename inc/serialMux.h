@@ -18,6 +18,30 @@
 #ifndef _SERIALMUX_H
 #define _SERIALMUX_H
 
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+/* PicoZed Registers and values */
+#define BASE_LPR 0x43C00000
+#define MAP_SIZE 512
+
+#define STATUS 0
+#define LENGTH 1
+#define COMMAND 2
+#define DATAWR 3
+#define DATARD0 4
+#define DATARD1 5
+
+#define START_SSC 0x1
+#define WR_SSC 0x2 + START_SSC
+#define RD_SSC 0x0 + START_SSC
+
 /* Defines */
 #define FRAME_DATA_LENGTH 2                              // Maximum communication frame length in words
 #define FRAME_DATA_LENGTH_BYTES (2 * FRAME_DATA_LENGTH)  // Maximum communication frame length in bytes
@@ -51,34 +75,6 @@
 #define MUX_OWB_CONTROL (OWB_BASE + 0x05)  //!< OWB Control Register (R/W)
 #define MUX_OWB_ENABLE (OWB_BASE + 0x0E)   //!< Enables the bus extending outside the FEMC (W)
 #define MUX_OWB_RESET (OWB_BASE + 0x0F)    //!< Reset the one wire master in the FPGA (W)
-
-#include <errno.h>
-#include <fcntl.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <unistd.h>
-
-#define BASE_LPR 0x43C00000
-#define MAP_SIZE 32
-
-#define STATUS 0x00
-#define LENGTH 0x01
-#define COMMAND 0x02
-#define DATAWR 0x03
-#define DATARD0 0x04
-#define DATARD1 0x05
-
-#define ADC_READY mem[DATARD0] & 0x8
-// #define ERROR mem[DATARD0] & 0x4
-// #define BUSY mem[DATARD0] & 0x2
-// #define SHUTOFF mem[DATARD0] & 0x1
-
-#define START_SSC 0x1
-#define WR_SSC 0x2 + START_SSC
-#define RD_SSC 0x0 + START_SSC
 
 extern int fd_mem;
 
