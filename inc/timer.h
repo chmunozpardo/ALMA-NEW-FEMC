@@ -71,7 +71,7 @@
 /*** One Wire Bus Module ***/
 /* IRQ */
 #define TIMER_OWB_IRQ 80       // Timer number
-#define TIMER_TO_OWB_IRQ 1000  // Timeout in milliseconds
+#define TIMER_TO_OWB_IRQ 10000  // Timeout in milliseconds
 /* RESET */
 #define TIMER_OWB_RESET 81        // Timer number
 #define TIMER_TO_OWB_RESET 10000  // Timeout in milliseconds

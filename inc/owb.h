@@ -62,10 +62,10 @@
 #define DS2433_READ_MEMORY 0xF0
 
 /* PicoZed Registers and values */
-#define OWM_STATUS 6
-#define OWM_ADDRESS 7
-#define OWM_WRITEREG 8
-#define OWM_READREG 9
+#define OWM_STATUS 7
+#define OWM_ADDRESS 8
+#define OWM_WRITEREG 9
+#define OWM_READREG 10
 
 #define OWM_WRITE 0x01
 #define OWM_READ 0x02

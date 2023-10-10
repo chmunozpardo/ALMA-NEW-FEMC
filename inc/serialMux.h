@@ -32,11 +32,12 @@
 #define MAP_SIZE 512
 
 #define STATUS 0
-#define LENGTH 1
-#define COMMAND 2
-#define DATAWR 3
-#define DATARD0 4
-#define DATARD1 5
+#define PORT_SELECT 1
+#define LENGTH 2
+#define COMMAND 3
+#define DATAWR 4
+#define DATARD0 5
+#define DATARD1 6
 
 #define START_SSC 0x1
 #define WR_SSC 0x2 + START_SSC

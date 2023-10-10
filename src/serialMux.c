@@ -78,8 +78,7 @@ int writeMux(void) {
            handlers. At the point of this call the software should already have
            returned if the addressed device is not available. */
 
-    // TODO - Port function
-    // outpw(MUX_PORT_ADD, frame.port);
+    pico_mem[PORT_SELECT] = frame.port;
 
     /* 3 - Load the data registers. */
     pico_mem[DATAWR] = frame.data[FRAME_DATA_LSW];
@@ -148,8 +147,7 @@ int readMux(void) {
            device on the selected port should have been done by the CAN message
            handlers. At the point of this call the software should already have
            returned if the addressed device is not available. */
-    // TODO - Port function
-    // outpw(MUX_PORT_ADD, frame.port);
+    pico_mem[PORT_SELECT] = frame.port;
 
     /* 3 - Write the incoming data lenght register with the number of bits to be
            received. */

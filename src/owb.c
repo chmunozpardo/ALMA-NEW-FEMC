@@ -38,8 +38,8 @@ int inp(unsigned int cmd) {
 /* Globals */
 /* Static */
 /* Externs */
-unsigned char esnDevicesFound;
-unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE];
+unsigned char esnDevicesFound = {0};
+unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE] = {0};
 
 /*! This function initializes the OWB and evaluates if the simulator should be
     used or not.
@@ -73,13 +73,6 @@ int owbGetEsn(void) {
 #ifdef DEBUG_OWB
     printf("Gathering ESN... ");
 #endif
-
-/* Enable the section of the bus extending outside the FEMC */
-#ifdef DEBUG_OWB
-    printf(" - Enabling external OWB...");
-#endif /* DEBUG_OWB */
-
-    outp(MUX_OWB_ENABLE, ENABLE);
 
 #ifdef DEBUG_OWB
     printf("done!\n");
@@ -229,13 +222,6 @@ int owbGetEsn(void) {
     printf("   done!\n");  // Search devices
 #endif
 
-/* Disable the section of the bus extending outside the FEMC */
-#ifdef DEBUG_OWB
-    printf("   - Disabling external OWB...");
-#endif /* DEBUG_OWB */
-
-    outp(MUX_OWB_ENABLE, DISABLE);
-
 #ifdef DEBUG_OWB
     printf("done!\n");
 #endif /* DEBUG_OWB */
@@ -367,12 +353,12 @@ int waitIrq(unsigned char irq) {
 int RecoverROM(int* ReceiveData, int* TransmitData, unsigned char* ROMCode) {
     int loop;
     int result;
-    int TROM[64];  // the transmit value being generated
-    int RROM[64];  // the ROM recovered from the received data
-    int RDIS[64];  // the discrepancy bits in the received data
+    int TROM[64] = {0};  // the transmit value being generated
+    int RROM[64] = {0};  // the ROM recovered from the received data
+    int RDIS[64] = {0};  // the discrepancy bits in the received data
 
-    static int TREE[64];  // used to keep track of which discrepancy bits have
-                          // already been flipped.
+    static int TREE[64] = {0};  // used to keep track of which discrepancy bits have
+                                // already been flipped.
 
     // If receivedata is NULL, this is the first run. Transmit data should be all
     // zeros, and the discrepancy tree must also be reset.
