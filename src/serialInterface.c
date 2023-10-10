@@ -84,9 +84,9 @@ int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned
        respect to the addressed module by the number of cartridges given their
        doublefolded nature. */
     if (currentModule < CARTRIDGES_NUMBER) {
-        frame.port = 2 * currentModule + (1 - currentCartridgeSubsystem);
+        frame.port = 0;
     } else {
-        frame.port = CARTRIDGES_NUMBER + currentModule;
+        frame.port = 1;
     }
 
     /* Store the command in the outgoing frame */

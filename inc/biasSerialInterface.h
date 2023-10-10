@@ -138,7 +138,7 @@
 #define BIAS_ADC_STROBE_SHIFT_SIZE NO_SHIFT  // The strobe outgoing data is not shifted
 #define BIAS_ADC_STROBE_SHIFT_DIR NO_SHIFT   // The strobe outgoing data is not shifted
 #define BIAS_ADC_RANGE 65536                 // Full ADC range
-#define BIAS_ADC_DATA_SIZE 18                // Read only: 2 for internal use + 16-bit
+#define BIAS_ADC_DATA_SIZE 17                // Read only: 2 for internal use + 16-bit
 #define BIAS_ADC_DATA_SHIFT_SIZE NO_SHIFT    // The incoming ADC data is not shifted
 #define BIAS_ADC_DATA_SHIFT_DIR NO_SHIFT     // The incoming ADC data is not shifted
 #define BIAS_ADC_SIS_I_SCALE 20.0            // Scale factor for SIS current
