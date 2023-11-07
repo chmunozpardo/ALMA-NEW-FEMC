@@ -46,12 +46,8 @@ typedef struct {
     POL_DAC polDac[POL_DACS_NUMBER];
 } POL_SPECIAL_MSGS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPolSpecialMsgsModule;  //!< Current addressed polarization special submodule
-
 /* Prototypes */
-/* Externs */
-extern void polSpecialMsgsHandler(void);  //!< This function deals with the incoming can message
+void polSpecialMsgsHandler(int currentModule, int currentBiasModule,
+                           int currentPolarizationModule);  //!< This function deals with the incoming can message
 
 #endif /* _POLSPECIALMSGS_H */

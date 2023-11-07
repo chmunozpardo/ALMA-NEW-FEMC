@@ -69,16 +69,10 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } PHOTOMIXER;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPhotomixerModule;  //!< Current addressed Photomixer submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-static void voltageHandler(void);
-static void currentHandler(void);
-/* Externs */
-extern void photomixerHandler(void);  //!< This function deals with the incoming can message
+void pmxEnableHandler(int currentModule);
+void pmxVoltageHandler(int currentModule);
+void pmxCurrentHandler(int currentModule);
+void photomixerHandler(int currentModule);  //!< This function deals with the incoming can message
 
 #endif /* _PHOTOMIXER_H */

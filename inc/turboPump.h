@@ -81,16 +81,10 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } TURBO_PUMP;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentTurboPumpModule;  //!< Currently addressed turbo pump submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-static void stateHandler(void);
-static void speedHandler(void);
-/* Externs */
-extern void turboPumpHandler(void);  //!< This function deals with the incoming CAN message
+void turboPumpEnableHandler(void);
+void turboPumpStateHandler(void);
+void turboPumpSpeedHandler(void);
+void turboPumpHandler(int currentCryostatModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _TURBOPUMP_H */

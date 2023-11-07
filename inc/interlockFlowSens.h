@@ -37,14 +37,8 @@ typedef struct {
     float flow;
 } INTRLK_FLOW_SENS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockFlowSensModule;  //!< Currently addressed FETIM interlock flow sens module
-
 /* Prototypes */
-/* Statics */
-static void flowHandler(void);
-/* Externs */
-extern void interlockFlowSensHandler(void);  //!< This function deals with teh incoming CAN message
+void flowHandler(int currentInterlockFlowModule);
+void interlockFlowSensHandler(int currentInterlockFlowModule);  //!< This function deals with teh incoming CAN message
 
 #endif /* _INTERLOCK_FLOW_SENS_H */

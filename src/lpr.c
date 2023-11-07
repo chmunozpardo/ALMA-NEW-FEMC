@@ -19,17 +19,14 @@
 #include "serialInterface.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLprModule = 0;
 /* Statics */
-static HANDLER lprModulesHandler[LPR_MODULES_NUMBER] = {lprTempHandler, lprTempHandler, opticalSwitchHandler,
-                                                        edfaHandler};
+static HANDLER_INT lprModulesHandler[LPR_MODULES_NUMBER] = {lprTempHandler, lprTempHandler, opticalSwitchHandler,
+                                                            edfaHandler};
 
 /* LPR handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the LPR. */
-void lprHandler(void) {
+void lprHandler(int currentModule) {
 #ifdef DEBUG_LPR
     printf(" LPR\n");
 #endif /* DEBUG_LPR */
@@ -38,7 +35,7 @@ void lprHandler(void) {
        performed. */
 
     /* Check if the submodule is in range */
-    currentLprModule = (CAN_ADDRESS & LPR_MODULES_RCA_MASK) >> LPR_MODULES_MASK_SHIFT;
+    int currentLprModule = (CAN_ADDRESS & LPR_MODULES_RCA_MASK) >> LPR_MODULES_MASK_SHIFT;
     if (currentLprModule >= LPR_MODULES_NUMBER) {
         storeError(ERR_LPR, ERC_MODULE_RANGE);  // LPR submodule out of range
 
@@ -47,7 +44,7 @@ void lprHandler(void) {
     }
 
     /* Call the correct handler */
-    (lprModulesHandler[currentLprModule])();
+    (lprModulesHandler[currentLprModule])(currentLprModule);
 }
 
 /* LPR Startup */
@@ -88,9 +85,8 @@ int lprStartup(void) {
        selected. This is necessary because currentModule is the global variable
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
-    currentModule = LPR_MODULE;
     if (serialAccess(LPR_10MHZ_MODE, NULL, LPR_10MHZ_MODE_SIZE, LPR_10MHZ_MODE_SHIFT_SIZE, LPR_10MHZ_MODE_SHIFT_DIR,
-                     SERIAL_WRITE) == ERROR) {
+                     SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
         return ERROR;
     }
     frontend.lpr.ssi10MHzEnable = ENABLE;
@@ -158,7 +154,6 @@ int lprStop(void) {
        selected. This is necessary because currentModule is the global variable
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
-    currentModule = LPR_MODULE;
 
     /* Load the CAN float to 0.0V */
     CONV_FLOAT = 0.0;

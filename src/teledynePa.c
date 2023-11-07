@@ -8,14 +8,14 @@
 #include "error_local.h"
 #include "frontend.h"
 
-unsigned char currentTeledynePaModule;
+// unsigned char currentTeledynePaModule;
 
-static HANDLER teledynePaModulesHandler[TELEDYNE_PA_MODULES_NUMBER] = {hasTeledynePaHandler, collectorByteHandler,
-                                                                       collectorByteHandler};
+static HANDLER_INT_INT teledynePaModulesHandler[TELEDYNE_PA_MODULES_NUMBER] = {
+    hasTeledynePaHandler, collectorByteHandler, collectorByteHandler};
 
-void teledynePaHandler() {
+void teledynePaHandler(int currentModule) {
     // Check if the submodule is in range
-    currentTeledynePaModule = (CAN_ADDRESS & TELEDYNE_PA_MODULES_RCA_MASK);
+    int currentTeledynePaModule = (CAN_ADDRESS & TELEDYNE_PA_MODULES_RCA_MASK);
     if (currentTeledynePaModule >= TELEDYNE_PA_MODULES_NUMBER) {
         storeError(ERR_TELEDYNE_PA, ERC_MODULE_RANGE);
         CAN_STATUS = HARDW_RNG_ERR;
@@ -23,10 +23,10 @@ void teledynePaHandler() {
     }
 
     // Call the correct handler
-    (teledynePaModulesHandler[currentTeledynePaModule])();
+    (teledynePaModulesHandler[currentTeledynePaModule])(currentModule, currentTeledynePaModule);
 }
 
-static void hasTeledynePaHandler(void) {
+void hasTeledynePaHandler(int currentModule, int currentTeledynePaModule) {
     if (CAN_SIZE) {  // If control (size !=0)
         // save the incoming message:
         SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pa.lastHasTeledynePa)
@@ -56,7 +56,7 @@ static void hasTeledynePaHandler(void) {
     CAN_SIZE = CAN_BOOLEAN_SIZE;
 }
 
-static void collectorByteHandler() {
+void collectorByteHandler(int currentModule, int currentTeledynePaModule) {
     int pol = currentTeledynePaModule - 1;
 
     /* If control (size !=0) */

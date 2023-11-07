@@ -35,11 +35,8 @@ int inp(unsigned int cmd) {
     return pico_mem[OWM_READREG];
 }
 
-/* Globals */
-/* Static */
-/* Externs */
-unsigned char esnDevicesFound = {0};
-unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE] = {0};
+static unsigned char esnDevicesFound = {0};
+static unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE] = {0};
 
 /*! This function initializes the OWB and evaluates if the simulator should be
     used or not.
@@ -293,7 +290,7 @@ int owbReset(void) {
 #ifdef DEBUG_OWB
     printf("       - Check the presence pulse...\n");
 #endif /* DEBUG_OWB */
-    if ((inp(MUX_OWB_IRQ) & PRESENCE_PULSE_MASK) == TRUE) {
+    if ((inp(MUX_OWB_IRQ) & PRESENCE_PULSE_MASK) == PRESENCE_PULSE_MASK) {
         storeError(ERR_OWB, ERC_HARDWARE_TIMEOUT);  // Presence pulse not detected
         return ERROR;
     }

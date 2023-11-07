@@ -58,17 +58,13 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } LNA;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLnaModule;  //!< Current addressed LNA submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-/* Externs */
-extern void lnaHandler(void);          //!< This function deals with the incoming can message
-extern void RESERVEDLNAHandler(void);  //!< Handler for LNA stages 4,5,6 which don't exist
-extern void lnaGoStandby2();
+void lnaEnableHandler(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule);
+void lnaHandler(int currentModule, int currentBiasModule,
+                int currentPolarizationModule);  //!< This function deals with the incoming can message
+void RESERVEDLNAHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                        int currentLnaModule);  //!< Handler for LNA stages 4,5,6 which don't exist
+void lnaGoStandby2();
 //!< set the specified LNA to STANDBY2 mode
 
 #endif /* _LNA_H */

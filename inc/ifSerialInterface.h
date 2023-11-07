@@ -255,15 +255,13 @@ typedef struct {
 } IF_REGISTERS;
 
 /* Prototypes */
-/* Statics */
-static int getIfAnalogMonitor(void);  // Perform core analog monitor functions
-
-/* Externs */
-extern int setIfTempServoEnable(
-    unsigned char enable);                  //!< This function enables/disables the IF switch temperature servo
-extern int getIfChannelTemp(void);          //!< This function monitors the IF channel temperature
-extern int setIfChannelAttenuation(void);   //!< This function controls the IF channel attenuation
-extern int setIfSwitchBandSelect(void);     //!< This function controls the IF switch band selection
-extern int getIfSwitchHardwRevision(void);  //!< This function returns the IF switch M&C board hardware revision level
+int getIfAnalogMonitor(void);  // Perform core analog monitor functions
+int setIfTempServoEnable(
+    unsigned char enable,
+    int currentIfSwitchModule);                   //!< This function enables/disables the IF switch temperature servo
+int getIfChannelTemp(int currentIfSwitchModule);  //!< This function monitors the IF channel temperature
+int setIfChannelAttenuation(int currentIfSwitchModule);  //!< This function controls the IF channel attenuation
+int setIfSwitchBandSelect(void);                         //!< This function controls the IF switch band selection
+int getIfSwitchHardwRevision(void);  //!< This function returns the IF switch M&C board hardware revision level
 
 #endif /* _IFSERIALINTERFACE_H */

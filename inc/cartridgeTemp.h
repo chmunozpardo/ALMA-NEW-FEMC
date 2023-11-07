@@ -65,15 +65,11 @@ typedef struct {
     unsigned char sensorNumber;
 } TEMP_SENSOR;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentCartridgeTempModule;  //!< Currently addressed cartridge temperature submodule
-
 /* Prototypes */
-/* Statics */
-static void tempOffsetHandler(void);  //!< This function deals with the incoming can message
-static void tempHandler(void);
-/* Externs */
-extern void cartridgeTempHandler(void);  //!< This function deals with the incoming can message
+void cartTempOffsetHandler(
+    int currentModule, int currentCartridgeTempSubsystemModule);  //!< This function deals with the incoming can message
+void cartTempHandler(int currentModule, int currentCartridgeTempSubsystemModule);
+void cartridgeTempHandler(
+    int currentModule, int currentCartridgeTempSubsystemModule);  //!< This function deals with the incoming can message
 
 #endif /* _CARTRIDGETEMP_H */

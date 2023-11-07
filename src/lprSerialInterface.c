@@ -19,10 +19,12 @@
 /* Includes */
 #include "lprSerialInterface.h"
 
-#include <errno.h>  /* errno */
-#include <math.h>   /* pow */
-#include <stddef.h> /* NULL */
-#include <stdio.h>  /* printf */
+#include <errno.h>
+#include <math.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "debug.h"
 #include "error_local.h"
@@ -31,8 +33,6 @@
 #include "serialInterface.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
 /* Statics */
 LPR_REGISTERS lprRegisters;
 
@@ -48,7 +48,7 @@ LPR_REGISTERS lprRegisters;
 
    If an error happens during the process it will return ERROR, otherwise
    NO_ERROR will be returned. */
-static int getLprAnalogMonitor(void) {
+int getLprAnalogMonitor(void) {
     /* A temporary variable to deal with the timer. */
     int timedOut;
 
@@ -66,9 +66,12 @@ static int getLprAnalogMonitor(void) {
     /* The function to write the data to the hardware is called passing the
        intermediate buffer. If an error occurs, notify the calling function. */
     if (serialAccess(LPR_PARALLEL_WRITE(LPR_BREG), &lprRegisters.bReg.integer, LPR_BREG_SIZE, LPR_BREG_SHIFT_SIZE,
-                     LPR_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     LPR_BREG_SHIFT_DIR, SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
         return ERROR;
     }
+
+    struct timespec request = {0, 10};
+    nanosleep(&request, NULL);
 
 /* Initiate ADC conversion
     - send ADC convert strobe command */
@@ -77,7 +80,7 @@ static int getLprAnalogMonitor(void) {
 #endif /* DEBUG */
     /* If an error occurs, notify the calling function */
     if (serialAccess(LPR_ADC_CONVERT_STROBE, NULL, LPR_ADC_STROBE_SIZE, LPR_ADC_STROBE_SHIFT_SIZE,
-                     LPR_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     LPR_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
@@ -95,7 +98,7 @@ static int getLprAnalogMonitor(void) {
 
         /* If an error occurs, notify the calling funtion */
         if (serialAccess(LPR_PARALLEL_READ, &lprRegisters.statusReg.integer, LPR_STATUS_REG_SIZE,
-                         LPR_STATUS_REG_SHIFT_SIZE, LPR_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         LPR_STATUS_REG_SHIFT_SIZE, LPR_STATUS_REG_SHIFT_DIR, SERIAL_READ, LPR_MODULE, 0) == ERROR) {
             /* Stop the timer */
             if (stopAsyncTimer(TIMER_LPR_ADC_RDY) == ERROR) {
                 return ERROR;
@@ -126,8 +129,8 @@ static int getLprAnalogMonitor(void) {
 #endif /* DEBUG */
 
     /* If error return the state to the calling function */
-    if (serialAccess(LPR_ADC_DATA_READ, &tempAdcValue, LPR_ADC_DATA_SIZE, LPR_ADC_DATA_SHIFT_SIZE,
-                     LPR_ADC_DATA_SHIFT_DIR, SERIAL_READ) == ERROR) {
+    if (serialAccess(LPR_ADC_DATA_READ, tempAdcValue, LPR_ADC_DATA_SIZE, LPR_ADC_DATA_SHIFT_SIZE,
+                     LPR_ADC_DATA_SHIFT_DIR, SERIAL_READ, LPR_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
@@ -153,7 +156,7 @@ static int getLprAnalogMonitor(void) {
     \return
         - \ref NO_ERROR         -> if no error occurred
         - \ref ERROR            -> if something wrong happened */
-int getLprTemp(void) {
+int getLprTemp(int currentLprModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the LPR BREG */
         lprRegisters.bReg.integer = 0x0000;
@@ -215,7 +218,7 @@ int setOpticalSwitchPort(void) {
 #endif /* DEBUG */
 
         if (serialAccess(LPR_PARALLEL_WRITE(LPR_AREG), &lprRegisters.aReg.integer, LPR_AREG_SIZE, LPR_AREG_SHIFT_SIZE,
-                         LPR_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         LPR_AREG_SHIFT_DIR, SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
             /* Restore AREG to its original saved value */
             lprRegisters.aReg.integer = tempAReg;
 
@@ -228,8 +231,8 @@ int setOpticalSwitchPort(void) {
 #endif /* DEBUG_LPR_SERIAL */
         /* If an error occurs, notify the calling function */
         if (serialAccess(LPR_OPTICAL_SWITCH_STROBE, NULL, LPR_OPTICAL_SWITCH_STROBE_SIZE,
-                         LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE, LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+                         LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE, LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR, SERIAL_WRITE,
+                         LPR_MODULE, 0) == ERROR) {
             return ERROR;
         }
     }
@@ -288,7 +291,7 @@ int setOpticalSwitchShutter(unsigned char mode) {
 #endif /* DEBUG */
 
         if (serialAccess(LPR_PARALLEL_WRITE(LPR_AREG), &lprRegisters.aReg.integer, LPR_AREG_SIZE, LPR_AREG_SHIFT_SIZE,
-                         LPR_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         LPR_AREG_SHIFT_DIR, SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
             /* Restore AREG to its original saved value */
             lprRegisters.aReg.integer = tempAReg;
 
@@ -301,8 +304,8 @@ int setOpticalSwitchShutter(unsigned char mode) {
 #endif /* DEBUG_LPR_SERIAL */
         /* If an error occurs, notify the calling function */
         if (serialAccess(LPR_OPTICAL_SWITCH_STROBE, NULL, LPR_OPTICAL_SWITCH_STROBE_SIZE,
-                         LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE, LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR,
-                         SERIAL_WRITE) == ERROR) {
+                         LPR_OPTICAL_SWITCH_STROBE_SHIFT_SIZE, LPR_OPTICAL_SWITCH_STROBE_SHIFT_DIR, SERIAL_WRITE,
+                         LPR_MODULE, 0) == ERROR) {
             return ERROR;
         }
     }
@@ -442,7 +445,7 @@ int setLprDacStrobe(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Send the reset strobe */
         if (serialAccess(LPR_DAC_RESET_STROBE, NULL, LPR_DAC_STROBE_SIZE, LPR_DAC_STROBE_SHIFT_SIZE,
-                         LPR_DAC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         LPR_DAC_STROBE_SHIFT_DIR, SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
             return ERROR;
         }
     }
@@ -475,7 +478,7 @@ int setModulationInputValue(void) {
         printf("         - Writing DAC\n");
 #endif /* DEBUG */
         if (serialAccess(LPR_DAC_DATA_WRITE, lprRegisters.dacReg.integer, LPR_DAC_DATA_SIZE, LPR_DAC_DATA_SHIFT_SIZE,
-                         LPR_DAC_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         LPR_DAC_DATA_SHIFT_DIR, SERIAL_WRITE, LPR_MODULE, 0) == ERROR) {
             return ERROR;
         }
     }
@@ -590,7 +593,7 @@ int getLprStates(void) {
         /* Read the status register, if an error occurs, notify the calling
            function. */
         if (serialAccess(LPR_PARALLEL_READ, &lprRegisters.statusReg.integer, LPR_STATUS_REG_SIZE,
-                         LPR_STATUS_REG_SHIFT_SIZE, LPR_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         LPR_STATUS_REG_SHIFT_SIZE, LPR_STATUS_REG_SHIFT_DIR, SERIAL_READ, LPR_MODULE, 0) == ERROR) {
             return ERROR;
         }
 

@@ -23,6 +23,7 @@
 #include <math.h>   /* pow */
 #include <stddef.h> /* NULL */
 #include <stdio.h>  /* printf */
+#include <unistd.h>
 
 #include "async.h"
 #include "cryostat.h"
@@ -52,7 +53,7 @@ CRYO_REGISTERS cryoRegisters;
    NO_ERROR will be returned. It will return ASYNC_DONE once all the step
    necessary to measure the temperature are completed and the data is stored in
    the fronted variable. */
-static int getCryoAnalogMonitor(void) {
+int getCryoAnalogMonitor(void) {
     /* A static enum to track the state of the asynchronous readout */
     static enum {
         ASYNC_CRYO_ANALOG_AREG,
@@ -76,7 +77,7 @@ static int getCryoAnalogMonitor(void) {
             /* The function to write the data to the hardware is called passing the
                intermediate buffer. If an error occurs, notify the calling function. */
             if (serialAccess(CRYO_PARALLEL_WRITE(CRYO_AREG), &cryoRegisters.aReg.integer, CRYO_AREG_SIZE,
-                             CRYO_AREG_SHIFT_SIZE, CRYO_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                             CRYO_AREG_SHIFT_SIZE, CRYO_AREG_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
                 return ERROR;
             }
 
@@ -143,7 +144,7 @@ static int getCryoAnalogMonitor(void) {
 
             /* If an error occurs, notify the calling function */
             if (serialAccess(CRYO_ADC_CONVERT_STROBE, NULL, CRYO_ADC_STROBE_SIZE, CRYO_ADC_STROBE_SHIFT_SIZE,
-                             CRYO_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                             CRYO_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
                 /* Reset state */
                 asyncCryoAnalogState = ASYNC_CRYO_ANALOG_AREG;
 
@@ -167,7 +168,8 @@ static int getCryoAnalogMonitor(void) {
 
             /* If an error occurs, notify the calling function */
             if (serialAccess(CRYO_PARALLEL_READ, &cryoRegisters.statusReg.integer, CRYO_STATUS_REG_SIZE,
-                             CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                             CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ, CRYO_MODULE,
+                             0) == ERROR) {
                 /* Reset state */
                 asyncCryoAnalogState = ASYNC_CRYO_ANALOG_AREG;
 
@@ -215,8 +217,8 @@ static int getCryoAnalogMonitor(void) {
 #endif /* DEBUG_ASYNC_CRYOSTAT_SERIAL */
 
             /* If error return the state to the calling function */
-            if (serialAccess(CRYO_ADC_DATA_READ, &tempAdcValue, CRYO_ADC_DATA_SIZE, CRYO_ADC_DATA_SHIFT_SIZE,
-                             CRYO_ADC_DATA_SHIFT_DIR, SERIAL_READ) == ERROR) {
+            if (serialAccess(CRYO_ADC_DATA_READ, tempAdcValue, CRYO_ADC_DATA_SIZE, CRYO_ADC_DATA_SHIFT_SIZE,
+                             CRYO_ADC_DATA_SHIFT_DIR, SERIAL_READ, CRYO_MODULE, 0) == ERROR) {
                 /* Reset state */
                 asyncCryoAnalogState = ASYNC_CRYO_ANALOG_AREG;
 
@@ -224,7 +226,7 @@ static int getCryoAnalogMonitor(void) {
             }
 
             /* Drop the not needed bits and store the data */
-            cryoRegisters.adcData = (unsigned int)tempAdcValue[0];
+            cryoRegisters.adcData = (unsigned int)(tempAdcValue[0] & 0xFFFF);
 
             /* Set next state */
             asyncCryoAnalogState = ASYNC_CRYO_ANALOG_AREG;
@@ -281,7 +283,7 @@ int setBackingPumpEnable(unsigned char enable) {
 #endif /* DEBUG_CRYOSTAT_SERIAL */
 
         if (serialAccess(CRYO_PARALLEL_WRITE(CRYO_BREG), &cryoRegisters.bReg.integer, CRYO_BREG_SIZE,
-                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
             /* Restore BREG to its original saved value */
             cryoRegisters.bReg.integer = tempBReg;
             return ERROR;
@@ -388,7 +390,7 @@ int setTurboPumpEnable(unsigned char enable) {
 #endif /* DEBUG_CRYOSTAT_SERIAL */
 
         if (serialAccess(CRYO_PARALLEL_WRITE(CRYO_BREG), &cryoRegisters.bReg.integer, CRYO_BREG_SIZE,
-                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
             /* Restore BREG to its original saved value */
             cryoRegisters.bReg.integer = tempBReg;
             return ERROR;
@@ -413,7 +415,7 @@ int getTurboPumpStates(void) {
         /* Read the status register, if an error occurs, notify the calling
            function. */
         if (serialAccess(CRYO_PARALLEL_READ, &cryoRegisters.statusReg.integer, CRYO_STATUS_REG_SIZE,
-                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ, CRYO_MODULE, 0) == ERROR) {
             return ERROR;
         }
 
@@ -442,7 +444,7 @@ int getGateValveState(void) {
        function. */
     if (frontend.mode != SIMULATION_MODE) {
         if (serialAccess(CRYO_PARALLEL_READ, &cryoRegisters.statusReg.integer, CRYO_STATUS_REG_SIZE,
-                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ, CRYO_MODULE, 0) == ERROR) {
             return ERROR;
         }
 
@@ -494,7 +496,7 @@ int getSolenoidValveState(void) {
         /* Read the status register, if an error occurs, notify the calling
            function. */
         if (serialAccess(CRYO_PARALLEL_READ, &cryoRegisters.statusReg.integer, CRYO_STATUS_REG_SIZE,
-                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ, CRYO_MODULE, 0) == ERROR) {
             return ERROR;
         }
 
@@ -553,7 +555,7 @@ int setGateValveState(unsigned char state) {
 #endif /* DEBUG_CRYOSTAT_SERIAL */
 
         if (serialAccess(CRYO_PARALLEL_WRITE(CRYO_BREG), &cryoRegisters.bReg.integer, CRYO_BREG_SIZE,
-                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
             /* Restore BREG to its original saved value */
             cryoRegisters.bReg.integer = tempBReg;
             return ERROR;
@@ -598,7 +600,7 @@ int setSolenoidValveState(unsigned char state) {
 #endif /* DEBUG_CRYOSTAT_SERIAL */
 
         if (serialAccess(CRYO_PARALLEL_WRITE(CRYO_BREG), &cryoRegisters.bReg.integer, CRYO_BREG_SIZE,
-                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
             /* Restore BREG to its original saved value */
             cryoRegisters.bReg.integer = tempBReg;
             return ERROR;
@@ -623,7 +625,7 @@ int setSolenoidValveState(unsigned char state) {
         - \ref NO_ERROR     -> if no error occurred
         - \ref ERROR        -> if something wrong happened
         - \ref ASYNC_DONE   -> if the async measurement is completed */
-int getVacuumSensor(void) {
+int getVacuumSensor(int currentAsyncVacuumControllerModule) {
     /* A float to hold the voltage in and a temp */
     float vin = 0.0, pressure = 0.0;
 
@@ -721,7 +723,7 @@ int setVacuumControllerEnable(unsigned char enable) {
 #endif /* DEBUG_CRYOSTAT_SERIAL */
 
         if (serialAccess(CRYO_PARALLEL_WRITE(CRYO_BREG), &cryoRegisters.bReg.integer, CRYO_BREG_SIZE,
-                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         CRYO_BREG_SHIFT_SIZE, CRYO_BREG_SHIFT_DIR, SERIAL_WRITE, CRYO_MODULE, 0) == ERROR) {
             /* Restore BREG to its original saved value */
             cryoRegisters.bReg.integer = tempBReg;
             return ERROR;
@@ -747,7 +749,7 @@ int getVacuumControllerState(void) {
         /* Read the status register, if an error occurs, notify the calling
            function. */
         if (serialAccess(CRYO_PARALLEL_READ, &cryoRegisters.statusReg.integer, CRYO_STATUS_REG_SIZE,
-                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         CRYO_STATUS_REG_SHIFT_SIZE, CRYO_STATUS_REG_SHIFT_DIR, SERIAL_READ, CRYO_MODULE, 0) == ERROR) {
             return ERROR;
         }
 
@@ -781,7 +783,7 @@ int getVacuumControllerState(void) {
         - \ref ERROR        -> if something wrong happened
         - \ref ASYNC_DONE   -> if the async measurement is completed */
 
-int getCryostatTemp(void) {
+int getCryostatTemp(int currentAsyncCryoTempModule) {
     /* Floats to help perform the temperature evaluation */
     float vin = 0.0, resistance = 0.0, temperature = 0.0;
 
@@ -938,7 +940,8 @@ int getCryoHardwRevision(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* If an error occurs, notify the calling function */
         if (serialAccess(CRYO_HRDW_REV_READ, &cryoRegisters.hrdwRevReg.integer, CRYO_HRDW_REV_REG_SIZE,
-                         CRYO_HRDW_REV_REG_SHIFT_SIZE, CRYO_HRDW_REV_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         CRYO_HRDW_REV_REG_SHIFT_SIZE, CRYO_HRDW_REV_REG_SHIFT_DIR, SERIAL_READ, CRYO_MODULE,
+                         0) == ERROR) {
             return ERROR;
         }
 

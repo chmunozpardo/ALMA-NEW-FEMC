@@ -16,16 +16,13 @@
 #include "globalDefinitions.h"
 #include "lprSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLprTempModule = 0;
 /* Statics */
-static HANDLER lprTempModulesHandler[LPR_TEMP_MODULES_NUMBER] = {tempHandler};
+static HANDLER_INT lprTempModulesHandler[LPR_TEMP_MODULES_NUMBER] = {lprSingleTempHandler};
 
 /* LPR temperature sensors handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the LPR temperature sensors. */
-void lprTempHandler(void) {
+void lprTempHandler(int currentLprModule) {
 #ifdef DEBUG_LPR
     printf("  Temperature sensor: %d\n", currentLprModule);
 #endif /* DEBUG_LPR */
@@ -38,11 +35,11 @@ void lprTempHandler(void) {
        can directly call the correct handler. */
 
     /* Call the correct handler */
-    (lprTempModulesHandler[currentLprTempModule])();
+    (lprTempModulesHandler[0])(currentLprModule);
 }
 
 /* LPR Temperature handler */
-static void tempHandler(void) {
+void lprSingleTempHandler(int currentLprModule) {
 #ifdef DEBUG_LPR
     printf("   Temperature Value\n");
 #endif /* DEBUG_LPR */
@@ -65,7 +62,7 @@ static void tempHandler(void) {
     }
 
     /* Monitor LPR temperature */
-    if (getLprTemp() == ERROR) {
+    if (getLprTemp(currentLprModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

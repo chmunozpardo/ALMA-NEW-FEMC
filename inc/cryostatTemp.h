@@ -102,17 +102,13 @@ typedef struct {
 } CRYOSTAT_TEMP;
 
 /* Globals */
-/* Externs */
-extern unsigned char currentCryostatTempModule;  //!< Currently addressed cryostat temperature submodule
 extern unsigned int
     currentCryostatTempSensorAdd[CRYOSTAT_TEMP_SENSORS_NUMBER];  //!< Currently addressed cryostat temperature sensor
 
 /* Prototypes */
-/* Statics */
-static void tempHandler(void);
-static void sequentialCoeffHandler(void);
-/* Externs */
-extern void cryostatTempHandler(void);  //!< This function deals with the incoming CAN message
-extern void specificCoeffHandler(unsigned int sensor, unsigned int coeff);
+void cryostatTempTempHandler(int currentCryostatModule, int currentCryostatTempModule);
+void sequentialCoeffHandler(int currentCryostatModule, int currentCryostatTempModule);
+void cryostatTempHandler(int currentCryostatModule);  //!< This function deals with the incoming CAN message
+void specificCoeffHandler(unsigned int sensor, unsigned int coeff, int currentCryostatModule);
 
 #endif /* _CRYOSTATTEMP_H */

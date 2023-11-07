@@ -140,31 +140,23 @@ typedef struct {
     MAX_SAFE_LO_PA_ENTRY *maxSafeLoPaTable;
 } LO;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLoModule;  //!< Current addressed LO submodule
-
 /* Prototypes */
-/* Externs */
-extern int loStartup(void);   //!< This function initializes the selected lo during startup
-extern int loShutdown(void);  //!< Free resources that were used by all LOs at shutdown time
-extern void loHandler(void);  //!< This function deals with the incoming can message
-extern int loInit(void);      //!< This function initializes the selected LO at runtime
+int loStartup(int currentModule);   //!< This function initializes the selected lo during startup
+int loShutdown(int currentModule);  //!< Free resources that were used by all LOs at shutdown time
+void loHandler(int currentModule);  //!< This function deals with the incoming can message
+int loInit(int currentModule);      //!< This function initializes the selected LO at runtime
 
-extern int loZeroPaDrainVoltage(void);   //!< Helper function to set the LO PA drain voltages to zero
-extern int loZeroPAGateVoltage(void);    //!< Helper function to set the LO PA gate voltages to zero
-extern int loZeroYtoCoarseTuning(void);  //!< Helper function to set the YTO coarse tuning to zero
+int loZeroPaDrainVoltage(int currentModule);   //!< Helper function to set the LO PA drain voltages to zero
+int loZeroPAGateVoltage(int currentModule);    //!< Helper function to set the LO PA gate voltages to zero
+int loZeroYtoCoarseTuning(int currentModule);  //!< Helper function to set the YTO coarse tuning to zero
 
-extern int loResetPaLimitsTable(unsigned char band);  //!< Helper function to clear the PA limits table
-extern int loAddPaLimitsEntry(unsigned char band, unsigned char pol, unsigned int ytoTuning, float maxVD);
+int loResetPaLimitsTable(unsigned char band);  //!< Helper function to clear the PA limits table
+int loAddPaLimitsEntry(unsigned char band, unsigned char pol, unsigned int ytoTuning, float maxVD);
 //!< Helper function to add a PA limits table entry
-
-extern int printPaLimitsTable(unsigned char band);
-
-extern int limitSafePaDrainVoltage(unsigned char paModule);
+int printPaLimitsTable(unsigned char band);
+int limitSafePaDrainVoltage(unsigned char paModule, int currentModule);
 //!< Limit the CONV_FLOAT value about to be sent to the PA channel.
-
-extern int limitSafeYtoTuning();
+int limitSafeYtoTuning(int currentModule);
 //!< Prior to YTO tuning, send commands to reduce the LO PA drain voltages.
 
 #endif /* _LO_H */

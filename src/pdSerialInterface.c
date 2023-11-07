@@ -21,6 +21,8 @@
 #include "pdSerialInterface.h"
 
 #include <stdio.h> /* printf */
+#include <time.h>
+#include <unistd.h>
 
 #include "debug.h"
 #include "error_local.h"
@@ -28,9 +30,6 @@
 #include "serialInterface.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
-/* Statics */
 PD_REGISTERS pdRegisters;
 
 /* Power distribution analog monitor request core.
@@ -45,7 +44,7 @@ PD_REGISTERS pdRegisters;
 
    If an error happens during the process it will return ERROR, otherwise
    NO_ERROR will be returned. */
-static int getPdAnalogMonitor(void) {
+int getPdAnalogMonitor(void) {
     /* A temporary variable to deal with the timer. */
     int timedOut;
 
@@ -63,9 +62,12 @@ static int getPdAnalogMonitor(void) {
     /* The function to write the data to the hardware is called passing the
        intermediate buffer. If an error occurs, notify the calling function. */
     if (serialAccess(PD_PARALLEL_WRITE(PD_BREG), &pdRegisters.bReg.integer, PD_BREG_SIZE, PD_BREG_SHIFT_SIZE,
-                     PD_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     PD_BREG_SHIFT_DIR, SERIAL_WRITE, POWER_DIST_MODULE, 0) == ERROR) {
         return ERROR;
     }
+
+    struct timespec request = {0, 10};
+    nanosleep(&request, NULL);
 
 /* Initiate ADC conversion:
    - send ADC convert strobe command */
@@ -75,7 +77,7 @@ static int getPdAnalogMonitor(void) {
 
     /* If an error occurs, notify the calling function */
     if (serialAccess(PD_ADC_CONVERT_STROBE, NULL, PD_ADC_STROBE_SIZE, PD_ADC_STROBE_SHIFT_SIZE, PD_ADC_STROBE_SHIFT_DIR,
-                     SERIAL_WRITE) == ERROR) {
+                     SERIAL_WRITE, POWER_DIST_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
@@ -93,7 +95,7 @@ static int getPdAnalogMonitor(void) {
 
         /* If an error occurs, notify the calling function */
         if (serialAccess(PD_PARALLEL_READ, &pdRegisters.statusReg.integer, PD_STATUS_REG_SIZE, PD_STATUS_REG_SHIFT_SIZE,
-                         PD_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         PD_STATUS_REG_SHIFT_DIR, SERIAL_READ, POWER_DIST_MODULE, 0) == ERROR) {
             /* Stop the timer */
             if (stopAsyncTimer(TIMER_PD_ADC_RDY) == ERROR) {
                 return ERROR;
@@ -124,13 +126,13 @@ static int getPdAnalogMonitor(void) {
 #endif /* DEBUG_POWERDIS_SERIAL */
 
     /* If error return the state to the calling function */
-    if (serialAccess(PD_ADC_DATA_READ, &tempAdcValue, PD_ADC_DATA_SIZE, PD_ADC_DATA_SHIFT_SIZE, PD_ADC_DATA_SHIFT_DIR,
-                     SERIAL_READ) == ERROR) {
+    if (serialAccess(PD_ADC_DATA_READ, tempAdcValue, PD_ADC_DATA_SIZE, PD_ADC_DATA_SHIFT_SIZE, PD_ADC_DATA_SHIFT_DIR,
+                     SERIAL_READ, POWER_DIST_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
     /* Drop the not needed bits and store the data */
-    pdRegisters.adcData = (unsigned int)tempAdcValue[0];
+    pdRegisters.adcData = (unsigned int)(tempAdcValue[0]);
 
     return NO_ERROR;
 }
@@ -153,7 +155,7 @@ static int getPdAnalogMonitor(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setPdModuleEnable(unsigned char enable) {
+int setPdModuleEnable(unsigned char enable, int currentPowerDistributionModule) {
     /* Store the current value of the power distribution module enable state in
        a temporary variable so that if any error occurs during the update of
        the hardware state, we don't end up with an AREG describing a different
@@ -172,7 +174,7 @@ int setPdModuleEnable(unsigned char enable) {
 
         /* If there is a problem writing AREG, restore AREG and return the ERROR */
         if (serialAccess(PD_PARALLEL_WRITE(PD_AREG), &pdRegisters.aReg, PD_AREG_SIZE, PD_AREG_SHIFT_SIZE,
-                         PD_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         PD_AREG_SHIFT_DIR, SERIAL_WRITE, POWER_DIST_MODULE, 0) == ERROR) {
             /* Restore AREG to its original saved value */
             pdRegisters.aReg = tempAReg;
 
@@ -203,7 +205,7 @@ int setPdModuleEnable(unsigned char enable) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int getPdChannel(void) {
+int getPdChannel(int currentPowerDistributionModule, int currentPdModuleModule, int currentPdChannelModule) {
     /* A float to hold the scaling factor */
     float scale = 0.0;
 

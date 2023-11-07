@@ -15,21 +15,19 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentHe2PressModule = 0;
 /* Statics */
-static HANDLER he2PressModulesHandler[HE2_PRESS_MODULES_NUMBER] = {pressHandler, outOfRangeHandler};
+static HANDLER he2PressModulesHandler[HE2_PRESS_MODULES_NUMBER] = {he2PressPressHandler, he2OutOfRangeHandler};
 
 /* Compressor He2 Pressure Sensor Handler */
 /*! This function will be called by the CAN message handler when the received
     message is in the address range of the compressor He2 Pressure sensor */
-void he2PressHandler(void) {
+void he2PressHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("   Compressor He2 Pressure Sensor\n");
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentHe2PressModule = (CAN_ADDRESS & HE2_PRESS_MODULES_RCA_MASK) >> HE2_PRESS_MODULES_MASK_SHIFT;
+    int currentHe2PressModule = (CAN_ADDRESS & HE2_PRESS_MODULES_RCA_MASK) >> HE2_PRESS_MODULES_MASK_SHIFT;
     if (currentHe2PressModule >= HE2_PRESS_MODULES_NUMBER) {
         storeError(ERR_COMP_HE2_PRESS, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                        // Notify incoming CAN message of error
@@ -45,7 +43,7 @@ void he2PressHandler(void) {
 /* He2 Pressure handler */
 /* This function return the current temperature of the addressed compressor He2
    pressure sensor */
-static void pressHandler(void) {
+void he2PressPressHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    He2 pressure\n");
 #endif /* DEBUG_FETIM */
@@ -86,7 +84,7 @@ static void pressHandler(void) {
 /* He2 Pressure out of range handler */
 /* This function return the current out of range status of the compressor He2
    pressure sensor */
-static void outOfRangeHandler(void) {
+void he2OutOfRangeHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    He2 pressure out of range status\n");
 #endif /* DEBUG_FETIM */
@@ -109,7 +107,7 @@ static void outOfRangeHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_HE2_PRESS_OOR) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_HE2_PRESS_OOR, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

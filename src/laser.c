@@ -17,9 +17,6 @@
 #include "lprSerialInterface.h"
 #include "packet.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLaserModule = 0;
 /* Statics */
 static HANDLER laserModulesHandler[LASER_MODULES_NUMBER] = {pumpTempHandler, driveCurrentHandler,
                                                             photoDetectCurrentHandler};
@@ -36,7 +33,7 @@ void laserHandler(void) {
        performed. */
 
     /* Check if the specified submodule is in range */
-    currentLaserModule = (CAN_ADDRESS & LASER_MODULES_RCA_MASK);
+    int currentLaserModule = (CAN_ADDRESS & LASER_MODULES_RCA_MASK);
     if (currentLaserModule >= LASER_MODULES_NUMBER) {
         storeError(ERR_LASER, ERC_MODULE_RANGE);  // EDFA laser submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;               // Notify incoming CAN message of error
@@ -49,7 +46,7 @@ void laserHandler(void) {
 }
 
 /* EDFA laser pump temperature */
-static void pumpTempHandler(void) {
+void pumpTempHandler(void) {
 #ifdef DEBUG_LPR
     printf("    Pump Temperature\n");
 #endif /* DEBUG_LPR */
@@ -91,7 +88,7 @@ static void pumpTempHandler(void) {
 }
 
 /* EDFA laser drive current */
-static void driveCurrentHandler(void) {
+void driveCurrentHandler(void) {
 #ifdef DEBUG_LPR
     printf("    Drive current\n");
 #endif /* DEBUG_LPR */
@@ -136,7 +133,7 @@ static void driveCurrentHandler(void) {
 }
 
 /* EDFA laser photo detector current */
-static void photoDetectCurrentHandler(void) {
+void photoDetectCurrentHandler(void) {
 #ifdef DEBUG_LPR
     printf("    Photo Detector Current\n");
 #endif /* DEBUG_LPR */

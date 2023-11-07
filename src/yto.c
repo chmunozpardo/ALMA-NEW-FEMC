@@ -16,16 +16,13 @@
 #include "frontend.h"
 #include "loSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentYtoModule = 0;
 /* Statics */
-static HANDLER ytoModulesHandler[YTO_MODULES_NUMBER] = {ytoCoarseTuneHandler};
+static HANDLER_INT ytoModulesHandler[YTO_MODULES_NUMBER] = {ytoCoarseTuneHandler};
 
 /* YIG tuned oscillator handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the YIG tuned oscillator. */
-void ytoHandler(void) {
+void ytoHandler(int currentModule) {
     /* The value of currentYtoModule is not changed since there is only one
        submodule in the YTO module.
        This structure is preserved only for consistency.
@@ -43,11 +40,11 @@ void ytoHandler(void) {
        desired submodule is in range, is not needed and we can directly call the
        correct handler. */
     /* Call the correct handler */
-    (ytoModulesHandler[currentYtoModule])();
+    (ytoModulesHandler[0])(currentModule);
 }
 
 /* Coarse Tune Handler */
-static void ytoCoarseTuneHandler(void) {
+void ytoCoarseTuneHandler(int currentModule) {
     int ret = NO_ERROR;
 
 #ifdef DEBUG
@@ -76,7 +73,7 @@ static void ytoCoarseTuneHandler(void) {
         if (frontend.mode == TROUBLESHOOTING_MODE)
             ret = NO_ERROR;
         else
-            ret = limitSafeYtoTuning();
+            ret = limitSafeYtoTuning(currentModule);
 
         if (ret == HARDW_BLKD_ERR) {
             // report that the limit was violated:
@@ -90,7 +87,7 @@ static void ytoCoarseTuneHandler(void) {
         }
 
         /* Set the YTO coarse tune. If an error occurs then store the state and return. */
-        if (setYtoCoarseTune() == ERROR) {
+        if (setYtoCoarseTune(currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.yto.lastYtoCoarseTune.status = ERROR;
 

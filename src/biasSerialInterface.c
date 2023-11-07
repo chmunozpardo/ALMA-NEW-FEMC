@@ -19,9 +19,11 @@
 /* Includes */
 #include "biasSerialInterface.h"
 
-#include <stddef.h> /* NULL */
-#include <stdio.h>  /* printf */
-#include <stdlib.h> /* rand */
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "debug.h"
 #include "error_local.h"
@@ -29,14 +31,12 @@
 #include "serialInterface.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
 /* Statics */
 BIAS_REGISTERS biasRegisters[CARTRIDGES_NUMBER];
 
 // Macro to busy-wait the specified number of MICROSECONDS
 // factor of 5 determined experimentally
-static unsigned long delayCounter;
+
 #define DELAY(MICROSECONDS)                                                       \
     {                                                                             \
         for (delayCounter = MICROSECONDS * 5; delayCounter > 0; delayCounter--) { \
@@ -48,7 +48,7 @@ static unsigned long delayCounter;
    The first value of {0,1.64654} is added to allow the software to register an
    error if the voltage is greater then the one relaive to the lowest
    temperature. In this case the search stops at index 0 which means error. */
-static float calibrationCurve[CARTRIDGE_TEMP_TBL_SIZE][2] = {
+float calibrationCurve[CARTRIDGE_TEMP_TBL_SIZE][2] = {
     {0.000, 1.64654},    {1.200, 1.64654},    {1.400, 1.64429},    {1.500, 1.64299},    {1.600, 1.64157},
     {1.700, 1.64003},    {1.800, 1.63837},    {1.900, 1.63660},    {2.000, 1.63472},    {2.100, 1.63274},
     {2.200, 1.63067},    {2.300, 1.62852},    {2.400, 1.62629},    {2.500, 1.62400},    {2.600, 1.62166},
@@ -91,7 +91,7 @@ static float calibrationCurve[CARTRIDGE_TEMP_TBL_SIZE][2] = {
 /* Temperature interpolation */
 /* This function preform the interpolation with the standard curve for the
    cartridge temperature sensors. */
-static float temperatureConversion(float voltage) {
+float temperatureConversion(float voltage) {
     float temperature, slope;
     unsigned char i;
 
@@ -132,7 +132,7 @@ static float temperatureConversion(float voltage) {
 
    If an error happens during the process it will return ERROR, otherwise
    NO_ERROR will be returned. */
-static int getBiasAnalogMonitor(void) {
+int getBiasAnalogMonitor(int currentModule, int currentBiasModule) {
     /* A temporary variable to deal with the timer. */
     int timedOut;
 
@@ -150,12 +150,14 @@ static int getBiasAnalogMonitor(void) {
     /* The function to write the data to the hardware is called passing the
        intermediate buffer. If an error occurs, notify the calling function. */
     if (serialAccess(BIAS_PARALLEL_WRITE(currentBiasModule, BIAS_AREG), &biasRegisters[currentModule].aReg.integer,
-                     BIAS_AREG_SIZE, BIAS_AREG_SHIFT_SIZE, BIAS_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     BIAS_AREG_SIZE, BIAS_AREG_SHIFT_SIZE, BIAS_AREG_SHIFT_DIR, SERIAL_WRITE, currentModule,
+                     CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
         return ERROR;
     }
 
     /* Do 40 us busy wait instead of four more calls to the hardware */
-    DELAY(40);
+    struct timespec request = {0, 40000};
+    nanosleep(&request, NULL);
 
 /* Initiate ADC conversion
     - send ADC convert strobe command */
@@ -164,7 +166,7 @@ static int getBiasAnalogMonitor(void) {
 #endif /* DEBUG_BIAS_SERIAL */
     /* If an error occurs, notify the calling function */
     if (serialAccess(BIAS_ADC_CONVERT_STROBE(currentBiasModule), NULL, BIAS_ADC_STROBE_SIZE, BIAS_ADC_STROBE_SHIFT_SIZE,
-                     BIAS_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     BIAS_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE, currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
         return ERROR;
     }
 
@@ -182,8 +184,8 @@ static int getBiasAnalogMonitor(void) {
 
         /* If an error occurs, notify the calling funtion */
         if (serialAccess(BIAS_PARALLEL_READ(currentBiasModule), &biasRegisters[currentModule].statusReg.integer,
-                         BIAS_STATUS_REG_SIZE, BIAS_STATUS_REG_SHIFT_SIZE, BIAS_STATUS_REG_SHIFT_DIR,
-                         SERIAL_READ) == ERROR) {
+                         BIAS_STATUS_REG_SIZE, BIAS_STATUS_REG_SHIFT_SIZE, BIAS_STATUS_REG_SHIFT_DIR, SERIAL_READ,
+                         currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             /* Stop the timer. */
             if (stopAsyncTimer(TIMER_BIAS_ADC_RDY) == ERROR) {
                 return ERROR;
@@ -217,8 +219,8 @@ static int getBiasAnalogMonitor(void) {
 #endif /* DEBUG_BIAS_SERIAL */
 
     /* If error return the state to the calling function */
-    if (serialAccess(BIAS_ADC_DATA_READ(currentBiasModule), &tempAdcValue, BIAS_ADC_DATA_SIZE, BIAS_ADC_DATA_SHIFT_SIZE,
-                     BIAS_ADC_DATA_SHIFT_DIR, SERIAL_READ) == ERROR) {
+    if (serialAccess(BIAS_ADC_DATA_READ(currentBiasModule), tempAdcValue, BIAS_ADC_DATA_SIZE, BIAS_ADC_DATA_SHIFT_SIZE,
+                     BIAS_ADC_DATA_SHIFT_DIR, SERIAL_READ, currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
         return ERROR;
     }
 
@@ -249,7 +251,7 @@ static int getBiasAnalogMonitor(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int getSisMixerBias(unsigned char current) {
+int getSisMixerBias(unsigned char current, int currentModule, int currentBiasModule, int currentPolarizationModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the BIAS AREG */
         biasRegisters[currentModule].aReg.integer = 0x0000;
@@ -260,7 +262,7 @@ int getSisMixerBias(unsigned char current) {
             BIAS_AREG_SIS_MIXER(currentPolarizationModule, current);
 
         /* 2->5 Call the getBiasAnalogMonitor function */
-        if (getBiasAnalogMonitor() == ERROR) {
+        if (getBiasAnalogMonitor(currentModule, currentBiasModule) == ERROR) {
             return ERROR;
         }
 
@@ -322,7 +324,7 @@ int getSisMixerBias(unsigned char current) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setSisMixerBias(void) {
+int setSisMixerBias(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Setup the DAC2 message */
         /* Select the register to address */
@@ -341,7 +343,7 @@ int setSisMixerBias(void) {
         /* If there is a problem writing DAC2, return the error. */
         if (serialAccess(BIAS_DAC_DATA_WRITE(currentBiasModule, BIAS_DAC2),
                          biasRegisters[currentModule].dac2Reg.integer, BIAS_DAC2_DATA_SIZE, BIAS_DAC2_DATA_SHIFT_SIZE,
-                         BIAS_DAC2_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_DAC2_DATA_SHIFT_DIR, SERIAL_WRITE, currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             return ERROR;
         }
     }
@@ -364,7 +366,7 @@ int setSisMixerBias(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setSisMixerLoop(unsigned char biasMode) {
+int setSisMixerLoop(unsigned char biasMode, int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* Store the current value of the bias mode in a temporary variable. We use
        a temporary variable so that if any error occurs during the update of the
        hardware state, we don't end up with a BREG describing a different state
@@ -390,7 +392,8 @@ int setSisMixerLoop(unsigned char biasMode) {
         printf("         - Writing BREG\n");
 #endif /* DEBUG_BIAS_SERIAL */
         if (serialAccess(BIAS_PARALLEL_WRITE(currentBiasModule, BIAS_BREG), &biasRegisters[currentModule].bReg.integer,
-                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE, currentModule,
+                         CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             /* Restore BREG to its original saved value */
             biasRegisters[currentModule].bReg.integer = tempBReg;
 
@@ -428,7 +431,7 @@ int setSisMixerLoop(unsigned char biasMode) {
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
 
-int getSisMagnetBias(unsigned char current) {
+int getSisMagnetBias(unsigned char current, int currentModule, int currentBiasModule, int currentPolarizationModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the BIAS AREG */
         biasRegisters[currentModule].aReg.integer = 0x0000;
@@ -439,7 +442,7 @@ int getSisMagnetBias(unsigned char current) {
             BIAS_AREG_SIS_MAGNET(currentPolarizationModule, current);
 
         /* 2->5 Call the getBiasAnalogMonitor function */
-        if (getBiasAnalogMonitor() == ERROR) {
+        if (getBiasAnalogMonitor(currentModule, currentBiasModule) == ERROR) {
             return ERROR;
         }
 
@@ -497,7 +500,7 @@ int getSisMagnetBias(unsigned char current) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setSisMagnetBias(void) {
+int setSisMagnetBias(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Setup the DAC2 message */
         /* Select the register to address */
@@ -514,7 +517,7 @@ int setSisMagnetBias(void) {
 #endif /* DEBUG_BIAS_SERIAL */
         if (serialAccess(BIAS_DAC_DATA_WRITE(currentBiasModule, BIAS_DAC2),
                          biasRegisters[currentModule].dac2Reg.integer, BIAS_DAC2_DATA_SIZE, BIAS_DAC2_DATA_SHIFT_SIZE,
-                         BIAS_DAC2_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_DAC2_DATA_SHIFT_DIR, SERIAL_WRITE, currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             return ERROR;
         }
     }
@@ -536,7 +539,7 @@ int setSisMagnetBias(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setLnaBiasEnable(unsigned char enable) {
+int setLnaBiasEnable(unsigned char enable, int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* Store the current value of the bias mode in a temporary variable. We use
        a temporary variable so that if any error occurs during the update of the
        hardware state, we don't end up with a BREG describing a different state
@@ -566,7 +569,8 @@ int setLnaBiasEnable(unsigned char enable) {
         /* If there is a problem writing BREG, restore BREG and return the
          * ERROR. */
         if (serialAccess(BIAS_PARALLEL_WRITE(currentBiasModule, BIAS_BREG), &biasRegisters[currentModule].bReg.integer,
-                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE, currentModule,
+                         CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             /* Restore BREG to its original saved value */
             biasRegisters[currentModule].bReg.integer = tempBReg;
 
@@ -597,7 +601,8 @@ int setLnaBiasEnable(unsigned char enable) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int getLnaStage(void) {
+int getLnaStage(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule,
+                int currentLnaStageModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the BIAS AREG */
         biasRegisters[currentModule].aReg.integer = 0x0000;
@@ -610,7 +615,7 @@ int getLnaStage(void) {
             BIAS_AREG_LNA_STAGE_PORT(currentPolarizationModule, currentLnaStageModule);
 
         /* 2->5 Call the getBiasAnalogMonitor function */
-        if (getBiasAnalogMonitor() == ERROR) {
+        if (getBiasAnalogMonitor(currentModule, currentBiasModule) == ERROR) {
             return ERROR;
         }
 
@@ -688,7 +693,8 @@ int getLnaStage(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setLnaStage(void) {
+int setLnaStage(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule,
+                int currentLnaStageModule) {
     /* A temporary variable to deal with the timer. */
     int timedOut;
 
@@ -735,8 +741,8 @@ int setLnaStage(void) {
             /* If there is a problem writing to DAC1, return error so that the
                frontend variable is not going to be updated. */
             if (serialAccess(BIAS_PARALLEL_READ(currentBiasModule), &biasRegisters[currentModule].statusReg.integer,
-                             BIAS_STATUS_REG_SIZE, BIAS_STATUS_REG_SHIFT_SIZE, BIAS_STATUS_REG_SHIFT_DIR,
-                             SERIAL_READ) == ERROR) {
+                             BIAS_STATUS_REG_SIZE, BIAS_STATUS_REG_SHIFT_SIZE, BIAS_STATUS_REG_SHIFT_DIR, SERIAL_READ,
+                             currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
                 /* Stop the timer. */
                 if (stopAsyncTimer(TIMER_BIAS_DAC1_RDY) == ERROR) {
                     return ERROR;
@@ -773,7 +779,7 @@ int setLnaStage(void) {
           the frontend variable is not going to be updated. */
         if (serialAccess(BIAS_DAC_DATA_WRITE(currentBiasModule, BIAS_DAC1),
                          biasRegisters[currentModule].dac1Reg.integer, BIAS_DAC1_DATA_SIZE, BIAS_DAC1_DATA_SHIFT_SIZE,
-                         BIAS_DAC1_DATA_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_DAC1_DATA_SHIFT_DIR, SERIAL_WRITE, currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             return ERROR;
         }
     }
@@ -796,7 +802,7 @@ int setLnaStage(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setLnaLedEnable(unsigned char enable) {
+int setLnaLedEnable(unsigned char enable, int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* Store the current value of the LNA led state in a temporary variable. We
        use a temporary variable so that if any error occurs during the update of
        the hardware state, we don't end up with a BREG describing a different
@@ -816,7 +822,8 @@ int setLnaLedEnable(unsigned char enable) {
         /* If there is a problem writing BREG, restore BREG and return the ERROR
          */
         if (serialAccess(BIAS_PARALLEL_WRITE(currentBiasModule, BIAS_BREG), &biasRegisters[currentModule].bReg.integer,
-                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE, currentModule,
+                         CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             /* Restore BREG to its original saved value */
             biasRegisters[currentModule].bReg.integer = tempBReg;
 
@@ -849,7 +856,7 @@ int setLnaLedEnable(unsigned char enable) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setSisHeaterEnable(unsigned char enable) {
+int setSisHeaterEnable(unsigned char enable, int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* Store the current value of the LNA led state in a temporary variable. We
        use a temporary variable so that if any error occurs during the update of
        the hardware state, we don't end up with a BREG describing a different
@@ -867,7 +874,8 @@ int setSisHeaterEnable(unsigned char enable) {
 #endif /* DEBUG_BIAS_SERIAL */
 
         if (serialAccess(BIAS_PARALLEL_WRITE(currentBiasModule, BIAS_BREG), &biasRegisters[currentModule].bReg.integer,
-                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         BIAS_BREG_SIZE, BIAS_BREG_SHIFT_SIZE, BIAS_BREG_SHIFT_DIR, SERIAL_WRITE, currentModule,
+                         CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
             /* Restore BREG to its original saved value */
             biasRegisters[currentModule].bReg.integer = tempBReg;
 
@@ -897,7 +905,7 @@ int setSisHeaterEnable(unsigned char enable) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int getSisHeater(void) {
+int getSisHeater(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the BIAS AREG */
         biasRegisters[currentModule].aReg.integer = 0x0000;
@@ -907,7 +915,7 @@ int getSisHeater(void) {
         biasRegisters[currentModule].aReg.bitField.monitorPoint = BIAS_AREG_SIS_HEATER;
 
         /* 2->5 Call the getBiasAnalogMonitor function */
-        if (getBiasAnalogMonitor() == ERROR) {
+        if (getBiasAnalogMonitor(currentModule, currentBiasModule) == ERROR) {
             return ERROR;
         }
 
@@ -929,13 +937,14 @@ int getSisHeater(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setBiasDacStrobe(void) {
+int setBiasDacStrobe(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                     int currentPolSpecialMsgsModule, int currentPolDacModule) {
     switch (currentPolDacModule) {
         case DAC_RESET_STROBE:
             /* Send the reset strobe */
             if (serialAccess(BIAS_DAC_RESET_STROBE(currentBiasModule, currentPolSpecialMsgsModule), NULL,
-                             BIAS_DAC_STROBE_SIZE, BIAS_DAC_STROBE_SHIFT_SIZE, BIAS_DAC_STROBE_SHIFT_DIR,
-                             SERIAL_WRITE) == ERROR) {
+                             BIAS_DAC_STROBE_SIZE, BIAS_DAC_STROBE_SHIFT_SIZE, BIAS_DAC_STROBE_SHIFT_DIR, SERIAL_WRITE,
+                             currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
                 return ERROR;
             }
             break;
@@ -943,7 +952,8 @@ int setBiasDacStrobe(void) {
         case DAC_CLEAR_STROBE:
             /* Send the clear strobe.*/
             if (serialAccess(BIAS_DAC_CLEAR_STROBE(currentBiasModule), NULL, BIAS_DAC_STROBE_SIZE,
-                             BIAS_DAC_STROBE_SHIFT_SIZE, BIAS_DAC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                             BIAS_DAC_STROBE_SHIFT_SIZE, BIAS_DAC_STROBE_SHIFT_DIR, SERIAL_WRITE, currentModule,
+                             CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
                 return ERROR;
             }
             break;
@@ -990,13 +1000,11 @@ int setBiasDacStrobe(void) {
                                    This should only happen if a sensor is not
                                    installed since the conversion covers from
                                    1.2 to 500 K. */
-int getTemp(unsigned char polarization, unsigned char sensor) {
+int getTemp(unsigned char polarization, unsigned char sensor, int currentModule,
+            int currentCartridgeTempSubsystemModule) {
     /* A temporary variable to hold the read-back voltage and the converted
        temperature */
     float voltage, temperature;
-
-    /* Set the polarization to the correct one. */
-    currentBiasModule = polarization;
 
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the BIAS AREG */
@@ -1009,7 +1017,7 @@ int getTemp(unsigned char polarization, unsigned char sensor) {
         biasRegisters[currentModule].aReg.bitField.tempSensor = BIAS_AREG_TEMP_SENSOR(sensor);
 
         /* 2->5 Call the getBiasAnalogMonitor function */
-        if (getBiasAnalogMonitor() == ERROR) {
+        if (getBiasAnalogMonitor(currentModule, polarization) == ERROR) {
             return ERROR;
         }
 

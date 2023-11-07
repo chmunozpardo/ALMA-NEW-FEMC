@@ -43,14 +43,8 @@ typedef struct {
     float pressure;
 } VACUUM_SENSOR;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentVacuumSensorModule;  //!< Currently addressed vacuum sensor submodule
-
 /* Prototypes */
-/* Statics */
-static void pressureHandler(void);
-/* Externs */
-extern void vacuumSensorHandler(void);  //!< This function deals with the incoming CAN message
+void vaccumSensorPressureHandler(int currentVacuumControllerModule);
+void vacuumSensorHandler(int currentVacuumControllerModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _VACUUMSENSOR_H */

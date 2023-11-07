@@ -17,6 +17,7 @@
 int fd_mem;
 
 volatile unsigned int *pico_mem;
+pthread_mutex_t pico_lock;
 
 /* Initialization */
 /*! This function takes care of initializing all the subsystem of the system.
@@ -27,6 +28,8 @@ int initialization(void) {
 #ifdef DEBUG_STARTUP
     printf("Initializing...\n\n");
 #endif
+
+    pthread_mutex_init(&pico_lock, NULL);
 
     /* Initialize the error library */
     if (errorInit() == ERROR) {

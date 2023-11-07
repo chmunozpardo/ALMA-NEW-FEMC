@@ -20,35 +20,22 @@
 #include "timer.h"
 
 /* Statics */
-static HANDLER cartridgeSubsystemHandler[CARTRIDGE_SUBSYSTEMS_NUMBER] = {biasSubsystemHandler,
-                                                                         loAndTempSubsystemHandler};
+static HANDLER_INT cartridgeSubsystemHandler[CARTRIDGE_SUBSYSTEMS_NUMBER] = {biasSubsystemHandler,
+                                                                             loAndTempSubsystemHandler};
 
-static HANDLER biasModulesHandler[BIAS_MODULES_NUMBER] = {polarizationHandler, polarizationHandler};
+static HANDLER_INT_INT biasModulesHandler[BIAS_MODULES_NUMBER] = {polarizationHandler, polarizationHandler};
 
-static HANDLER loAndTempModulesHandler[LO_TEMP_MODULES_NUMBER] = {loHandler, cartridgeTempSubsystemHandler};
+static HANDLER_INT loAndTempModulesHandler[LO_TEMP_MODULES_NUMBER] = {loHandler, cartridgeTempSubsystemHandler};
 
-static HANDLER cartridgeTempSubsystemModulesHandler[CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER] = {
+static HANDLER_INT_INT cartridgeTempSubsystemModulesHandler[CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER] = {
     cartridgeTempHandler, cartridgeTempHandler, cartridgeTempHandler,
     cartridgeTempHandler, cartridgeTempHandler, cartridgeTempHandler};
-
-/* Externs */
-unsigned char currentCartridgeSubsystem = 0;           /*! This global keep track of the
-                                                           currently addressed cartridge
-                                                           subsystem (WCA or CCA) */
-unsigned char currentLoAndTempModule = 0;              /*! This global keeps track of the
-                                                           currently addressed LO and cartridge
-                                                           temperature sensors */
-unsigned char currentBiasModule = 0;                   /*! This global keeps track of the currently
-                                                           addressed polarization */
-unsigned char currentCartridgeTempSubsystemModule = 0; /*! This global keeps track
-                                                           of the currently
-                                                           addressed temperature
-                                                           sensor */
 
 /* Cartridge handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cartridges. */
-void cartridgeHandler(void) {
+void cartridgeHandler(int currentModule) {
+    int localSubModule = 0;
 #ifdef DEBUG
     printf(" Cartridge: %d (currentModule)\n", currentModule);
 #endif /* DEBUG */
@@ -99,8 +86,8 @@ void cartridgeHandler(void) {
     }
 
     /* Check if the specified submodule is in range */
-    currentCartridgeSubsystem = (CAN_ADDRESS & CARTRIDGE_SUBSYSTEM_RCA_MASK) >> CARTRIDGE_SUBSYSTEM_MASK_SHIFT;
-    if (currentCartridgeSubsystem >= CARTRIDGE_SUBSYSTEMS_NUMBER) {
+    localSubModule = (CAN_ADDRESS & CARTRIDGE_SUBSYSTEM_RCA_MASK) >> CARTRIDGE_SUBSYSTEM_MASK_SHIFT;
+    if (localSubModule >= CARTRIDGE_SUBSYSTEMS_NUMBER) {
         storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // Cartridge subsystem out of range
 
         CAN_STATUS = HARDW_RNG_ERR;  // Notify incoming CAN message of the error
@@ -108,11 +95,11 @@ void cartridgeHandler(void) {
     }
 
     /* Call the correct function */
-    (cartridgeSubsystemHandler[currentCartridgeSubsystem])();
+    (cartridgeSubsystemHandler[localSubModule])(currentModule);
 }
 
 /* LO and Cartridge temperature sensors handler. */
-static void loAndTempSubsystemHandler(void) {
+void loAndTempSubsystemHandler(int currentModule) {
 #ifdef DEBUG
     printf("  LO or Temperature\n");
 #endif /* DEBUG */
@@ -121,18 +108,18 @@ static void loAndTempSubsystemHandler(void) {
        used to redirect CAN messages */
 
     /* Check if the specified submodule is in range */
-    currentLoAndTempModule = (CAN_ADDRESS & LO_TEMP_MODULES_RCA_MASK) >> LO_TEMP_MODULES_MASK_SHIFT;
+    int currentLoAndTempModule = (CAN_ADDRESS & LO_TEMP_MODULES_RCA_MASK) >> LO_TEMP_MODULES_MASK_SHIFT;
     if (currentLoAndTempModule >= LO_TEMP_MODULES_NUMBER) {
         storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // Lo and cartridge temperature submodule out of range
         return;
     }
 
     /* Call the correct function */
-    (loAndTempModulesHandler[currentLoAndTempModule])();
+    (loAndTempModulesHandler[currentLoAndTempModule])(currentModule);
 }
 
 /* Cartridge temperature sensor handler. */
-static void cartridgeTempSubsystemHandler(void) {
+void cartridgeTempSubsystemHandler(int currentModule) {
 #ifdef DEBUG
     printf("   Cartridge Temperature\n");
 #endif /* DEBUG */
@@ -141,24 +128,20 @@ static void cartridgeTempSubsystemHandler(void) {
        used to redirect CAN messages */
 
     /* Check if the the specified submodule is in range */
-    currentCartridgeTempSubsystemModule =
+    int currentCartridgeTempSubsystemModule =
         (CAN_ADDRESS & CARTRIDGE_TEMP_SUBSYSTEM_MODULES_RCA_MASK) >> CARTRIDGE_TEMP_SUBSYSTEM_MODULES_MASK_SHIFT;
     if (currentCartridgeTempSubsystemModule >= CARTRIDGE_TEMP_SUBSYSTEM_MODULES_NUMBER) {
         storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // Cartridge temperature submodule out of range
         return;
     }
 
-    /* Since the sensor are actually controlled by the bias module while the
-       RCAs are listed under the LO and Temp submodule, we have to manually
-       change the subsystem to address the correct hardware. */
-    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_BIAS;
-
     /* Call the correct function */
-    (cartridgeTempSubsystemModulesHandler[currentCartridgeTempSubsystemModule])();
+    (cartridgeTempSubsystemModulesHandler[currentCartridgeTempSubsystemModule])(currentModule,
+                                                                                currentCartridgeTempSubsystemModule);
 }
 
 /* BIAS handler. */
-static void biasSubsystemHandler(void) {
+void biasSubsystemHandler(int currentModule) {
 #ifdef DEBUG
     printf("  BIAS\n");
 #endif /* DEBUG */
@@ -167,14 +150,14 @@ static void biasSubsystemHandler(void) {
        used to redirect CAN messages */
 
     /* Check if the specified submodule is in range */
-    currentBiasModule = (CAN_ADDRESS & BIAS_MODULES_RCA_MASK) >> BIAS_MODULES_MASK_SHIFT;
+    int currentBiasModule = (CAN_ADDRESS & BIAS_MODULES_RCA_MASK) >> BIAS_MODULES_MASK_SHIFT;
     if (currentBiasModule >= BIAS_MODULES_NUMBER) {
         storeError(ERR_CARTRIDGE, ERC_MODULE_RANGE);  // BIAS submodule out of range
         return;
     }
 
     /* Call the correct function */
-    (biasModulesHandler[currentBiasModule])();
+    (biasModulesHandler[currentBiasModule])(currentModule, currentBiasModule);
 }
 
 /* Cartridge stop */
@@ -208,7 +191,7 @@ int cartridgeStop(unsigned char cartridge) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int cartridgeStartup(void) {
+int cartridgeStartup(int currentModule) {
     /* Few variables to help load the data from the configuration file */
     CFG_STRUCT dataIn;
     float resistor = 0.0;
@@ -259,9 +242,10 @@ int cartridgeStartup(void) {
     }
 
     /* Polarization Level */
-    for (currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
+    for (int currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
         /* Sideband Level */
-        for (currentPolarizationModule = 0; currentPolarizationModule < SIDEBANDS_NUMBER; currentPolarizationModule++) {
+        for (int currentPolarizationModule = 0; currentPolarizationModule < SIDEBANDS_NUMBER;
+             currentPolarizationModule++) {
             /* SIS availability for bands 3-10: */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -452,7 +436,7 @@ int cartridgeInit(unsigned char cartridge) {
     /* Set currentModule variable to reflect the selected cartridge.
        This is necessary because currentModule is the global variable pointing
        to the selected cartridge. */
-    currentModule = cartridge;
+    int currentModule = cartridge;
 
     /* Check if the receiver is outfitted with the cartridge */
     if (frontend.cartridge[currentModule].available == UNAVAILABLE) {
@@ -472,22 +456,16 @@ int cartridgeInit(unsigned char cartridge) {
        is not installed, it doesn't matter. */
 
     /* Polarizations */
-    /* Set current cartridge subsystem to bias */
-    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_BIAS;
     /* Set the 10MHz */
-    for (currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
+    for (int currentBiasModule = 0; currentBiasModule < POLARIZATIONS_NUMBER; currentBiasModule++) {
         /* Initialize the polarizations */
-        if (polarizationInit() == ERROR) {
+        if (polarizationInit(currentModule, currentBiasModule) == ERROR) {
             return ERROR;
         }
     }
 
-    /* LO */
-    /* Set current cartridge subsystem to LO */
-    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_LO;
-
-    /* Initialize the LO */
-    if (loInit() == ERROR) {
+        /* Initialize the LO */
+    if (loInit(currentModule) == ERROR) {
         return ERROR;
     }
 
@@ -523,8 +501,6 @@ int cartridgeAsync(void) {
         ASYNC_CARTRIDGE_INIT,
         ASYNC_CARTRIDGE_GO_STANDBY2
     } asyncCartridgeTask = ASYNC_CARTRIDGE_IDLE;
-    /* Address the current async cartridge */
-    currentModule = currentAsyncCartridge;
 
     /* Switch depending on the cartridge task */
     switch (asyncCartridgeTask) {
@@ -549,7 +525,7 @@ int cartridgeAsync(void) {
 
         case ASYNC_CARTRIDGE_INIT:
             /* Initialize cartridge and switch on result */
-            switch (asyncCartridgeInit()) {
+            switch (asyncCartridgeInit(currentAsyncCartridge)) {
                 case NO_ERROR:
                     return NO_ERROR;
                     break;
@@ -561,7 +537,7 @@ int cartridgeAsync(void) {
                        turn off the cartridge. */
 
                     /* Turn off the power to the cartridge. */
-                    if (setPdModuleEnable(PD_MODULE_DISABLE) == ERROR) {
+                    if (setPdModuleEnable(PD_MODULE_DISABLE, currentAsyncCartridge) == ERROR) {
                         /* If we end up in here, it means that something very major
                            has happened and the communication within the FEMC
                            module is compromised. At this point all the bets on
@@ -603,7 +579,7 @@ int cartridgeAsync(void) {
             break;
 
         case ASYNC_CARTRIDGE_GO_STANDBY2:
-            switch (asyncCartridgeGoStandby2()) {
+            switch (asyncCartridgeGoStandby2(currentAsyncCartridge)) {
                 case NO_ERROR:
                     return NO_ERROR;
                     break;
@@ -632,7 +608,7 @@ int cartridgeAsync(void) {
 }
 
 /* Asynchronously initialize a cartridge */
-int asyncCartridgeInit(void) {
+int asyncCartridgeInit(int currentModule) {
     /* A static enum to track the state of the async init function */
     static enum {
         ASYNC_CARTRIDGE_INIT_SET_WAIT,
@@ -723,20 +699,17 @@ int asyncCartridgeInit(void) {
 }
 
 // Asynchronously set a cartridge to STANDBY2 mode:
-int asyncCartridgeGoStandby2(void) {
+int asyncCartridgeGoStandby2(int currentModule) {
     // Check if the cartridge was turned off in the meantime
     if (frontend.cartridge[currentModule].state == CARTRIDGE_OFF) {
         // Cartridge was turned off so nothing else to do
         return ASYNC_DONE;
     }
 
-    // select the bias subsystem for all the following calls:
-    currentCartridgeSubsystem = CARTRIDGE_SUBSYSTEM_BIAS;
-
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
-    currentBiasModule = POLARIZATION0;
-    currentPolarizationModule = SIDEBAND0;
+    int currentBiasModule = POLARIZATION0;
+    int currentPolarizationModule = SIDEBAND0;
     lnaGoStandby2();
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
@@ -761,59 +734,59 @@ int asyncCartridgeGoStandby2(void) {
 
     currentBiasModule = POLARIZATION0;
     currentPolarizationModule = SIDEBAND0;
-    sisGoStandby2();
+    sisGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION0;
     currentPolarizationModule = SIDEBAND1;
-    sisGoStandby2();
+    sisGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION1;
     currentPolarizationModule = SIDEBAND0;
-    sisGoStandby2();
+    sisGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION1;
     currentPolarizationModule = SIDEBAND1;
-    sisGoStandby2();
+    sisGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION0;
     currentPolarizationModule = SIDEBAND0;
-    sisMagnetGoStandby2();
+    sisMagnetGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION0;
     currentPolarizationModule = SIDEBAND1;
-    sisMagnetGoStandby2();
+    sisMagnetGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION1;
     currentPolarizationModule = SIDEBAND0;
-    sisMagnetGoStandby2();
+    sisMagnetGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION1;
     currentPolarizationModule = SIDEBAND1;
-    sisMagnetGoStandby2();
+    sisMagnetGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION0;
-    lnaLedGoStandby2();
+    lnaLedGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     LATCH_DEBUG_SERIAL_WRITE = 1;
 
     currentBiasModule = POLARIZATION1;
-    lnaLedGoStandby2();
+    lnaLedGoStandby2(currentModule, currentBiasModule, currentPolarizationModule);
 
     // Set the state of the cartridge to READY:
     frontend.cartridge[currentModule].state = CARTRIDGE_READY;

@@ -18,12 +18,9 @@
 #include "loSerialInterface.h"
 #include "serialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLoModule = 0;
 /* Statics */
-static HANDLER loModulesHandler[LO_MODULES_NUMBER] = {ytoHandler, photomixerHandler, pllHandler,
-                                                      amcHandler, paHandler,         teledynePaHandler};
+static HANDLER_INT loModulesHandler[LO_MODULES_NUMBER] = {ytoHandler, photomixerHandler, pllHandler,
+                                                          amcHandler, paHandler,         teledynePaHandler};
 
 /* Forward declarations */
 void loLoadPaLimitsTable(unsigned char band);
@@ -48,7 +45,7 @@ static char loopBandwidthDefaults[10] = {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int loInit(void) {
+int loInit(int currentModule) {
     int ret;
 
 #ifdef DEBUG_INIT
@@ -61,7 +58,7 @@ int loInit(void) {
 #endif  // DEBUG_INIT
 
     if (serialAccess(LO_10MHZ_MODE, NULL, LO_10MHZ_MODE_SIZE, LO_10MHZ_MODE_SHIFT_SIZE, LO_10MHZ_MODE_SHIFT_DIR,
-                     SERIAL_WRITE) == ERROR) {
+                     SERIAL_WRITE, currentModule, CARTRIDGE_SUBSYSTEM_LO) == ERROR) {
         return ERROR;
     }
     frontend.cartridge[currentModule].lo.ssi10MHzEnable = ENABLE;
@@ -70,13 +67,13 @@ int loInit(void) {
     printf("     done!\n");  // 10MHz
 #endif                       // DEBUG_INIT
 
-    ret = loZeroPaDrainVoltage();
+    ret = loZeroPaDrainVoltage(currentModule);
     if (ret != NO_ERROR) return ret;
 
-    ret = loZeroPAGateVoltage();
+    ret = loZeroPAGateVoltage(currentModule);
     if (ret != NO_ERROR) return ret;
 
-    ret = loZeroYtoCoarseTuning();
+    ret = loZeroYtoCoarseTuning(currentModule);
     if (ret != NO_ERROR) return ret;
 
 #ifdef DEBUG_INIT
@@ -84,7 +81,7 @@ int loInit(void) {
 #endif  // DEBUG_INIT
 
     /* Set loop BW to the default value. */
-    setLoopBandwidthSelect(loopBandwidthDefaults[currentModule]);
+    setLoopBandwidthSelect(loopBandwidthDefaults[currentModule], currentModule);
 
 #ifdef DEBUG_INIT
     printf("     done!\n");  // PLL loop bandwidth
@@ -98,7 +95,7 @@ int loInit(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int loZeroPaDrainVoltage(void) {
+int loZeroPaDrainVoltage(int currentModule) {
     unsigned char *lastCommandData;
 
 /* Set the PA's drain voltage to 0. The mapping from channel to actual
@@ -108,20 +105,20 @@ int loZeroPaDrainVoltage(void) {
 #endif  // DEBUG_INIT
 
     CONV_FLOAT = 0.0;
-    currentPaChannelModule = PA_CHANNEL_DRAIN_VOLTAGE;
+    int currentPaChannelModule = PA_CHANNEL_DRAIN_VOLTAGE;
 
 /* PA Channel A */
 #ifdef DEBUG_INIT
     printf("     - Channel A\n");
 #endif  // DEBUG_INIT
-    currentPaModule = PA_CHANNEL_A;
+    int currentPaModule = PA_CHANNEL_A;
     /* Set Channel. If error, return error and abort initialization */
-    if (setPaChannel() == ERROR) {
+    if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         return ERROR;
     }
 
     // make a pointer to the data word in the last commanded PA drain voltage:
-    lastCommandData = &(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaModule].lastDrainVoltage.data);
+    lastCommandData = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaModule].lastDrainVoltage.data;
 
     // save the zero we just sent as the last commanded value:
     changeEndian(lastCommandData, CONV_CHR_ADD);
@@ -136,12 +133,12 @@ int loZeroPaDrainVoltage(void) {
 #endif  // DEBUG_INIT
     currentPaModule = PA_CHANNEL_B;
     /* Set Channel. If error, return error and abort initialization */
-    if (setPaChannel() == ERROR) {
+    if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         return ERROR;
     }
 
     // make a pointer to the data word in the last commanded PA drain voltage:
-    lastCommandData = &(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaModule].lastDrainVoltage.data);
+    lastCommandData = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaModule].lastDrainVoltage.data;
 
     // save the zero we just sent as the last commanded value:
     changeEndian(lastCommandData, CONV_CHR_ADD);
@@ -157,21 +154,21 @@ int loZeroPaDrainVoltage(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int loZeroPAGateVoltage(void) {
+int loZeroPAGateVoltage(int currentModule) {
 /* Set the PA's gate voltage to 0 */
 #ifdef DEBUG_INIT
     printf("   - Setting PAs gate voltage to 0\n");
 #endif  // DEBUG_INIT
     CONV_FLOAT = 0.0;
-    currentPaChannelModule = PA_CHANNEL_GATE_VOLTAGE;
+    int currentPaChannelModule = PA_CHANNEL_GATE_VOLTAGE;
 
 /* PA Channel A */
 #ifdef DEBUG_INIT
     printf("     - Channel A\n");
 #endif  // DEBUG_INIT
-    currentPaModule = PA_CHANNEL_A;
+    int currentPaModule = PA_CHANNEL_A;
     /* Set Channel. If error, return error and abort initialization */
-    if (setPaChannel() == ERROR) {
+    if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         return ERROR;
     }
 #ifdef DEBUG_INIT
@@ -184,7 +181,7 @@ int loZeroPAGateVoltage(void) {
 #endif  // DEBUG_INIT
     currentPaModule = PA_CHANNEL_B;
     /* Set Channel. If error, return error and abort initialization */
-    if (setPaChannel() == ERROR) {
+    if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         return ERROR;
     }
 #ifdef DEBUG_INIT
@@ -198,16 +195,15 @@ int loZeroPAGateVoltage(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int loZeroYtoCoarseTuning(void) {
+int loZeroYtoCoarseTuning(int currentModule) {
 #ifdef DEBUG_INIT
     printf("   - Setting YTO coarse tuning to 0\n");
 #endif  // DEBUG_INIT
     CONV_FLOAT = 0.0;
-    currentPaChannelModule = PA_CHANNEL_GATE_VOLTAGE;
 
     /* Set coarse tuning. If error, return error and abort initialization */
     CONV_UINT(0) = 0;
-    if (setYtoCoarseTune() == ERROR) {
+    if (setYtoCoarseTune(currentModule) == ERROR) {
         return ERROR;
     }
 #ifdef DEBUG_INIT
@@ -225,7 +221,7 @@ int loZeroYtoCoarseTuning(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int loStartup(void) {
+int loStartup(int currentModule) {
     CFG_STRUCT dataIn;
 
 #ifdef DEBUG_STARTUP
@@ -293,7 +289,7 @@ int loStartup(void) {
 
 /* LO subsystem shutdown */
 /*! Free resources that were used by all LOs at shutdown time. */
-int loShutdown(void) {
+int loShutdown(int currentModule) {
     unsigned char band;
 #ifdef DEBUG_STARTUP
     printf(" Shutting Down LO Subsystem...\n");
@@ -313,7 +309,7 @@ int loShutdown(void) {
 /* LO handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the LO. */
-void loHandler(void) {
+void loHandler(int currentModule) {
 #ifdef DEBUG
     printf("   LO\n");
 #endif /* DEBUG */
@@ -322,7 +318,7 @@ void loHandler(void) {
        installed as well. */
 
     /* Check if the submodule is in range */
-    currentLoModule = (CAN_ADDRESS & LO_MODULES_RCA_MASK) >> LO_MODULES_MASK_SHIFT;
+    int currentLoModule = (CAN_ADDRESS & LO_MODULES_RCA_MASK) >> LO_MODULES_MASK_SHIFT;
     if (currentLoModule >= LO_MODULES_NUMBER) {
         storeError(ERR_LO, ERC_MODULE_RANGE);  // LO submodule out of range
 
@@ -331,7 +327,7 @@ void loHandler(void) {
     }
 
     /* Call the correct handler */
-    (loModulesHandler[currentLoModule])();
+    (loModulesHandler[currentLoModule])(currentModule);
 }
 
 /// Delete the LO PA limits table in preparation to load a new one
@@ -616,7 +612,7 @@ int printPaLimitsTable(unsigned char band) {
     \param yto      tuning word to look up
 
     \return         pointer to entry or NULL if not found */
-MAX_SAFE_LO_PA_ENTRY *findMaxSafeLoPaEntry(unsigned int yto) {
+MAX_SAFE_LO_PA_ENTRY *findMaxSafeLoPaEntry(unsigned int yto, int currentModule) {
     MAX_SAFE_LO_PA_ENTRY *entry = NULL;
     MAX_SAFE_LO_PA_ENTRY *lastEntry = NULL;
     MAX_SAFE_LO_PA_ENTRY *table = frontend.cartridge[currentModule].lo.maxSafeLoPaTable;
@@ -700,14 +696,14 @@ MAX_SAFE_LO_PA_ENTRY *findMaxSafeLoPaEntry(unsigned int yto) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref HARDW_BLKD_ERR -> the drain voltage was disallowed by the max safe level table */
-int limitSafePaDrainVoltage(unsigned char paModule) {
+int limitSafePaDrainVoltage(unsigned char paModule, int currentModule) {
     MAX_SAFE_LO_PA_ENTRY *entry;
     unsigned int yto = frontend.cartridge[currentModule].lo.yto.ytoCoarseTune;
 #ifdef DEBUG_PA_LIMITS
     printf("limitSafePaDrainVoltage yto=%u ", yto);
 #endif
 
-    entry = findMaxSafeLoPaEntry(yto);
+    entry = findMaxSafeLoPaEntry(yto, currentModule);
 
     if (!entry) {
 #ifdef DEBUG_PA_LIMITS
@@ -752,7 +748,7 @@ int limitSafePaDrainVoltage(unsigned char paModule) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref HARDW_BLKD_ERR -> the drain voltage was disallowed by the max safe level table */
-int limitSafeYtoTuning() {
+int limitSafeYtoTuning(int currentModule) {
     MAX_SAFE_LO_PA_ENTRY *entry;
     unsigned int yto = CONV_UINT(0);
     long int backup = CONV_LONGINT;  // backup copy of the conversion buffer
@@ -765,7 +761,7 @@ int limitSafeYtoTuning() {
     printf("limitSafeYtoTuning yto=%u ", yto);
 #endif
 
-    entry = findMaxSafeLoPaEntry(yto);
+    entry = findMaxSafeLoPaEntry(yto, currentModule);
 
     if (!entry) {
 #ifdef DEBUG_PA_LIMITS
@@ -775,8 +771,10 @@ int limitSafeYtoTuning() {
     }
 
     // make a pointer to the data word in the last commanded Pol0 PA drain voltage:
-    currentPaModule = PA_CHANNEL_A;
-    lastCommandData = &(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.data);
+    int currentPaModule = PA_CHANNEL_A;
+    lastCommandData = frontend.cartridge[currentModule]
+                          .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                          .lastDrainVoltage.data;
 
     // get the last commanded setting:
     changeEndian(CONV_CHR_ADD, lastCommandData);
@@ -791,8 +789,8 @@ int limitSafeYtoTuning() {
         changeEndian(lastCommandData, CONV_CHR_ADD);
 
         // send the command to reduce the LO PA drain voltage:
-        currentPaChannelModule = PA_CHANNEL_DRAIN_VOLTAGE;
-        if (setPaChannel() == ERROR)
+        int currentPaChannelModule = PA_CHANNEL_DRAIN_VOLTAGE;
+        if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR)
             ret0 = ERROR;
         else
             ret0 = HARDW_BLKD_ERR;
@@ -800,7 +798,9 @@ int limitSafeYtoTuning() {
 
     // make a pointer to the data word in the last commanded Pol1 PA drain voltage:
     currentPaModule = PA_CHANNEL_B;
-    lastCommandData = &(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.data);
+    lastCommandData = frontend.cartridge[currentModule]
+                          .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                          .lastDrainVoltage.data;
 
     // get the last commanded setting:
     changeEndian(CONV_CHR_ADD, lastCommandData);
@@ -815,8 +815,8 @@ int limitSafeYtoTuning() {
         changeEndian(lastCommandData, CONV_CHR_ADD);
 
         // send the command to reduce the LO PA drain voltage:
-        currentPaChannelModule = PA_CHANNEL_DRAIN_VOLTAGE;
-        if (setPaChannel() == ERROR)
+        int currentPaChannelModule = PA_CHANNEL_DRAIN_VOLTAGE;
+        if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR)
             ret1 = ERROR;
         else
             ret1 = HARDW_BLKD_ERR;

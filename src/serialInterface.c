@@ -24,10 +24,6 @@
 #include "frontend.h"
 #include "serialMux.h"
 
-/* Globals */
-/* Externs */
-/* Statics */
-
 /* Serial Access */
 /*! This function perform all the data manipulation necessary to fill up the
     \ref FRAME that will be utilized by the low level driver to communicate with
@@ -61,11 +57,12 @@
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
 int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned char shiftAmount,
-                 unsigned char shiftDir, unsigned char write) {
+                 unsigned char shiftDir, unsigned char write, int currentModule, int localCartSubsystem) {
     /* Intermediate data buffer
        An intermediate buffer variable is defined. This is going to be used
        to implement all the shifting needed before writing the data and after
        receiving the response from the hardware. */
+
     long long intermediateBuffer;
 
     /* Check that the command word size is ok */
@@ -83,10 +80,11 @@ int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned
        On the other end if any other module is addressed, the port is offsetted
        respect to the addressed module by the number of cartridges given their
        doublefolded nature. */
+    FRAME frame;
     if (currentModule < CARTRIDGES_NUMBER) {
-        frame.port = 2 * currentModule + (1 - currentCartridgeSubsystem);
+        frame.port = localCartSubsystem;
     } else {
-        frame.port = CARTRIDGES_NUMBER + currentModule;
+        frame.port = currentModule - 8;
     }
 
     /* Store the command in the outgoing frame */
@@ -120,12 +118,12 @@ int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned
         memcpy(frame.data, &intermediateBuffer, FRAME_DATA_LENGTH_BYTES);
 
         /* Call the hardware writing function */
-        if (writeMux() == ERROR) {
+        if (writeMux(&frame) == ERROR) {
             return ERROR;
         }
     } else {  // If it's a READ operation
         /* Call the hardware reading funtion */
-        if (readMux() == ERROR) {
+        if (readMux(&frame) == ERROR) {
             return ERROR;
         }
         /* Copy the data to the intermediate buffer. */

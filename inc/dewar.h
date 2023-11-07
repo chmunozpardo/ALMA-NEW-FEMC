@@ -52,14 +52,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastN2Fill;
 } DEWAR;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentDewarModule;  //!< Currently addressed FETIM dewar submodule
-
 /* Prototypes */
-/* Statics */
-static void n2FillHandler(void);
-/* Externs */
-extern void dewarHandler(void);  //!< This function deals with the incoming CAN message
+void n2FillHandler(void);
+void dewarHandler(void);  //!< This function deals with the incoming CAN message
 
 #endif /* _DEWAR_H */

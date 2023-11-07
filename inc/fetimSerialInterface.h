@@ -455,24 +455,20 @@ typedef struct {
     unsigned int serAdcData;
 } FETIM_REGISTERS;
 
-/* Globals */
-/* Externs */
-extern FETIM_REGISTERS fetimRegisters;  //!< FETIM Registers
-
 /* Prototypes */
-/* Statics */
-static int getFetimParallelMonitor(void);  // Perform core analog monitor functions for the parallel ADC
-static int getFetimSerialMonitor(void);    // Perform core analog monitor functions for the serial ADC
-/* Externs */
-extern int getInterlockTemp(void);               //!< This function monitors the interlock internal temperature sensors.
-extern int getInterlockFlow(void);               //!< This function monitors the interlock airflow sensors.
-extern int getFetimDigital(unsigned char port);  //!< This function monitors the digital values of the FETIM.
-extern int getIntrlkGlitchValue(void);           //!< This function monitor the interlock glitch analog value
-extern int getFetimExtTemp(void);                //!< This function monitors the FETIM external temperature sensors.
-extern int getCompHe2Press(void);                //!< This function monitors the compressor He2 pressure.
-extern int setN2FillEnable(unsigned char enable);  //!< This function enables the automatic N2 fill for the dewar.
-extern int setFeSafeStatus(
-    unsigned char sage);                 //!< This function sets the bit holding the safe/unsafe status of the FE.
-extern int getFetimHardwRevision(void);  //!< Reads the FETIM module hardware revision level
+int getFetimParallelMonitor(void);  // Perform core analog monitor functions for the parallel ADC
+int getFetimSerialMonitor(void);    // Perform core analog monitor functions for the serial ADC
+int getInterlockTemp(
+    int currentInterlockTempModule);  //!< This function monitors the interlock internal temperature sensors.
+int getInterlockFlow(int currentInterlockFlowModule);  //!< This function monitors the interlock airflow sensors.
+int getFetimDigital(unsigned char port,
+                    int currentCompressorModule);  //!< This function monitors the digital values of the FETIM.
+int getIntrlkGlitchValue(void);                    //!< This function monitor the interlock glitch analog value
+int getFetimExtTemp(
+    int currentAsyncFetimExtTempModule);    //!< This function monitors the FETIM external temperature sensors.
+int getCompHe2Press(void);                  //!< This function monitors the compressor He2 pressure.
+int setN2FillEnable(unsigned char enable);  //!< This function enables the automatic N2 fill for the dewar.
+int setFeSafeStatus(unsigned char sage);    //!< This function sets the bit holding the safe/unsafe status of the FE.
+int getFetimHardwRevision(void);            //!< Reads the FETIM module hardware revision level
 
 #endif /* _FETIMSERIALINTERFACE_H */

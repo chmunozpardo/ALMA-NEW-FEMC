@@ -15,8 +15,6 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockStateModule = 0;
 /* Statics */
 static HANDLER interlockStateModulesHandler[INTERLOCK_STATE_MODULES_NUMBER] = {
     interlockGlitchHandler, multiFailHandler, tempOutOfRangeHandler,
@@ -31,7 +29,7 @@ void interlockStateHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentInterlockStateModule =
+    int currentInterlockStateModule =
         (CAN_ADDRESS & INTERLOCK_STATE_MODULES_RCA_MASK) >> INTERLOCK_STATE_MODULES_MASK_SHIFT;
     if (currentInterlockStateModule >= INTERLOCK_STATE_MODULES_NUMBER) {
         storeError(ERR_INTRLK_STATE, ERC_MODULE_RANGE);  // Submodule out of range
@@ -48,7 +46,7 @@ void interlockStateHandler(void) {
 /* Multi failure handler */
 /* This function handles the single failure status for the FETIM interlock
    sensors. */
-static void multiFailHandler(void) {
+void multiFailHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    Multi Failure\n");
 #endif /* DEBUG_FETIM */
@@ -71,7 +69,7 @@ static void multiFailHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_MULTI_FAIL) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_MULTI_FAIL, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -92,7 +90,7 @@ static void multiFailHandler(void) {
 
 /* Temperature sensor out of range handler */
 /* Deal with the temperature sensor out of range signal */
-static void tempOutOfRangeHandler(void) {
+void tempOutOfRangeHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    Temperature Sensor Out Of Range\n");
 #endif /* DEBUG_FETIM */
@@ -116,7 +114,7 @@ static void tempOutOfRangeHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_TEMP_OOR) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_TEMP_OOR, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -136,7 +134,7 @@ static void tempOutOfRangeHandler(void) {
 
 /* Flow sensor out of range handler */
 /* Deal with the flow sensor out of range signal */
-static void flowOutOfRangeHandler(void) {
+void flowOutOfRangeHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    Flow Sensor Out Of Range\n");
 #endif /* DEBUG_FETIM */
@@ -160,7 +158,7 @@ static void flowOutOfRangeHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_FLOW_OOR) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_FLOW_OOR, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -180,7 +178,7 @@ static void flowOutOfRangeHandler(void) {
 
 /* Delay Shutdown Trigger handler */
 /* Deal with the delay shutdown triggered signal */
-static void delayTrigHandler(void) {
+void delayTrigHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    Delay Shutdown Trigger\n");
 #endif /* DEBUG_FETIM */
@@ -203,7 +201,7 @@ static void delayTrigHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor shutdown delay triggered digital line */
-    if (getFetimDigital(FETIM_DIG_SHTDWN_DELAY) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_SHTDWN_DELAY, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -223,7 +221,7 @@ static void delayTrigHandler(void) {
 
 /* Shutdown Trigger handler */
 /* Deal with the shutdown triggered signal */
-static void shutdownTrigHandler(void) {
+void shutdownTrigHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    Shutdown Trigger\n");
 #endif /* DEBUG_FETIM */
@@ -246,7 +244,7 @@ static void shutdownTrigHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_SHTDWN_TRIG) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_SHTDWN_TRIG, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

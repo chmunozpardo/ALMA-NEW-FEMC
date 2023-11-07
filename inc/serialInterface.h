@@ -23,9 +23,8 @@
 #define SERIAL_WRITE 1          //!< Serial write
 
 /* Prototypes */
-/* Externs */
-extern int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned char shiftAmount,
-                        unsigned char shiftDir,
-                        unsigned char write);  //!< Serial Access funtion
+int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned char shiftAmount,
+                 unsigned char shiftDir, unsigned char write, int currentModule,
+                 int localCartSubsystem);  //!< Serial Access funtion
 
 #endif  // _SERIALINTERFACE_H

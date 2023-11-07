@@ -139,7 +139,7 @@
 #define LO_BREG_PLL(PLL_Mp) (PLL_Mp + 0x02)
 #define LO_BREG_AMC(AMC_Mp) (AMC_Mp + 0x10)
 #define LO_BREG_PA(PA_Mp) (0x0C * PA_Mp + 0x0F)
-#define LO_BREG_PA_CHANNEL(Pt) (0x03 * currentPaChannel() + Pt + 0x08)
+#define LO_BREG_PA_CHANNEL(Pt, Cm, CPAm) (0x03 * currentPaChannel(Cm, CPAm) + Pt + 0x08)
 
 /* --- 10 MHz Mode command --- */
 #define LO_10MHZ_MODE_SIZE 0
@@ -204,7 +204,7 @@
 #define LO_PA_POT_TELEDNE_BASE_V_SCALE(v) \
     (255 - (unsigned char)(102.0 * v))  // Scale factor for PA_CHANNEL base
                                         // voltage For Teledyne PA chips only!
-#define LO_PA_CURRENT_POT(Ch) (2 * currentPaChannel() + Ch)
+#define LO_PA_CURRENT_POT(Ch, Cm, CPAm) (2 * currentPaChannel(Cm, CPAm) + Ch)
 #define LO_PA_POT_DATA_SIZE 35               // Write only: 34-bit + 1 for internal use
 #define LO_PA_POT_DATA_SHIFT_SIZE 1          // 1 extra bit to be sent
 #define LO_PA_POT_DATA_SHIFT_DIR SHIFT_LEFT  // The data has to be shifted left
@@ -455,36 +455,34 @@ typedef struct {
     //! Current ADC data
     /*! This variable contains the latest ADC binary data stored by a read
         operation from the ADC. */
-    int adcData;
+    short adcData;
 } LO_REGISTERS;
 
-/* Globals */
-/* Externs */
-extern LO_REGISTERS loRegisters[CARTRIDGES_NUMBER];  //!< Local Oscillator Registers
-
 /* Prototypes */
-/* Statics */
-static int getLoAnalogMonitor(void);  // Perform core analog monitor functions
-/* Externs */
-extern int setYtoCoarseTune(void);                     //!< This function set the YTO coarse tune
-extern int setPhotomixerEnable(unsigned char enable);  //!< This function enables/disables the photomixer
-extern int getPhotomixer(unsigned char port);          //!< This function monitors the photomixer bias
-extern int getPll(unsigned char port);                 //!< This function monitors different
-                                                       //!< devices within the PLL
-extern int getPllStates(void);                         //!< This function monitors different states withing the PLL
-extern int setClearUnlockDetectLatch(void);  //!< This function controls the operation of the clear unlock detect
-                                             //!< latch
-extern int setLoopBandwidthSelect(unsigned char bandwidth);  //!< This function controls the loop bandwidth
-extern int setSidebandLockPolaritySelect(
-    unsigned char sideband);                            //!< This function controls the sideband lock polarity
-extern int setNullLoopIntegrator(unsigned char state);  //!< This function controls the operation of the null
-                                                        //!< loop integrator
-extern int getAmc(unsigned char port);                  //!< This function monitors different
-                                                        //!< devices within the AMC
-extern int setAmc(unsigned char port);                  //!< This function controls different
-                                                        //!< devices within the AMC
-extern int getPa(unsigned char port);                   //!< This function controls different
-                                                        //!< devices within the PA
-extern int getPaChannel(void);  //!< This function monitors different devices within the PA channel
-extern int setPaChannel(void);  //!< This function controls different devices within the PA channel
-#endif                          /* _LOSERIALINTERFACE_H */
+int getLoAnalogMonitor(int currentModule);  // Perform core analog monitor functions
+int setYtoCoarseTune(int currentModule);    //!< This function set the YTO coarse tune
+int setPhotomixerEnable(unsigned char enable,
+                        int currentModule);                //!< This function enables/disables the photomixer
+int getPhotomixer(unsigned char port, int currentModule);  //!< This function monitors the photomixer bias
+int getPll(unsigned char port, int currentModule);         //!< This function monitors different
+                                                           //!< devices within the PLL
+int getPllStates(int currentModule);                       //!< This function monitors different states withing the PLL
+int setClearUnlockDetectLatch(int currentModule);          //!< This function controls the operation of the clear unlock
+                                                           //!< detect latch
+int setLoopBandwidthSelect(unsigned char bandwidth,
+                           int currentModule);  //!< This function controls the loop bandwidth
+int setSidebandLockPolaritySelect(unsigned char sideband,
+                                  int currentModule);  //!< This function controls the sideband lock polarity
+int setNullLoopIntegrator(unsigned char state, int currentModule);  //!< This function controls the operation of
+                                                                    //!< the null loop integrator
+int getAmc(unsigned char port, int currentModule);                  //!< This function monitors different
+                                                                    //!< devices within the AMC
+int setAmc(unsigned char port, int currentModule);                  //!< This function controls different
+                                                                    //!< devices within the AMC
+int getPa(unsigned char port, int currentModule);                   //!< This function controls different
+                                                                    //!< devices within the PA
+int getPaChannel(int currentModule, int currentPaModule,
+                 int currentPaChannelModule);  //!< This function monitors different devices within the PA channel
+int setPaChannel(int currentModule, int currentPaModule,
+                 int currentPaChannelModule);  //!< This function controls different devices within the PA channel
+#endif                                         /* _LOSERIALINTERFACE_H */

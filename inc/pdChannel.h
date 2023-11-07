@@ -56,15 +56,10 @@ typedef struct {
     float current;
 } PD_CHANNEL;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPdChannelModule;  //!< Current addressed power distribution channel submodule
-
 /* Prototypes */
-/* Statics */
-static void voltageHandler(void);
-static void currentHandler(void);
-/* Externs */
-extern void pdChannelHandler(void);  //!< This function deals with the incoming CAN message
+void pdVoltageHandler(int currentPowerDistributionModule, int currentPdModuleModule, int currentPdChannelModule);
+void pdCurrentHandler(int currentPowerDistributionModule, int currentPdModuleModule, int currentPdChannelModule);
+void pdChannelHandler(int currentPowerDistributionModule,
+                      int currentPdModuleModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _PDCHANNEL_H */

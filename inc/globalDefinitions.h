@@ -60,6 +60,61 @@
     \return void */
 typedef void (*HANDLER)(void);
 
+//! Handler function
+/*! This function is used by different modules in the program to address
+    submodules. It is a general prototype of a function which takes a
+    \em void as an argument and returns a \em void.
+    It is mostly used as element of an array which will perform a series
+    of redirection depending on the incoming RCA to address the correct
+    function.
+    \param  void
+    \return void */
+typedef void (*HANDLER_INT)(int);
+
+//! Handler function
+/*! This function is used by different modules in the program to address
+    submodules. It is a general prototype of a function which takes a
+    \em void as an argument and returns a \em void.
+    It is mostly used as element of an array which will perform a series
+    of redirection depending on the incoming RCA to address the correct
+    function.
+    \param  void
+    \return void */
+typedef void (*HANDLER_INT_INT)(int, int);
+
+//! Handler function
+/*! This function is used by different modules in the program to address
+    submodules. It is a general prototype of a function which takes a
+    \em void as an argument and returns a \em void.
+    It is mostly used as element of an array which will perform a series
+    of redirection depending on the incoming RCA to address the correct
+    function.
+    \param  void
+    \return void */
+typedef void (*HANDLER_INT_INT_INT)(int, int, int);
+
+//! Handler function
+/*! This function is used by different modules in the program to address
+    submodules. It is a general prototype of a function which takes a
+    \em void as an argument and returns a \em void.
+    It is mostly used as element of an array which will perform a series
+    of redirection depending on the incoming RCA to address the correct
+    function.
+    \param  void
+    \return void */
+typedef void (*HANDLER_INT_INT_INT_INT)(int, int, int, int);
+
+//! Handler function
+/*! This function is used by different modules in the program to address
+    submodules. It is a general prototype of a function which takes a
+    \em void as an argument and returns a \em void.
+    It is mostly used as element of an array which will perform a series
+    of redirection depending on the incoming RCA to address the correct
+    function.
+    \param  void
+    \return void */
+typedef void (*HANDLER_INT_INT_INT_INT_INT)(int, int, int, int, int);
+
 // Char[4] to float conversion union
 /* This union define an easy way to convert the incoming CAN message
    payload to several format and vice versa. */
@@ -82,16 +137,15 @@ typedef union {
 extern CONVERSION convert;  //!< Union used to convert float to unsigned char[4]
 
 /* Prototypes */
-/* Externs */
-extern char *buildString(unsigned char *prefix, unsigned char number,
-                         unsigned char *suffix);  //!< Build a string
-extern unsigned char checkRange(float low, float test,
-                                float high);  //!< Check range
-extern void changeEndian(unsigned char *destination,
-                         unsigned char *source);  //!< Change endianicity for floating point types
-extern void changeEndianInt(unsigned char *destination,
-                            unsigned char *source);  //!< Change endianicity for int types
-extern void bogoFunction(void);                      //!< Place holder function
-extern long htol(char *hex);                         //!< Conversion from Hex to long int
+char *buildString(unsigned char *prefix, unsigned char number,
+                  unsigned char *suffix);  //!< Build a string
+unsigned char checkRange(float low, float test,
+                         float high);  //!< Check range
+void changeEndian(unsigned char *destination,
+                  unsigned char *source);  //!< Change endianicity for floating point types
+void changeEndianInt(unsigned char *destination,
+                     unsigned char *source);  //!< Change endianicity for int types
+void bogoFunction(int currentModule);         //!< Place holder function
+long htol(char *hex);                         //!< Conversion from Hex to long int
 
 #endif /* _GLOBALDEFINITIONS_H */

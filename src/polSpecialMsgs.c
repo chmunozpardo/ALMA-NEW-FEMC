@@ -16,16 +16,14 @@
 #include "error_local.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPolSpecialMsgsModule = 0;
 /* Statics */
-static HANDLER polSpecialMsgsModulesHandler[POL_SPECIAL_MSGS_MODULES_NUMBER] = {polDacHandler, polDacHandler};
+static HANDLER_INT_INT_INT_INT polSpecialMsgsModulesHandler[POL_SPECIAL_MSGS_MODULES_NUMBER] = {polDacHandler,
+                                                                                                polDacHandler};
 
 /* Polarization special messages handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the polarization special messages. */
-void polSpecialMsgsHandler(void) {
+void polSpecialMsgsHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("    Polarization Special Message:\n");
 #endif /* DEBUG */
@@ -34,7 +32,7 @@ void polSpecialMsgsHandler(void) {
        the addressed polarization exists then also the DACs are installed. */
 
     /* Check if the submodule is in range */
-    currentPolSpecialMsgsModule =
+    int currentPolSpecialMsgsModule =
         (CAN_ADDRESS & POL_SPECIAL_MSGS_MODULES_RCA_MASK) >> POL_SPECIAL_MSGS_MODULES_MASK_SHIFT;
     if (currentPolSpecialMsgsModule >= POL_SPECIAL_MSGS_MODULES_NUMBER) {
         storeError(ERR_POL_SPECIAL_MSGS, ERC_MODULE_RANGE);  // submodule out of range
@@ -43,5 +41,6 @@ void polSpecialMsgsHandler(void) {
     }
 
     /* Call the correct handler */
-    (polSpecialMsgsModulesHandler[currentPolSpecialMsgsModule])();
+    (polSpecialMsgsModulesHandler[currentPolSpecialMsgsModule])(currentModule, currentBiasModule,
+                                                                currentPolarizationModule, currentPolSpecialMsgsModule);
 }

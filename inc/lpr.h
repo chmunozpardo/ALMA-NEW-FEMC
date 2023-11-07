@@ -68,14 +68,9 @@ typedef struct {
 
 } LPR;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLprModule;  //!< Currently addressed LPR submodule
-
 /* Prototypes */
-/* Externs */
-extern void lprHandler(void);  //!< This function deals with the incoming CAN messages
-extern int lprStartup(void);   //!< This function initializes the LPR
-extern int lprStop(void);      //!< This function shuts down the LPR
+void lprHandler(int currentModule);  //!< This function deals with the incoming CAN messages
+int lprStartup(void);                //!< This function initializes the LPR
+int lprStop(void);                   //!< This function shuts down the LPR
 
 #endif /* _LPR_H */

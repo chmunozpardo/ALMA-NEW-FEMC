@@ -88,16 +88,10 @@ typedef struct {
     unsigned char cableStatus;
 } COMPRESSOR;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentCompressorModule;  //!< Currently addressed compressor module
-
 /* Prototypes */
-/* Statics */
-static void feStatusHandler(void);
-static void interlockStatusHandler(void);
-static void compCableStatusHandler(void);
-/* Externs */
-extern void compressorHandler(void);  //!< This function deals with the incoming CAN messages
+void feStatusHandler(int currentCompressorModule);
+void interlockStatusHandler(int currentCompressorModule);
+void compCableStatusHandler(int currentCompressorModule);
+void compressorHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_H */

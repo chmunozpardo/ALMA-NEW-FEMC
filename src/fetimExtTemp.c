@@ -16,21 +16,19 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentFetimExtTempModule = 0;
 /* Statics */
-static HANDLER fetimExtTempModulesHandler[FETIM_EXT_MODULES_NUMBER] = {tempHandler, outOfRangeHandler};
+static HANDLER_INT fetimExtTempModulesHandler[FETIM_EXT_MODULES_NUMBER] = {fetimTempHandler, outOfRangeHandler};
 
 /* External Temperature Sensor Handler */
 /*! This function will be called by the CAN message handler when the received
     message is in the address range of the compressor temperature sensors */
-void fetimExtTempHandler(void) {
+void fetimExtTempHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("   FETIM External Temperature Sensor: %d\n", currentCompressorModule);
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentFetimExtTempModule = (CAN_ADDRESS & FETIM_EXT_MODULES_RCA_MASK) >> FETIM_EXT_MODULES_MASK_SHIFT;
+    int currentFetimExtTempModule = (CAN_ADDRESS & FETIM_EXT_MODULES_RCA_MASK) >> FETIM_EXT_MODULES_MASK_SHIFT;
     if (currentFetimExtTempModule >= FETIM_EXT_MODULES_NUMBER) {
         storeError(ERR_FETIM_EXT_TEMP, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                        // Notify incoming CAN message of error
@@ -38,7 +36,7 @@ void fetimExtTempHandler(void) {
     }
 
     /* Call the correct function */
-    (fetimExtTempModulesHandler[currentFetimExtTempModule])();
+    (fetimExtTempModulesHandler[currentFetimExtTempModule])(currentCompressorModule);
 
     return;
 }
@@ -46,7 +44,7 @@ void fetimExtTempHandler(void) {
 /* Temperature handler */
 /* This function return the current temperature of the addressed compressor
    temeprature sensor */
-static void tempHandler(void) {
+void fetimTempHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("    Temperature\n");
 #endif /* DEBUG_FETIM */
@@ -87,7 +85,7 @@ static void tempHandler(void) {
 /* Temperature out of range handler */
 /* This function return the current out of range status of the addressed
    compressor temeprature sensor */
-static void outOfRangeHandler(void) {
+void outOfRangeHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("    Temperature out of range status\n");
 #endif /* DEBUG_FETIM */
@@ -110,7 +108,7 @@ static void outOfRangeHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_EXT_TEMP_OOR) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_EXT_TEMP_OOR, currentCompressorModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

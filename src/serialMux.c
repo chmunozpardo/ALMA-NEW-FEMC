@@ -26,11 +26,6 @@
 #include "globalDefinitions.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
-FRAME frame; /*! This variable is used to create the serial frame to be
-                 handled by the multiplexing board. */
-
 int LATCH_DEBUG_SERIAL_WRITE;
 
 static inline int check_done() {
@@ -60,36 +55,33 @@ static inline int check_done() {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int writeMux(void) {
+inline int writeMux(FRAME *frame) {
     /* Check if the lenght is within the hardware limit (40 bits) */
-    if (frame.dataLength > FRAME_DATA_BIT_SIZE) {
+    if (frame->dataLength > FRAME_DATA_BIT_SIZE) {
         storeError(ERR_SERIAL_MUX, ERC_COMMAND_VAL);  // Data length out of
                                                       // range
         return ERROR;
     }
 
-    /* 1 - Wait on busy status */
-    if (check_done() == ERROR) {
-        return ERROR;
-    }
+    pthread_mutex_lock(&pico_lock);
 
-    /* 2 - Select the desired port/device. The check on the availability of the
+    /* 1 - Select the desired port/device. The check on the availability of the
            device on the selected port should have been done by the CAN message
            handlers. At the point of this call the software should already have
            returned if the addressed device is not available. */
 
-    pico_mem[PORT_SELECT] = frame.port;
+    pico_mem[PORT_SELECT] = frame->port;
 
-    /* 3 - Load the data registers. */
-    pico_mem[DATAWR] = frame.data[FRAME_DATA_LSW];
+    /* 2 - Load the data registers. */
+    pico_mem[DATAWR] = frame->data[FRAME_DATA_LSW];
 
-    /* 4 - Write the outgoing data lenght register with the number of bits to be
+    /* 3 - Write the outgoing data lenght register with the number of bits to be
            sent. */
-    pico_mem[LENGTH] = frame.dataLength;
+    pico_mem[LENGTH] = frame->dataLength;
 
-    /* 5 - Write the command register. This will initiate the transmission of
+    /* 4 - Write the command register. This will initiate the transmission of
            data. */
-    pico_mem[COMMAND] = frame.command;
+    pico_mem[COMMAND] = frame->command;
 
     pico_mem[STATUS] = WR_SSC;
 
@@ -105,6 +97,8 @@ int writeMux(void) {
 #endif /* DEBUG_SERIAL_WRITE */
 
     check_done();
+
+    pthread_mutex_unlock(&pico_lock);
 
     return NO_ERROR;
 }
@@ -130,32 +124,29 @@ int writeMux(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int readMux(void) {
+inline int readMux(FRAME *frame) {
     /* Check if the lenght is within the hardware limit (40 bits) */
-    if (frame.dataLength > FRAME_DATA_BIT_SIZE) {
+    if (frame->dataLength > FRAME_DATA_BIT_SIZE) {
         storeError(ERR_SERIAL_MUX, ERC_COMMAND_VAL);  // Data length out of
                                                       // range
         return ERROR;
     }
 
-    /* 1 - Wait on busy status */
-    if (check_done() == ERROR) {
-        return ERROR;
-    }
+    pthread_mutex_lock(&pico_lock);
 
-    /* 2 - Select the desired port/device. The check on the availability of the
+    /* 1 - Select the desired port/device. The check on the availability of the
            device on the selected port should have been done by the CAN message
            handlers. At the point of this call the software should already have
            returned if the addressed device is not available. */
-    pico_mem[PORT_SELECT] = frame.port;
+    pico_mem[PORT_SELECT] = frame->port;
 
-    /* 3 - Write the incoming data lenght register with the number of bits to be
+    /* 2 - Write the incoming data lenght register with the number of bits to be
            received. */
-    pico_mem[LENGTH] = frame.dataLength;
+    pico_mem[LENGTH] = frame->dataLength;
 
-    /* 4 - Write the command register. This will initiate the transmission of
+    /* 3 - Write the command register. This will initiate the transmission of
            data. */
-    pico_mem[COMMAND] = frame.command;
+    pico_mem[COMMAND] = frame->command;
 
     pico_mem[STATUS] = RD_SSC;
 
@@ -168,8 +159,10 @@ int readMux(void) {
 #endif /* DEBUG_SERIAL_READ */
 
     /* 6 - Load the data registers */
-    frame.data[FRAME_DATA_MSW] = pico_mem[DATARD1] & 0xFF;
-    frame.data[FRAME_DATA_LSW] = pico_mem[DATARD0];
+    frame->data[FRAME_DATA_MSW] = pico_mem[DATARD1] & 0xFF;
+    frame->data[FRAME_DATA_LSW] = pico_mem[DATARD0];
+
+    pthread_mutex_unlock(&pico_lock);
 
     return NO_ERROR;
 }

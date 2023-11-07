@@ -16,16 +16,15 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPolDacModule = 0;
 /* Statics */
-static HANDLER polDacModulesHandler[POL_DAC_MODULES_NUMBER] = {resetStrobeHandler, clearStrobeHandler};
+static HANDLER_INT_INT_INT_INT_INT polDacModulesHandler[POL_DAC_MODULES_NUMBER] = {polDacResetStrobeHandler,
+                                                                                   polDacClearStrobeHandler};
 
 /* Polarization DAC handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the polarization DAC. */
-void polDacHandler(void) {
+void polDacHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                   int currentPolSpecialMsgsModule) {
 #ifdef DEBUG
     printf("      Polarization DAC: %d\n", currentPolSpecialMsgsModule);
 #endif /* DEBUG */
@@ -34,18 +33,20 @@ void polDacHandler(void) {
        check on the polarization passed, the DACs are automatically installed. */
 
     /* Check if the submodule is in range */
-    currentPolDacModule = (CAN_ADDRESS & POL_DAC_MODULES_RCA_MASK) >> POL_DAC_MODULES_MASK_SHIFT;
+    int currentPolDacModule = (CAN_ADDRESS & POL_DAC_MODULES_RCA_MASK) >> POL_DAC_MODULES_MASK_SHIFT;
     if (currentPolDacModule >= POL_DAC_MODULES_NUMBER) {
         storeError(ERR_POL_DAC, ERC_MODULE_RANGE);  // Polarization DAC submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;
         return;
     }
     /* Call the correct handler */
-    (polDacModulesHandler[currentPolDacModule])();
+    (polDacModulesHandler[currentPolDacModule])(currentModule, currentBiasModule, currentPolarizationModule,
+                                                currentPolSpecialMsgsModule, currentPolDacModule);
 }
 
 /* Reset Strobe Handler */
-static void resetStrobeHandler(void) {
+void polDacResetStrobeHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                              int currentPolSpecialMsgsModule, int currentPolDacModule) {
 #ifdef DEBUG
     printf("       Reset Strobe\n");
 #endif /* DEBUG */
@@ -59,7 +60,8 @@ static void resetStrobeHandler(void) {
                                       .lastResetStrobe)
 
         /* Send the strobe */
-        if (setBiasDacStrobe() == ERROR) {
+        if (setBiasDacStrobe(currentModule, currentBiasModule, currentPolarizationModule, currentPolSpecialMsgsModule,
+                             currentPolDacModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -89,7 +91,8 @@ static void resetStrobeHandler(void) {
 }
 
 /* Clear Strobe Handler */
-static void clearStrobeHandler(void) {
+void polDacClearStrobeHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                              int currentPolSpecialMsgsModule, int currentPolDacModule) {
 #ifdef DEBUG
     printf("       Clear Strobe\n");
 #endif /* DEBUG */
@@ -111,7 +114,8 @@ static void clearStrobeHandler(void) {
                                       .lastClearStrobe)
 
         /* Send the strobe */
-        if (setBiasDacStrobe() == ERROR) {
+        if (setBiasDacStrobe(currentModule, currentBiasModule, currentPolarizationModule, currentPolSpecialMsgsModule,
+                             currentPolDacModule) == ERROR) {
             /* Store the ERROR state in the last control message variable. */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]

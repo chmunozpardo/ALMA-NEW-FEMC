@@ -77,15 +77,12 @@ typedef struct {
 
 /* Globals */
 /* Externs */
-extern unsigned char currentIfChannelModule;                            //!< Currently addressed IF channel submodule
 extern unsigned char currentIfChannelPolarization[IF_CHANNELS_NUMBER];  //!< Currently addressed IF channel polarization
 extern unsigned char currentIfChannelSideband[IF_CHANNELS_NUMBER];      //!< Currently addressed IF channel sideband
 
 /* Prototyped */
-/* Statics */
-static void attenuationHandler(void);
-static void assemblyTempHandler(void);
-/* Externs */
-extern void ifChannelHandler(void);  //!< This function deals with the incoming CAN message
+void attenuationHandler(int currentIfSwitchModule);
+void ifChannelAssemblyTempHandler(int currentIfSwitchModule);
+void ifChannelHandler(int currentIfSwitchModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _IFCHANNEL_H */

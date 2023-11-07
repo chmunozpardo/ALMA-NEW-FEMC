@@ -17,22 +17,19 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentSolenoidValveModule = 0;
 /* Statics */
-static HANDLER solenoidValveModulesHandler[SOLENOID_VALVE_MODULES_NUMBER] = {stateHandler};
+static HANDLER solenoidValveModulesHandler[SOLENOID_VALVE_MODULES_NUMBER] = {solenoidValveStateHandler};
 
 /* Solenoid Valve handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cryostat solenoid valve. */
-void solenoidValveHandler(void) {
+void solenoidValveHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  Solenoid Valve\n");
 #endif /* DEBUG_CRYOSTAT */
 
     /* Call the correct handler -- there is only one for this subsystem */
-    (solenoidValveModulesHandler[currentSolenoidValveModule])();
+    (solenoidValveModulesHandler[0])();
 
     return;
 }
@@ -40,7 +37,7 @@ void solenoidValveHandler(void) {
 /* Solenoid valve state handler */
 /* This function deals with the messages directed to the solenoid valve
    state. */
-static void stateHandler(void) {
+void solenoidValveStateHandler(void) {
 #ifdef DEBUG_CRYOSTAT
     printf("   State\n");
 #endif /* DEBUG_CRYOSTAT */

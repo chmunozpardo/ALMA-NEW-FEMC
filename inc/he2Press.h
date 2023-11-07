@@ -50,15 +50,9 @@ typedef struct {
     unsigned char pressOutRng;
 } HE2_PRESS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentHe2PressModule;  //!< Currently addressed compressor He2 pressure sensor module
-
 /* Prototypes */
-/* Statics */
-static void pressHandler(void);
-static void outOfRangeHandler(void);
-/* Externs */
-extern void he2PressHandler(void);  //!< This function deals with the incoming CAN messages
+void he2PressPressHandler(void);
+void he2OutOfRangeHandler(void);
+void he2PressHandler(int currentCompressorModule);  //!< This function deals with the incoming CAN messages
 
 #endif /* _HE2_PRESS_H */

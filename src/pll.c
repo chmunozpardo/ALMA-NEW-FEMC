@@ -15,27 +15,24 @@
 #include "frontend.h"
 #include "loSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPllModule = 0;
 /* Statics */
-static HANDLER pllModulesHandler[PLL_MODULES_NUMBER] = {lockDetectVoltageHandler,
-                                                        correctionVoltageHandler,
-                                                        assemblyTempHandler,
-                                                        YIGHeaterCurrentHandler,
-                                                        refTotalPowerHandler,
-                                                        ifTotalPowerHandler,
-                                                        bogoFunction,
-                                                        unlockDetectLatchHandler,
-                                                        clearUnlockDetectLatchHandler,
-                                                        loopBandwidthSelectHandler,
-                                                        sidebandLockPolaritySelectHandler,
-                                                        nullLoopIntegratorHandler};
+static HANDLER_INT pllModulesHandler[PLL_MODULES_NUMBER] = {lockDetectVoltageHandler,
+                                                            correctionVoltageHandler,
+                                                            pllAssemblyTempHandler,
+                                                            YIGHeaterCurrentHandler,
+                                                            refTotalPowerHandler,
+                                                            ifTotalPowerHandler,
+                                                            bogoFunction,
+                                                            unlockDetectLatchHandler,
+                                                            clearUnlockDetectLatchHandler,
+                                                            loopBandwidthSelectHandler,
+                                                            sidebandLockPolaritySelectHandler,
+                                                            nullLoopIntegratorHandler};
 
 /* PLL handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the PLL. */
-void pllHandler(void) {
+void pllHandler(int currentModule) {
 #ifdef DEBUG
     printf("    PLL\n");
 #endif /* DEBUG */
@@ -44,21 +41,21 @@ void pllHandler(void) {
        is performed. */
 
     /* Check if the submodule is in range */
-    currentPllModule = (CAN_ADDRESS & PLL_MODULES_RCA_MASK);
+    int currentPllModule = (CAN_ADDRESS & PLL_MODULES_RCA_MASK);
     if (currentPllModule >= PLL_MODULES_NUMBER) {
         storeError(ERR_PLL, ERC_MODULE_RANGE);  // PLL submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;             // Notify incoming CAN message of the error
         return;
     }
     /* Call the correct handler */
-    (pllModulesHandler[currentPllModule])();
+    (pllModulesHandler[currentPllModule])(currentModule);
 }
 
 /* Lock Detect Voltage Handler */
 /* This function deals with all the monitor requests directed to the PLL lock
    detect voltage. There are no control messages allowed for the lock detect
    voltage. */
-static void lockDetectVoltageHandler(void) {
+void lockDetectVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Lock Detect Voltage\n");
 #endif /* DEBUG */
@@ -80,7 +77,7 @@ static void lockDetectVoltageHandler(void) {
     }
 
     /* Monitor the PLL lock detect voltage */
-    if (getPll(PLL_LOCK_DETECT_VOLTAGE) == ERROR) {
+    if (getPll(PLL_LOCK_DETECT_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -102,7 +99,7 @@ static void lockDetectVoltageHandler(void) {
 /* This function deals with all the monitor requests directed to the PLL
    correction voltage. There are no control messages allowed for the correction
    voltage. */
-static void correctionVoltageHandler(void) {
+void correctionVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Correction Voltage\n");
 #endif /* DEBUG */
@@ -124,7 +121,7 @@ static void correctionVoltageHandler(void) {
     }
 
     /* Monitor the PLL correction voltage */
-    if (getPll(PLL_CORRECTION_VOLTAGE) == ERROR) {
+    if (getPll(PLL_CORRECTION_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -146,7 +143,7 @@ static void correctionVoltageHandler(void) {
 /* This function deals with all the monitor requests directed to the PLL
    assembly temperature. There are no control messages allowed for the assembly
    temperature. */
-static void assemblyTempHandler(void) {
+void pllAssemblyTempHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Assembly Temperature\n");
 #endif /* DEBUG */
@@ -168,7 +165,7 @@ static void assemblyTempHandler(void) {
     }
 
     /* Monitor the PLL assembly temperature */
-    if (getPll(PLL_ASSEMBLY_TEMP) == ERROR) {
+    if (getPll(PLL_ASSEMBLY_TEMP, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -190,7 +187,7 @@ static void assemblyTempHandler(void) {
 /* This function deals with all the monitor requests directed to the PLL
    YIG heater current. There are no control messages allowed for the YIG heater
    current. */
-static void YIGHeaterCurrentHandler(void) {
+void YIGHeaterCurrentHandler(int currentModule) {
 #ifdef DEBUG
     printf("     YIG Heater Current\n");
 #endif /* DEBUG */
@@ -212,7 +209,7 @@ static void YIGHeaterCurrentHandler(void) {
     }
 
     /* Monitor the YIGHeaterCurrent supply voltage */
-    if (getPll(PLL_YIG_HEATER_CURRENT) == ERROR) {
+    if (getPll(PLL_YIG_HEATER_CURRENT, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -234,7 +231,7 @@ static void YIGHeaterCurrentHandler(void) {
 /* This function deals with all the monitor requests directed to the PLL
    reference total power. There are no control messages allowed for the ref
    total power. */
-static void refTotalPowerHandler(void) {
+void refTotalPowerHandler(int currentModule) {
 #ifdef DEBUG
     printf("     REF Total Power\n");
 #endif /* DEBUG */
@@ -256,7 +253,7 @@ static void refTotalPowerHandler(void) {
     }
 
     /* Monitor the PLL reference total power */
-    if (getPll(PLL_REF_TOTAL_POWER) == ERROR) {
+    if (getPll(PLL_REF_TOTAL_POWER, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -278,7 +275,7 @@ static void refTotalPowerHandler(void) {
 /* This function deals with all the monitor requests directed to the PLL
    if total power. There are no control messages allowed for the if total
    power. */
-static void ifTotalPowerHandler(void) {
+void ifTotalPowerHandler(int currentModule) {
 #ifdef DEBUG
     printf("     IF Total Power\n");
 #endif /* DEBUG */
@@ -300,7 +297,7 @@ static void ifTotalPowerHandler(void) {
     }
 
     /* Monitor the PLL if total power */
-    if (getPll(PLL_IF_TOTAL_POWER) == ERROR) {
+    if (getPll(PLL_IF_TOTAL_POWER, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -322,7 +319,7 @@ static void ifTotalPowerHandler(void) {
 /* This function deals with all the monitor requests directed to the PLL
    unlock detect latch. There are no control messages allowed for the unlock
    detect latch. */
-static void unlockDetectLatchHandler(void) {
+void unlockDetectLatchHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Unlock Detect Latch\n");
 #endif /* DEBUG */
@@ -345,7 +342,7 @@ static void unlockDetectLatchHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Get the unlock latch bit status */
-    if (getPllStates() == ERROR) {
+    if (getPllStates(currentModule) == ERROR) {
         /* If error durign monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -363,7 +360,7 @@ static void unlockDetectLatchHandler(void) {
 /* Clear Unlock Detect Latch Handler */
 /* This function deals with all the monitor and control requests directed to the
    PLL clear unlock detect latch. */
-static void clearUnlockDetectLatchHandler(void) {
+void clearUnlockDetectLatchHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Clear Unlock Detect Latch Handler\n");
 #endif /* DEBUG */
@@ -375,7 +372,7 @@ static void clearUnlockDetectLatchHandler(void) {
 
         /* Change the status of the PLL unlock detect latch according to the
            content of the CAN message. */
-        if (setClearUnlockDetectLatch() == ERROR) {
+        if (setClearUnlockDetectLatch(currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.pll.lastClearUnlockDetectLatch.status = ERROR;
 
@@ -402,7 +399,7 @@ static void clearUnlockDetectLatchHandler(void) {
 /* Loop Bandwidth Select Handler */
 /* This function deals with all the monitor and control requests directed to the
    PLL loop bandwidth select handler. */
-static void loopBandwidthSelectHandler(void) {
+void loopBandwidthSelectHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Loop Bandwidth Select Handler\n");
 #endif /* DEBUG */
@@ -413,7 +410,8 @@ static void loopBandwidthSelectHandler(void) {
         SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pll.lastLoopBandwidthSelect)
 
         /* Change the status of the PLL loop BW according to the content of the CAN message. */
-        if (setLoopBandwidthSelect(CAN_BYTE ? PLL_LOOP_BANDWIDTH_ALTERNATE : PLL_LOOP_BANDWIDTH_DEFAULT) == ERROR) {
+        if (setLoopBandwidthSelect(CAN_BYTE ? PLL_LOOP_BANDWIDTH_ALTERNATE : PLL_LOOP_BANDWIDTH_DEFAULT,
+                                   currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.pll.lastLoopBandwidthSelect.status = ERROR;
 
@@ -443,7 +441,7 @@ static void loopBandwidthSelectHandler(void) {
 /* Sideband Lock Polarity Select Handler */
 /* This function deals with all the monitor and control requests directed to the
    PLL sideband lock polarity select. */
-static void sidebandLockPolaritySelectHandler(void) {
+void sidebandLockPolaritySelectHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Sideband Lock Polarity Select Handler\n");
 #endif /* DEBUG */
@@ -455,8 +453,8 @@ static void sidebandLockPolaritySelectHandler(void) {
 
         /* Change the status of the PLL unlock detect latch according to the
            content of the CAN message. */
-        if (setSidebandLockPolaritySelect(CAN_BYTE ? PLL_SIDEBAND_LOCK_POLARITY_USB : PLL_SIDEBAND_LOCK_POLARITY_LSB) ==
-            ERROR) {
+        if (setSidebandLockPolaritySelect(CAN_BYTE ? PLL_SIDEBAND_LOCK_POLARITY_USB : PLL_SIDEBAND_LOCK_POLARITY_LSB,
+                                          currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.pll.lastSidebandLockPolaritySelect.status = ERROR;
 
@@ -486,7 +484,7 @@ static void sidebandLockPolaritySelectHandler(void) {
 /* Null Loop Integrator Handler */
 /* This function deals with all the monitor and control requests directed to the
    PLL null loop integrator. */
-static void nullLoopIntegratorHandler(void) {
+void nullLoopIntegratorHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Null Loop Integrator Handler\n");
 #endif /* DEBUG */
@@ -498,8 +496,8 @@ static void nullLoopIntegratorHandler(void) {
 
         /* Change the status of the PLL unlock detect latch according to the
            content of the CAN message. */
-        if (setNullLoopIntegrator(CAN_BYTE ? PLL_NULL_LOOP_INTEGRATOR_NULL : PLL_NULL_LOOP_INTEGRATOR_OPERATE) ==
-            ERROR) {
+        if (setNullLoopIntegrator(CAN_BYTE ? PLL_NULL_LOOP_INTEGRATOR_NULL : PLL_NULL_LOOP_INTEGRATOR_OPERATE,
+                                  currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.pll.lastNullLoopIntegrator.status = ERROR;
 

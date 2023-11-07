@@ -272,23 +272,19 @@ typedef struct {
 
 /* Globals */
 /* Externs */
-extern volatile unsigned char newCANMsg;  //!< Notifier to the main program that
-                                          //!< a new CAN message has arrived
-extern CAN_MESSAGE CANMessage;            //!< A global to deal with the received message
-extern unsigned char currentClass;        //!< A global to store the current RCA class
-extern unsigned char currentModule;       //!< A global to store the current module info
+extern CAN_MESSAGE CANMessage;      //!< A global to deal with the received message
+extern unsigned char currentClass;  //!< A global to store the current RCA class
+// extern unsigned char currentModule;       //!< A global to store the current module info
 
 /* Prototypes */
-/* Statics */
 /* A function to build CANMessage with the incoming data */
-static void sendCANMessage(int appendStatusByte);
+void sendCANMessage(int appendStatusByte);
 
 /* All the handlers for the different messages */
 /* Classes */
-static void standardRCAsHandler(void);
-static void specialRCAsHandler(void);
+void standardRCAsHandler(void);
+void specialRCAsHandler(void);
 
-/* Externs */
-extern void CANMessageHandler(void);  //!< This function deals with the incoming can message
+void CANMessageHandler(void);  //!< This function deals with the incoming can message
 
 #endif /* _CAN_H */

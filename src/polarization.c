@@ -17,11 +17,8 @@
 #include "frontend.h"
 #include "serialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPolarizationModule = 0;
 /* Statics */
-static HANDLER polarizationModulesHandler[POLARIZATION_MODULES_NUMBER] = {
+static HANDLER_INT_INT_INT polarizationModulesHandler[POLARIZATION_MODULES_NUMBER] = {
     sidebandHandler, sidebandHandler, lnaLedHandler, sisHeaterHandler, RESERVEDHandler, polSpecialMsgsHandler};
 
 /* Polarization init */
@@ -30,14 +27,14 @@ static HANDLER polarizationModulesHandler[POLARIZATION_MODULES_NUMBER] = {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int polarizationInit(void) {
+int polarizationInit(int currentModule, int currentBiasModule) {
 #ifdef DEBUG_INIT
     printf(" - Initializing polarization %d...\n", currentBiasModule);
     printf("   - 10MHz...\n");
 #endif  // DEBUG_INIT
 
     if (serialAccess(BIAS_10MHZ_MODE(currentBiasModule), NULL, BIAS_10MHZ_MODE_SIZE, BIAS_10MHZ_MODE_SHIFT_SIZE,
-                     BIAS_10MHZ_MODE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     BIAS_10MHZ_MODE_SHIFT_DIR, SERIAL_WRITE, currentModule, CARTRIDGE_SUBSYSTEM_BIAS) == ERROR) {
         return ERROR;
     }
     frontend.cartridge[currentModule].polarization[currentBiasModule].ssi10MHzEnable = ENABLE;
@@ -53,13 +50,13 @@ int polarizationInit(void) {
 /* Polarization handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the polarization. */
-void polarizationHandler(void) {
+void polarizationHandler(int currentModule, int currentBiasModule) {
 #ifdef DEBUG
     printf("   Polarization: %d (currentBiasModule)\n", currentBiasModule);
 #endif /* DEBUG */
 
     /* Check if the submodule is in range */
-    currentPolarizationModule = (CAN_ADDRESS & POLARIZATION_MODULES_RCA_MASK) >> POLARIZATION_MODULES_MASK_SHIFT;
+    int currentPolarizationModule = (CAN_ADDRESS & POLARIZATION_MODULES_RCA_MASK) >> POLARIZATION_MODULES_MASK_SHIFT;
     if (currentPolarizationModule >= POLARIZATION_MODULES_NUMBER) {
         storeError(ERR_POLARIZATION, ERC_MODULE_RANGE);  // Polarization submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                      // Notify incoming CAN message of error
@@ -67,8 +64,9 @@ void polarizationHandler(void) {
     }
 
     /* Call the correct handler */
-    (polarizationModulesHandler[currentPolarizationModule])();
+    (polarizationModulesHandler[currentPolarizationModule])(currentModule, currentBiasModule,
+                                                            currentPolarizationModule);
 }
 
 // Dummy handler for where schottkyMixer used to be.
-void RESERVEDHandler(void) {}
+void RESERVEDHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {}

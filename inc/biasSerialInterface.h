@@ -471,31 +471,37 @@ typedef struct {
     //! Current ADC data
     /*! This variable contains the latest ADC binary data stored by a read
         operation from the ADC. */
-    int adcData;
+    short adcData;
 } BIAS_REGISTERS;
 
-/* Globals */
-/* Externs */
-extern BIAS_REGISTERS biasRegisters[CARTRIDGES_NUMBER];  //!< Bias Registers
-
 /* Prototypes */
-/* Statics */
-static int getBiasAnalogMonitor(void);              // Perform core analog monitor functions
-static float temperatureConversion(float voltage);  // Perform voltage to temperature conversion
-
-/* Externs */
-extern int getSisMixerBias(unsigned char current);    //!< This function monitors the SIS mixer bias
-extern int setSisMixerBias(void);                     //!< This function control the SIS mixer bias
-extern int setSisMixerLoop(unsigned char biasMode);   //!< This function sets the SIS mixer bias mode
-extern int getSisMagnetBias(unsigned char current);   //!< This function monitors the SIS magnet bias
-extern int setSisMagnetBias(void);                    //!< This function control the SIS magnet bias
-extern int setLnaBiasEnable(unsigned char enable);    //!< This function enables/disables the LNA bias
-extern int getLnaStage(void);                         //!< This function monitors the LNA stage conditions
-extern int setLnaStage(void);                         //!< This function controls the LNA stage conditions
-extern int setLnaLedEnable(unsigned char enable);     //!< This function enables/disable the LNA led
-extern int setSisHeaterEnable(unsigned char enable);  //!< This function enables/disable the SIS mixers heater
-extern int getSisHeater(void);                        //!< This function monitors the SIS heater bias
-extern int setBiasDacStrobe(void);                    //!< This function sends the desired strobe to the DACs
-extern int getTemp(unsigned char polarization,
-                   unsigned char sensor);  //!< This function monitors the selected temperature sensor
-#endif                                     /* _BIASSERIALINTERFACE_H */
+int getBiasAnalogMonitor(int currentModule, int currentBiasModule);  // Perform core analog monitor functions
+float temperatureConversion(float voltage);                          // Perform voltage to temperature conversion
+int getSisMixerBias(unsigned char current, int currentModule, int currentBiasModule,
+                    int currentPolarizationModule);  //!< This function monitors the SIS mixer bias
+int setSisMixerBias(int currentModule, int currentBiasModule,
+                    int currentPolarizationModule);  //!< This function control the SIS mixer bias
+int setSisMixerLoop(unsigned char biasMode, int currentModule, int currentBiasModule,
+                    int currentPolarizationModule);  //!< This function sets the SIS mixer bias mode
+int getSisMagnetBias(unsigned char current, int currentModule, int currentBiasModule,
+                     int currentPolarizationModule);  //!< This function monitors the SIS magnet bias
+int setSisMagnetBias(int currentModule, int currentBiasModule,
+                     int currentPolarizationModule);  //!< This function control the SIS magnet bias
+int setLnaBiasEnable(unsigned char enable, int currentModule, int currentBiasModule,
+                     int currentPolarizationModule);  //!< This function enables/disables the LNA bias
+int getLnaStage(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule,
+                int currentLnaStageModule);  //!< This function monitors the LNA stage conditions
+int setLnaStage(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule,
+                int currentLnaStageModule);  //!< This function controls the LNA stage conditions
+int setLnaLedEnable(unsigned char enable, int currentModule, int currentBiasModule,
+                    int currentPolarizationModule);  //!< This function enables/disable the LNA led
+int setSisHeaterEnable(unsigned char enable, int currentModule, int currentBiasModule,
+                       int currentPolarizationModule);  //!< This function enables/disable the SIS mixers heater
+int getSisHeater(int currentModule, int currentBiasModule,
+                 int currentPolarizationModule);  //!< This function monitors the SIS heater bias
+int setBiasDacStrobe(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                     int currentPolSpecialMsgsModule,
+                     int currentPolDacModule);  //!< This function sends the desired strobe to the DACs
+int getTemp(unsigned char polarization, unsigned char sensor, int currentModule,
+            int currentCartridgeTempSubsystemModule);  //!< This function monitors the selected temperature sensor
+#endif                                                 /* _BIASSERIALINTERFACE_H */

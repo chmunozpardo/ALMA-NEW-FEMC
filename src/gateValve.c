@@ -17,16 +17,13 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentGateValveModule = 0;
 /* Statics */
-static HANDLER gateValveModulesHandler[GATE_VALVE_MODULES_NUMBER] = {stateHandler};
+static HANDLER gateValveModulesHandler[GATE_VALVE_MODULES_NUMBER] = {gatevalveStateHandler};
 
 /* Gate Valve handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cryostat gate valve. */
-void gateValveHandler(void) {
+void gateValveHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  Gate Valve\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -35,14 +32,14 @@ void gateValveHandler(void) {
        the desired submodule is in range, is not neede and we can directly call
        the correct handler. */
     /* Call the correct handler */
-    (gateValveModulesHandler[currentGateValveModule])();
+    (gateValveModulesHandler[0])();
 
     return;
 }
 
 /* Gate valve state handler */
 /* This function deals with the messages directed to the gate valve state. */
-static void stateHandler(void) {
+void gatevalveStateHandler(void) {
 #ifdef DEBUG_CRYOSTAT
     printf("   State\n");
 #endif /* DEBUG_CRYOSTAT */

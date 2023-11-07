@@ -17,25 +17,22 @@
 #include "frontend.h"
 #include "packet.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLnaStageModule = 0;
 /* Statics */
-static HANDLER lnaStageModulesHandler[LNA_STAGE_MODULES_NUMBER] = {drainVoltageHandler, drainCurrentHandler,
-                                                                   gateVoltageHandler};
+static HANDLER_INT_INT_INT_INT_INT lnaStageModulesHandler[LNA_STAGE_MODULES_NUMBER] = {
+    lnaStageDrainVoltageHandler, lnaStageDrainCurrentHandler, lnaStageGateVoltageHandler};
 
 /* LNA stage Channel handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the LNA Stage.
     The function will perform a check for the existance of the addressed
     hardware then call the appropriate handler. */
-void lnaStageHandler(void) {
+void lnaStageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule) {
 #ifdef DEBUG
     printf("       LNA Stage: %d (currentLnaModule)\n", currentLnaModule);
 #endif /* DEBUG */
 
     /* Check if the submodule is in range */
-    currentLnaStageModule = (CAN_ADDRESS & LNA_STAGE_MODULES_RCA_MASK);
+    int currentLnaStageModule = (CAN_ADDRESS & LNA_STAGE_MODULES_RCA_MASK);
     if (currentLnaStageModule >= LNA_STAGE_MODULES_NUMBER) {
         storeError(ERR_LNA_STAGE, ERC_MODULE_RANGE);  // LNA stage submodule out of range
 
@@ -43,13 +40,15 @@ void lnaStageHandler(void) {
         return;
     }
     /* Call the correct handler */
-    (lnaStageModulesHandler[currentLnaStageModule])();
+    (lnaStageModulesHandler[currentLnaStageModule])(currentModule, currentBiasModule, currentPolarizationModule,
+                                                    currentLnaModule, currentLnaStageModule);
 }
 
 /* Drain Voltage Handler */
 /* This function will deal with monitor and control requests to the drain
    voltage of the addressed stage. */
-static void drainVoltageHandler(void) {
+void lnaStageDrainVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                                 int currentLnaModule, int currentLnaStageModule) {
 #ifdef DEBUG
     printf("        Drain Voltage\n");
 #endif /* DEBUG */
@@ -80,7 +79,8 @@ static void drainVoltageHandler(void) {
 
         /* Set the lna stage. If an error occurs then store the state and
            then return. */
-        if (setLnaStage() == ERROR) {
+        if (setLnaStage(currentModule, currentBiasModule, currentPolarizationModule, currentLnaModule,
+                        currentLnaStageModule) == ERROR) {
             /* Store the ERROR state in the last control message varibale */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -108,7 +108,8 @@ static void drainVoltageHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the LNA stage drain voltage */
-    if (getLnaStage() == ERROR) {
+    if (getLnaStage(currentModule, currentBiasModule, currentPolarizationModule, currentLnaModule,
+                    currentLnaStageModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            can message state. */
         CAN_STATUS = ERROR;
@@ -139,7 +140,8 @@ static void drainVoltageHandler(void) {
 /* Drain Current Handler */
 /* This function will deal with monitor and control request to the drain
    current of the addressed stage. */
-static void drainCurrentHandler(void) {
+void lnaStageDrainCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                                 int currentLnaModule, int currentLnaStageModule) {
 #ifdef DEBUG
     printf("        Drain Current\n");
 #endif /* DEBUG */
@@ -169,7 +171,8 @@ static void drainCurrentHandler(void) {
         }
         /* Set the lna stage. If and error occurs then store the state and
            return the error state then return. */
-        if (setLnaStage() == ERROR) {
+        if (setLnaStage(currentModule, currentBiasModule, currentPolarizationModule, currentLnaModule,
+                        currentLnaStageModule) == ERROR) {
             /* Store the ERROR state in the last control message varibale */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -197,7 +200,8 @@ static void drainCurrentHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the LNA stage drain current */
-    if (getLnaStage() == ERROR) {
+    if (getLnaStage(currentModule, currentBiasModule, currentPolarizationModule, currentLnaModule,
+                    currentLnaStageModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            can message state. */
         CAN_STATUS = ERROR;
@@ -226,7 +230,8 @@ static void drainCurrentHandler(void) {
 /* Gate Voltage Handler */
 /* This function will deal with monitor requests to the gate voltage of the
    addressed stage. */
-static void gateVoltageHandler(void) {
+void lnaStageGateVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                                int currentLnaModule, int currentLnaStageModule) {
 #ifdef DEBUG
     printf("        Gate Voltage\n");
 #endif /* DEBUG */
@@ -249,7 +254,8 @@ static void gateVoltageHandler(void) {
     }
 
     /* Monitor the LNA stage gate voltage */
-    if (getLnaStage() == ERROR) {
+    if (getLnaStage(currentModule, currentBiasModule, currentPolarizationModule, currentLnaModule,
+                    currentLnaStageModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

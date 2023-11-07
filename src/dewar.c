@@ -16,9 +16,6 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentDewarModule = 0;
 /* Statics */
 static HANDLER dewarModulesHandler[DEWAR_MODULES_NUMBER] = {n2FillHandler};
 
@@ -34,14 +31,14 @@ void dewarHandler(void) {
        the desired submodule is in range, is not needed and we can directly call
        the correct handler. */
     /* Call the correct handler */
-    (dewarModulesHandler[currentDewarModule])();
+    (dewarModulesHandler[0])();
 
     return;
 }
 
 /* N2 fill handler */
 /* This function deals with the messages directed to the N2 fill. */
-static void n2FillHandler(void) {
+void n2FillHandler(void) {
 #ifdef DEBUG_FETIM
     printf("   N2 Fill\n");
 #endif /* DEBUG_FETIM */

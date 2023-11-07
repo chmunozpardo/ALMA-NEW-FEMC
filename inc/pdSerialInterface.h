@@ -237,16 +237,11 @@ typedef struct {
     unsigned int adcData;
 } PD_REGISTERS;
 
-/* Globals */
-/* Externs */
-extern PD_REGISTERS pdRegisters;  //!< Power Distribution Registers
-
 /* Prototypes */
-/* Statics */
-static int getPdAnalogMonitor(void);  // Perform core analog monitor functions
-
-/* Externs */
-extern int setPdModuleEnable(
-    unsigned char enable);      //!< This function enables/disables the selected power distribution module
-extern int getPdChannel(void);  //!< This function monitors the selected power distribution channel
-#endif                          /* _PDSERIALINTERFACE_H */
+int getPdAnalogMonitor(void);  // Perform core analog monitor functions
+int setPdModuleEnable(
+    unsigned char enable,
+    int currentPowerDistributionModule);  //!< This function enables/disables the selected power distribution module
+int getPdChannel(int currentPowerDistributionModule, int currentPdModuleModule,
+                 int currentPdChannelModule);  //!< This function monitors the selected power distribution channel
+#endif                                         /* _PDSERIALINTERFACE_H */

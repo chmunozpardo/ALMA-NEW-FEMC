@@ -84,15 +84,13 @@ typedef struct {
 
 /* Globals */
 /* Externs */
-extern unsigned char currentIfSwitchModule;               //!< Currently addressed IF switch submodule
 extern unsigned char currentIfSwitchWay[IF_SWITCH_WAYS];  //!< Currently addressed IF switch way
 
 /* Prototypes */
 /* Statics */
-static void bandSelectHandler(void);
-static void allChannelsHandler(void);
-/* Externs */
-extern void ifSwitchHandler(void);  //!< This function deals with the incoming CAN message
-extern int ifSwitchStartup(void);   //!< This function deals with the initialization of the IF switch system
+void bandSelectHandler(int currentIfSwitchModule);
+void allChannelsHandler(int currentIfSwitchModule);
+void ifSwitchHandler(int currentModule);  //!< This function deals with the incoming CAN message
+int ifSwitchStartup(void);                //!< This function deals with the initialization of the IF switch system
 
 #endif /* _IFSWITCH_H */

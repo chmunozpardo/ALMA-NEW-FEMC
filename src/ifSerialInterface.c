@@ -18,10 +18,12 @@
 
 #include "ifSerialInterface.h"
 
-#include <errno.h>  /* errno */
-#include <math.h>   /* log */
-#include <stddef.h> /* NULL */
-#include <stdio.h>  /* printf */
+#include <errno.h>
+#include <math.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "debug.h"
 #include "error_local.h"
@@ -29,9 +31,6 @@
 #include "serialInterface.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
-/* Statics */
 IF_REGISTERS ifRegisters;
 
 /* IF switch analog monitor request core.
@@ -46,7 +45,7 @@ IF_REGISTERS ifRegisters;
 
    If an error happens during he process it will return ERROR, otherwise
    NO_ERROR will be returned. */
-static int getIfAnalogMonitor(void) {
+int getIfAnalogMonitor(void) {
     /* A temporary variable to deal with the timer. */
     int timedOut;
 
@@ -64,9 +63,12 @@ static int getIfAnalogMonitor(void) {
     /* The function to write the data to the hardware is called passing the
        intermediate buffer. If an error occurs, notify the calling function. */
     if (serialAccess(IF_PARALLEL_WRITE(IF_GREG), &ifRegisters.gReg, IF_GREG_SIZE, IF_GREG_SHIFT_SIZE, IF_GREG_SHIFT_DIR,
-                     SERIAL_WRITE) == ERROR) {
+                     SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
         return ERROR;
     }
+
+    struct timespec request = {0, 10};
+    nanosleep(&request, NULL);
 
 /* Initiate ADC conversion:
    - send ADC convert strobe command */
@@ -76,7 +78,7 @@ static int getIfAnalogMonitor(void) {
 
     /* If an error occurs, notify the calling function */
     if (serialAccess(IF_ADC_CONVERT_STROBE, NULL, IF_ADC_STROBE_SIZE, IF_ADC_STROBE_SHIFT_SIZE, IF_ADC_STROBE_SHIFT_DIR,
-                     SERIAL_WRITE) == ERROR) {
+                     SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
@@ -94,7 +96,7 @@ static int getIfAnalogMonitor(void) {
 
         /* If an error occurs, notify the calling function */
         if (serialAccess(IF_PARALLEL_READ, &ifRegisters.statusReg.integer, IF_STATUS_REG_SIZE, IF_STATUS_REG_SHIFT_SIZE,
-                         IF_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         IF_STATUS_REG_SHIFT_DIR, SERIAL_READ, IF_SWITCH_MODULE, 0) == ERROR) {
             /* Stop the timer */
             if (stopAsyncTimer(TIMER_IF_ADC_RDY) == ERROR) {
                 return ERROR;
@@ -125,13 +127,13 @@ static int getIfAnalogMonitor(void) {
 #endif /* DEBUG_SWITCH_SERIAL */
 
     /* If error return the state to the calling function */
-    if (serialAccess(IF_ADC_DATA_READ, &tempAdcValue, IF_ADC_DATA_SIZE, IF_ADC_DATA_SHIFT_SIZE, IF_ADC_DATA_SHIFT_DIR,
-                     SERIAL_READ) == ERROR) {
+    if (serialAccess(IF_ADC_DATA_READ, tempAdcValue, IF_ADC_DATA_SIZE, IF_ADC_DATA_SHIFT_SIZE, IF_ADC_DATA_SHIFT_DIR,
+                     SERIAL_READ, IF_SWITCH_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
     /* Drop the not needed bits and store the data */
-    ifRegisters.adcData = (unsigned int)tempAdcValue[0];
+    ifRegisters.adcData = (unsigned int)(tempAdcValue[0] & 0xFFFF);
 
     return NO_ERROR;
 }
@@ -151,7 +153,7 @@ static int getIfAnalogMonitor(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int setIfTempServoEnable(unsigned char enable) {
+int setIfTempServoEnable(unsigned char enable, int currentIfSwitchModule) {
     /* Store the current value of the temperature servo mode in a temporary
        variable. We use a temporary variable so that if any error occurs during
        the update of the hardware state, we don't end up with FREG describing a
@@ -170,7 +172,7 @@ int setIfTempServoEnable(unsigned char enable) {
 
         /* If there is a problem writing FREG, restore FREG and return the ERROR */
         if (serialAccess(IF_PARALLEL_WRITE(IF_FREG), &ifRegisters.fReg, IF_FREG_SIZE, IF_FREG_SHIFT_SIZE,
-                         IF_FREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         IF_FREG_SHIFT_DIR, SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
             /* Restore FREG to its original saved value */
             ifRegisters.fReg = tempFReg;
 
@@ -207,7 +209,7 @@ int setIfTempServoEnable(unsigned char enable) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int getIfChannelTemp(void) {
+int getIfChannelTemp(int currentIfSwitchModule) {
     /* Variables to store the temporary data */
     float v = 0.0, v1 = 0.0, v2 = 0.0, rTermistor = 0.0, temperature = 0.0;
 
@@ -306,7 +308,7 @@ int getIfChannelTemp(void) {
     \return
         - \ref NO_ERROR -> if no erro occurres
         - \ref ERROR    -> if something wrong happened */
-int setIfChannelAttenuation(void) {
+int setIfChannelAttenuation(int currentIfSwitchModule) {
     /* Depending on the selected channel, perform the following operations:
             - Store the current value of the attenuation in a temporary
               variable. We use a temporary variable so that if any error occurs
@@ -330,7 +332,7 @@ int setIfChannelAttenuation(void) {
 
                 /* If there is a problem writing BREG, restore BREG and return ERROR */
                 if (serialAccess(IF_PARALLEL_WRITE(IF_BREG), &ifRegisters.bReg, IF_BREG_SIZE, IF_BREG_SHIFT_SIZE,
-                                 IF_BREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                                 IF_BREG_SHIFT_DIR, SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
                     /* Restore BREG to its original save value */
                     ifRegisters.bReg = tempBReg;
 
@@ -350,7 +352,7 @@ int setIfChannelAttenuation(void) {
 
                 /* If there is a problem writing CREG, restore CREG and return ERROR */
                 if (serialAccess(IF_PARALLEL_WRITE(IF_CREG), &ifRegisters.cReg, IF_CREG_SIZE, IF_CREG_SHIFT_SIZE,
-                                 IF_CREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                                 IF_CREG_SHIFT_DIR, SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
                     /* Restore CREG to its original save value */
                     ifRegisters.cReg = tempCReg;
 
@@ -370,7 +372,7 @@ int setIfChannelAttenuation(void) {
 
                 /* If there is a problem writing DREG, restore DREG and return ERROR */
                 if (serialAccess(IF_PARALLEL_WRITE(IF_DREG), &ifRegisters.dReg, IF_DREG_SIZE, IF_DREG_SHIFT_SIZE,
-                                 IF_DREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                                 IF_DREG_SHIFT_DIR, SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
                     /* Restore DREG to its original save value */
                     ifRegisters.dReg = tempDReg;
 
@@ -390,7 +392,7 @@ int setIfChannelAttenuation(void) {
 
                 /* If there is a problem writing EREG, restore EREG and return ERROR */
                 if (serialAccess(IF_PARALLEL_WRITE(IF_EREG), &ifRegisters.eReg, IF_EREG_SIZE, IF_EREG_SHIFT_SIZE,
-                                 IF_EREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                                 IF_EREG_SHIFT_DIR, SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
                     /* Restore EREG to its original save value */
                     ifRegisters.eReg = tempEReg;
 
@@ -442,7 +444,7 @@ int setIfSwitchBandSelect(void) {
 
         /* If there is a problem writing AREG, restore AREG and return the ERROR */
         if (serialAccess(IF_PARALLEL_WRITE(IF_AREG), &ifRegisters.aReg, IF_AREG_SIZE, IF_AREG_SHIFT_SIZE,
-                         IF_AREG_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         IF_AREG_SHIFT_DIR, SERIAL_WRITE, IF_SWITCH_MODULE, 0) == ERROR) {
             /* Restore AREG to its original saved value */
             ifRegisters.aReg = tempAReg;
 
@@ -470,7 +472,7 @@ int setIfSwitchBandSelect(void) {
     \return
         - \ref NO_ERROR -> if no error occurres
         - \ref ERROR    -> if something wrong happened */
-int getIfSwitchHardwRevision(void) {
+int getIfSwitchHardwRevision() {
 #ifdef DEBUG_IFSWITCH_SERIAL
     printf("         - Reading hardware revision level (parallel read)\n");
 #endif /* DEBUG_SWITCH_SERIAL */
@@ -478,7 +480,7 @@ int getIfSwitchHardwRevision(void) {
     if (frontend.mode != SIMULATION_MODE) {
         /* If an error occurs, notify the calling function */
         if (serialAccess(IF_PARALLEL_READ, &ifRegisters.statusReg.integer, IF_STATUS_REG_SIZE, IF_STATUS_REG_SHIFT_SIZE,
-                         IF_STATUS_REG_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         IF_STATUS_REG_SHIFT_DIR, SERIAL_READ, IF_SWITCH_MODULE, 0) == ERROR) {
             return ERROR;
         }
 

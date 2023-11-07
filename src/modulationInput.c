@@ -16,10 +16,9 @@
 #include "frontend.h"
 #include "lprSerialInterface.h"
 
-/* Globals */
-unsigned char currentModulationInputModule = 0;
 /* Statics */
-static HANDLER modulationInputModulesHandler[MODULATION_INPUT_MODULES_NUMBER] = {valueHandler, miSpecialMsgsHandler};
+static HANDLER modulationInputModulesHandler[MODULATION_INPUT_MODULES_NUMBER] = {modulationInputValueHandler,
+                                                                                 miSpecialMsgsHandler};
 
 /* EDFA modulation input handler */
 /*! This function will be called by the CAN message handling subroutine when the
@@ -33,7 +32,7 @@ void modulationInputHandler(void) {
        is performed. */
 
     /* Check if the submodule is in range */
-    currentModulationInputModule =
+    int currentModulationInputModule =
         (CAN_ADDRESS & MODULATION_INPUT_MODULES_RCA_MASK) >> MODULATION_INPUT_MODULES_MASK_SHIFT;
     if (currentModulationInputModule >= MODULATION_INPUT_MODULES_NUMBER) {
         storeError(ERR_MODULATION_INPUT, ERC_MODULE_RANGE);  // Modulation Input submodule out of range
@@ -47,7 +46,7 @@ void modulationInputHandler(void) {
 }
 
 /* EDFA modulation input value handler */
-static void valueHandler(void) {
+void modulationInputValueHandler(void) {
 #ifdef DEBUG
     printf("    Value\n");
 #endif /* DEBUG */

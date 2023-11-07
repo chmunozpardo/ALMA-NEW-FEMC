@@ -61,14 +61,8 @@ typedef struct {
     unsigned char singleFail;
 } INTRLK_SENSORS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockSensorsModule;  //!< Currently addressed interlock sensor module
-
 /* Prototypes */
-/* Statics */
-static void singleFailHandler(void);
-/* Externs */
-extern void interlockSensorsHandler(void);  //!< This function deals with the incoming CAN messages
+void singleFailHandler(void);
+void interlockSensorsHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_SENSORS_H */

@@ -16,11 +16,8 @@
 #include "frontend.h"
 #include "lprSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentMiDacModule = 0;
 /* Statics */
-static HANDLER miDacModulesHandler[MI_DAC_MODULES_NUMBER] = {resetStrobeHandler};
+static HANDLER miDacModulesHandler[MI_DAC_MODULES_NUMBER] = {miDacResetStrobeHandler};
 
 /* Modulation input DAC handler */
 /*! This function will be called by the CAN message handler when the received
@@ -37,11 +34,11 @@ void miDacHandler(void) {
     /* Since the is only one submodule in the modulation input DAC special
        messages, the check to see if the desired submodule is in range, is not
        needed and we can directly call the correct handler. */
-    (miDacModulesHandler[currentMiDacModule])();
+    (miDacModulesHandler[0])();
 }
 
 /* Reset Strobe Handler */
-static void resetStrobeHandler(void) {
+void miDacResetStrobeHandler(void) {
 #ifdef DEBUG
     printf("       Reset Strobe\n");
 #endif /* DEBUG */

@@ -17,9 +17,6 @@
 #include "lprSerialInterface.h"
 #include "packet.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentOpticalSwitchModule = 0;
 /* Statics */
 static HANDLER opticalSwitchModulesHandler[OPTICAL_SWITCH_MODULES_NUMBER] = {
     portHandler, shutterHandler, forceShutterHandler, stateHandler, busyHandler};
@@ -27,7 +24,7 @@ static HANDLER opticalSwitchModulesHandler[OPTICAL_SWITCH_MODULES_NUMBER] = {
 /* Optical switch handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the optical switch. */
-void opticalSwitchHandler(void) {
+void opticalSwitchHandler(int currentLprModule) {
 #ifdef DEBUG_LPR
     printf("  Optical Switch\n");
 #endif /* DEBUG_LPR */
@@ -36,7 +33,8 @@ void opticalSwitchHandler(void) {
        check is performed. */
 
     /* Check if the specified submodule is in range */
-    currentOpticalSwitchModule = (CAN_ADDRESS & OPTICAL_SWITCH_MODULES_RCA_MASK) >> OPTICAL_SWITCH_MODULES_MASK_SHIFT;
+    int currentOpticalSwitchModule =
+        (CAN_ADDRESS & OPTICAL_SWITCH_MODULES_RCA_MASK) >> OPTICAL_SWITCH_MODULES_MASK_SHIFT;
     if (currentOpticalSwitchModule >= OPTICAL_SWITCH_MODULES_NUMBER) {
         storeError(ERR_OPTICAL_SWITCH, ERC_MODULE_RANGE);  // Optical switch submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                        // Notify incoming CAN message of error
@@ -48,7 +46,7 @@ void opticalSwitchHandler(void) {
 }
 
 /* Port handler */
-static void portHandler(void) {
+void portHandler(void) {
 #ifdef DEBUG_LPR
     printf("   Port select\n");
 #endif /* DEBUG_LPR */
@@ -107,7 +105,7 @@ static void portHandler(void) {
 }
 
 /* Shutter handler */
-static void shutterHandler(void) {
+void shutterHandler(void) {
 #ifdef DEBUG_LPR
     printf("   Shutter\n");
 #endif /* DEBUG_LPR */
@@ -149,7 +147,7 @@ static void shutterHandler(void) {
 }
 
 /* Force Shutter handler */
-static void forceShutterHandler(void) {
+void forceShutterHandler(void) {
 #ifdef DEBUG_LPR
     printf("   Force Shutter\n");
 #endif /* DEBUG_LPR */
@@ -189,7 +187,7 @@ static void forceShutterHandler(void) {
 }
 
 /* State handler */
-static void stateHandler(void) {
+void stateHandler(void) {
 #ifdef DEBUG_LPR
     printf("   Switch state\n");
 #endif /* DEBUG_LPR */
@@ -227,7 +225,7 @@ static void stateHandler(void) {
 }
 
 /* Busy handler */
-static void busyHandler(void) {
+void busyHandler(void) {
 #ifdef DEBUG_LPR
     printf("   Optical switch busy state\n");
 #endif /* DEBUG_LPR */

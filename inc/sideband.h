@@ -55,12 +55,9 @@ typedef struct {
     SIS_MAGNET sisMagnet;
 } SIDEBAND;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentSidebandModule;  //!< Current addressed sideband submodule
-
 /* Prototypes */
 /* Externs */
-extern void sidebandHandler(void);  //!< This function deals with the incoming CAN message
+void sidebandHandler(int currentModule, int currentBiasModule,
+                     int currentPolarizationModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _SIDEBAND_H */

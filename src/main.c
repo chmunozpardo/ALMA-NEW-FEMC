@@ -7,44 +7,38 @@
 
 #include <netdb.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "async.h"
+#include "cartridge.h"
+#include "cryostat.h"
 #include "debug.h"
 #include "error_local.h"
+#include "fetim.h"
 #include "globalDefinitions.h"
 #include "globalOperations.h"
 #include "packet.h"
+#include "serialMux.h"
 #include "timer.h"
 #include "version.h"
 
 /* Globals */
 /* Externs */
-unsigned char stop = 0;    /*!< This global can be set by any module and will
-                              gently    stop the program if necessary. */
-unsigned char restart = 0; /*!< This global can be set by any module and will
-                                cause the system to reboot after a stop is
-                                received. */
+CAN_MESSAGE CANMessage; /*!< This variable hold the latest message
+                             received. */
 
-volatile unsigned char newCANMsg = 0; /*!< This variable is a semaphore which will
-                                           notify the entire program of the arrival
-                                           of a new CAN message. It is cleared
-                                           once the message has been dealt with. */
-CAN_MESSAGE CANMessage;               /*!< This variable hold the latest message
-                                           received. */
-unsigned char currentModule = 0;      /*!< This variable stores the current module
-                                           information. This is the front end item
-                                           the request are currently directed to. */
-unsigned char currentClass = 0;       /*!< This variable stores the current class
-                                           information. This is a specifier of the
-                                           type of message: monitor, control or
-                                           special that has been received. */
+unsigned char currentClass = 0; /*!< This variable stores the current class
+                                     information. This is a specifier of the
+                                     type of message: monitor, control or
+                                     special that has been received. */
 
 #define SOCK_BUFF_SIZE 64
 #define PORT 2000
@@ -68,8 +62,8 @@ static inline void func_sock(int connfd) {
         // print buffer which contains the client contents
         switch (x) {
             case -1:
-                printf("Exiting server\n");
-                return;
+                // printf("Exiting server\n");
+                break;
             case 0:
                 printf("Empty\n");
                 return;
@@ -143,7 +137,7 @@ static inline void func_sock(int connfd) {
                         }
                         write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
                         break;
-                    /* Request by LabVIEW I don't understand yet */
+                    /* Request by LabVIEW I don't understand this yet */
                     case 0:
                         out_buff_sock[4] = 1;
                         write(connfd, out_buff_sock, 13 * sizeof(char));
@@ -189,12 +183,14 @@ static inline void func_sock(int connfd) {
     }
 }
 
-int sockfd, connfd, len;
+int sockfd, connfd;
+unsigned int len;
 struct sockaddr_in servaddr, cli;
 
 void create_socket() {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     int reuse = 1;
+
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse, sizeof(reuse)) < 0) {
         perror("setsockopt(SO_REUSEADDR) failed");
     }
@@ -238,6 +234,27 @@ void create_socket() {
     }
 }
 
+void *cryostatAsyncWrapper(void *arg) {
+    for (;;) {
+        cryostatAsync();
+    }
+    return NULL;
+}
+
+void *cartridgeAsyncWrapper(void *arg) {
+    for (;;) {
+        cartridgeAsync();
+    }
+    return NULL;
+}
+
+void *fetimAsyncWrapper(void *arg) {
+    for (;;) {
+        fetimAsync();
+    }
+    return NULL;
+}
+
 int main(void) {
     /* Print version information */
     displayVersion();
@@ -247,18 +264,30 @@ int main(void) {
         return ERROR;
     }
 
-    /* Initialize socket */
-    create_socket();
+    pthread_t tid[3];
+    int error;
 
-    /* Main loop */
-    func_sock(connfd);
+    error = pthread_create(&(tid[0]), NULL, &cryostatAsyncWrapper, NULL);
+    if (error != 0) printf("\nThread can't be created :[%s]", strerror(error));
+    error = pthread_create(&(tid[1]), NULL, &cartridgeAsyncWrapper, NULL);
+    if (error != 0) printf("\nThread can't be created :[%s]", strerror(error));
+    error = pthread_create(&(tid[2]), NULL, &fetimAsyncWrapper, NULL);
+    if (error != 0) printf("\nThread can't be created :[%s]", strerror(error));
+
+    /* Initialize socket */
+    while (1) {
+        create_socket();
+
+        /* Main loop */
+        func_sock(connfd);
+
+        // Close socket
+        shutdown(sockfd, SHUT_RDWR);
+    }
 
     /* Shut down the frontend */
     if (shutDown() == ERROR) {
     }
-
-    // Close socket
-    shutdown(sockfd, SHUT_RDWR);
 
     return NO_ERROR;
 }

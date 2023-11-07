@@ -74,7 +74,7 @@ static char *chgext(char *path, char *oldext, char *newext) {
     /* Add new extension */
 
     while ('.' == *newext) ++newext;
-    strncpy(p, newext, 3);
+    memcpy(p, newext, 3);
 
     /*
     ** Added to insure string is properly terminated. Without this, if
@@ -96,7 +96,7 @@ static char *chgext(char *path, char *oldext, char *newext) {
 **  Public Domain by Mark R. Devlin, free usage is permitted.
 */
 
-static int ferrorf(FILE *filehandle, const char *format, ...) {
+int ferrorf(FILE *filehandle, const char *format, ...) {
     int vfp, fp;
     va_list vargs;
 
@@ -172,7 +172,7 @@ static char *StripTrailingSpaces(char *string) {
 **  Side effects: Strips newline characters (DOS, Unix, or Mac).
 */
 
-static int ReadLine(FILE *fp, char *line) {
+int ReadLine(FILE *fp, char *line) {
     char *cp;
 
     cp = fgets(line, INI_LINESIZE, fp);
@@ -228,7 +228,7 @@ static Boolean_T StrEq(char *s1, char *s2) {
 **  Returns: Nothing.
 */
 
-static void ParseLine(char *line, char *var, char *data) {
+void ParseLine(char *line, char *var, char *data) {
     int len = 0;
 
     line = StripLeadingSpaces(line);

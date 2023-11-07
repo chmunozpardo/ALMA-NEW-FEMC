@@ -15,24 +15,21 @@
 #include "frontend.h"
 #include "pdSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPowerDistributionModule = 0;
 /* Statics */
-static HANDLER powerDistributionModulesHandler[POWER_DISTRIBUTION_MODULES_NUMBER] = {
+static HANDLER_INT powerDistributionModulesHandler[POWER_DISTRIBUTION_MODULES_NUMBER] = {
     pdModuleHandler, pdModuleHandler, pdModuleHandler, pdModuleHandler, pdModuleHandler,      pdModuleHandler,
     pdModuleHandler, pdModuleHandler, pdModuleHandler, pdModuleHandler, poweredModulesHandler};
 
 /* Power distribution handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the power distribution. */
-void powerDistributionHandler(void) {
+void powerDistributionHandler(int currentModule) {
 #ifdef DEBUG_POWERDIS
     printf(" Power Distribution\n");
 #endif /* DEBUG_POWERDIS */
 
     /* Check if the specified submodule is in range */
-    currentPowerDistributionModule =
+    int currentPowerDistributionModule =
         (CAN_ADDRESS & POWER_DISTRIBUTION_MODULES_RCA_MASK) >> POWER_DISTRIBUTION_MODULES_MASK_SHIFT;
     if (currentPowerDistributionModule >= POWER_DISTRIBUTION_MODULES_NUMBER) {
         storeError(ERR_POWER_DISTRIBUTION, ERC_MODULE_RANGE);  // Power distribution submodule out of range
@@ -41,11 +38,11 @@ void powerDistributionHandler(void) {
     }
 
     /* Call the correct handler */
-    (powerDistributionModulesHandler[currentPowerDistributionModule])();
+    (powerDistributionModulesHandler[currentPowerDistributionModule])(currentPowerDistributionModule);
 }
 
 /* Powered modules handler */
-static void poweredModulesHandler(void) {
+void poweredModulesHandler(int currentPowerDistributionModule) {
 #ifdef DEBUG_POWERDIS
     printf("  Powered Modules\n");
 #endif /* DEBUG_POWERDIS */
@@ -81,12 +78,11 @@ static void poweredModulesHandler(void) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-int powerDistributionStartup(void) {
+int powerDistributionStartup() {
     /* Set the currentModule variable to reflect the fact that the CPDS is
        selected. This is necessary because currentModule is the global variable
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
-    currentModule = POWER_DIST_MODULE;
 
 #ifdef DEBUG_STARTUP
     printf(" Initializing Power Distribution System...\n\n");
@@ -115,19 +111,18 @@ int powerDistributionStop(void) {
        selected. This is necessary because currentModule is the global variable
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
-    currentModule = POWER_DIST_MODULE;
 
 #ifdef DEBUG_STARTUP
     printf(" Powering down Power Distribution System...\n");
 #endif
 
     /* Unconditionally turn off all the modules */
-    for (currentPowerDistributionModule = 0; currentPowerDistributionModule < CARTRIDGES_NUMBER;
+    for (int currentPowerDistributionModule = 0; currentPowerDistributionModule < CARTRIDGES_NUMBER;
          currentPowerDistributionModule++) {
 #ifdef DEBUG_STARTUP
         printf(" - Powering down module: %d...", currentPowerDistributionModule);
 #endif
-        setPdModuleEnable(PD_MODULE_DISABLE);
+        setPdModuleEnable(PD_MODULE_DISABLE, currentPowerDistributionModule);
         cartridgeStop(currentPowerDistributionModule);
 #ifdef DEBUG_STARTUP
         printf(" done!\n");

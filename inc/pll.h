@@ -91,24 +91,18 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastNullLoopIntegrator;
 } PLL;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPllModule;  //!< Current addressed PLL submodule
-
 /* Prototypes */
-/* Statics */
-static void lockDetectVoltageHandler(void);
-static void correctionVoltageHandler(void);
-static void assemblyTempHandler(void);
-static void YIGHeaterCurrentHandler(void);
-static void refTotalPowerHandler(void);
-static void ifTotalPowerHandler(void);
-static void unlockDetectLatchHandler(void);
-static void clearUnlockDetectLatchHandler(void);
-static void loopBandwidthSelectHandler(void);
-static void sidebandLockPolaritySelectHandler(void);
-static void nullLoopIntegratorHandler(void);
-/* Externs */
-extern void pllHandler(void);  //!< This function deals with the incoming can message
+void lockDetectVoltageHandler(int currentModule);
+void correctionVoltageHandler(int currentModule);
+void pllAssemblyTempHandler(int currentModule);
+void YIGHeaterCurrentHandler(int currentModule);
+void refTotalPowerHandler(int currentModule);
+void ifTotalPowerHandler(int currentModule);
+void unlockDetectLatchHandler(int currentModule);
+void clearUnlockDetectLatchHandler(int currentModule);
+void loopBandwidthSelectHandler(int currentModule);
+void sidebandLockPolaritySelectHandler(int currentModule);
+void nullLoopIntegratorHandler(int currentModule);
+void pllHandler(int currentModule);  //!< This function deals with the incoming can message
 
 #endif /* _PLL_H */

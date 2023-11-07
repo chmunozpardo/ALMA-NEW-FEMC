@@ -18,7 +18,6 @@
 
 /* Globals */
 /* Externs */
-unsigned char currentIfSwitchModule = 0;
 /* An extern to perform the mapping between bands and IF switch way. */
 unsigned char currentIfSwitchWay[IF_SWITCH_WAYS] = {WAY0,   // Band 1
                                                     WAY1,   // Band 2
@@ -31,13 +30,13 @@ unsigned char currentIfSwitchWay[IF_SWITCH_WAYS] = {WAY0,   // Band 1
                                                     WAY8,   // Band 9
                                                     WAY9};  // Band 10
 /* Statics */
-static HANDLER ifSwitchModulesHandler[IF_SWITCH_MODULES_NUMBER] = {
+static HANDLER_INT ifSwitchModulesHandler[IF_SWITCH_MODULES_NUMBER] = {
     ifChannelHandler, ifChannelHandler, ifChannelHandler, ifChannelHandler, bandSelectHandler, allChannelsHandler};
 
 /* IF Switch handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the IF Switch. */
-void ifSwitchHandler(void) {
+void ifSwitchHandler(int currentModule) {
 #ifdef DEBUG_IFSWITCH
     printf(" IF Switch\n");
 #endif /* DEBUG_IFSWITCH */
@@ -46,7 +45,7 @@ void ifSwitchHandler(void) {
        check is performed. */
 
     /* Check if the submodule is in range */
-    currentIfSwitchModule = (CAN_ADDRESS & IF_SWITCH_MODULES_RCA_MASK) >> IF_SWITCH_MODULES_MASK_SHIFT;
+    int currentIfSwitchModule = (CAN_ADDRESS & IF_SWITCH_MODULES_RCA_MASK) >> IF_SWITCH_MODULES_MASK_SHIFT;
     if (currentIfSwitchModule >= IF_SWITCH_MODULES_NUMBER) {
         storeError(ERR_IF_SWITCH, ERC_MODULE_RANGE);  // IF Switch submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                   // Notify incoming CAN message of error
@@ -54,11 +53,11 @@ void ifSwitchHandler(void) {
     }
 
     /* Call the correct handler */
-    (ifSwitchModulesHandler[currentIfSwitchModule])();
+    (ifSwitchModulesHandler[currentIfSwitchModule])(currentIfSwitchModule);
 }
 
 /* Band select handler */
-void bandSelectHandler(void) {
+void bandSelectHandler(int currentIfSwitchModule) {
 #ifdef DEBUG_IFSWITCH
     printf("  Band Select\n");
 #endif /* DEBUG_IFSWITCH */
@@ -107,7 +106,7 @@ void bandSelectHandler(void) {
     CAN_SIZE = CAN_BYTE_SIZE;
 }
 
-void allChannelsHandler(void) {
+void allChannelsHandler(int currentIfSwitchModule) {
 #ifdef DEBUG_IFSWITCH
     printf("  All Channels Atten\n");
 #endif /* DEBUG_IFSWITCH */
@@ -118,7 +117,7 @@ void allChannelsHandler(void) {
         SAVE_LAST_CONTROL_MESSAGE(frontend.ifSwitch.lastAllChannelsAtten)
 
         // Set all four IF switch attenuators:
-        for (currentIfSwitchModule = 0; currentIfSwitchModule < IF_CHANNELS_NUMBER; currentIfSwitchModule++) {
+        for (int currentIfSwitchModule = 0; currentIfSwitchModule < IF_CHANNELS_NUMBER; currentIfSwitchModule++) {
             // Range check:
             if (checkRange(IF_CHANNEL_SET_ATTENUATION_MIN, CAN_DATA(currentIfSwitchModule),
                            IF_CHANNEL_SET_ATTENUATION_MAX)) {
@@ -132,7 +131,7 @@ void allChannelsHandler(void) {
             CAN_BYTE = CAN_DATA(currentIfSwitchModule);
 
             // Set the current attenuator using CAN_BYTE:
-            if (setIfChannelAttenuation() == ERROR) {
+            if (setIfChannelAttenuation(currentIfSwitchModule) == ERROR) {
                 /* Store the Error state in the last control message variable */
                 frontend.ifSwitch.lastAllChannelsAtten.status = ERROR;
                 // bail out early if error:
@@ -151,7 +150,7 @@ void allChannelsHandler(void) {
     }
 
     /* If monitor on monitor RCA */
-    for (currentIfSwitchModule = 0; currentIfSwitchModule < IF_CHANNELS_NUMBER; currentIfSwitchModule++) {
+    for (int currentIfSwitchModule = 0; currentIfSwitchModule < IF_CHANNELS_NUMBER; currentIfSwitchModule++) {
         CAN_DATA(currentIfSwitchModule) = frontend.ifSwitch
                                               .ifChannel[currentIfChannelPolarization[currentIfSwitchModule]]
                                                         [currentIfChannelSideband[currentIfSwitchModule]]
@@ -171,7 +170,6 @@ int ifSwitchStartup(void) {
        selected. This is necessary because currentModule is the global variable
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
-    currentModule = IF_SWITCH_MODULE;
 
 #ifdef DEBUG_STARTUP
     printf(" Initializing IF Switch Module...\n");

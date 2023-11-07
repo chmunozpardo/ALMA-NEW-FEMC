@@ -16,16 +16,14 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentSisMagnetModule = 0;
 /* Statics */
-static HANDLER sisMagnetModulesHandler[SIS_MAGNET_MODULES_NUMBER] = {voltageHandler, currentHandler};
+static HANDLER_INT_INT_INT sisMagnetModulesHandler[SIS_MAGNET_MODULES_NUMBER] = {sisMagnetVoltageHandler,
+                                                                                 sisMagnetCurrentHandler};
 
 /* SIS magnet handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the SIS magnet. */
-void sisMagnetHandler(void) {
+void sisMagnetHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("      SIS magnet\n");
 #endif /* DEBUG */
@@ -41,7 +39,7 @@ void sisMagnetHandler(void) {
     }
 
     /* Check if the submodule is in range */
-    currentSisMagnetModule = (CAN_ADDRESS & SIS_MAGNET_MODULES_RCA_MASK) >> SIS_MAGNET_MODULES_MASK_SHIFT;
+    int currentSisMagnetModule = (CAN_ADDRESS & SIS_MAGNET_MODULES_RCA_MASK) >> SIS_MAGNET_MODULES_MASK_SHIFT;
     if (currentSisMagnetModule >= SIS_MAGNET_MODULES_NUMBER) {
         storeError(ERR_SIS_MAGNET, ERC_MODULE_RANGE);  // SIS magnet submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of the error
@@ -49,13 +47,13 @@ void sisMagnetHandler(void) {
     }
 
     /* Call the correct handler */
-    (sisMagnetModulesHandler[currentSisMagnetModule])();
+    (sisMagnetModulesHandler[currentSisMagnetModule])(currentModule, currentBiasModule, currentPolarizationModule);
 }
 
 /* SIS magnet voltage handler */
 /* This function deals with all the monitor requests directed to the sis magnet
    voltage. There are no control messages allowed for the magnet voltage. */
-static void voltageHandler(void) {
+void sisMagnetVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 /* Monitor the SIS magnet voltage */
 #ifdef DEBUG
     printf("       Voltage\n");
@@ -79,7 +77,8 @@ static void voltageHandler(void) {
     }
 
     /* Monitor the SIS magnet BIAS voltage */
-    if (getSisMagnetBias(SIS_MAGNET_BIAS_VOLTAGE) == ERROR) {
+    if (getSisMagnetBias(SIS_MAGNET_BIAS_VOLTAGE, currentModule, currentBiasModule, currentPolarizationModule) ==
+        ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -106,7 +105,7 @@ static void voltageHandler(void) {
 /* SIS magnet current handler */
 /* This function deals with all the monitor and control request directed to the
    SIS magnet current. */
-static void currentHandler(void) {
+void sisMagnetCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("       Current\n");
 #endif /* DEBUG */
@@ -135,7 +134,7 @@ static void currentHandler(void) {
 
         /* Set the SIS magnet bias current. If an error occurs, then store the
            state and report the error. */
-        if (setSisMagnetBias() == ERROR) {
+        if (setSisMagnetBias(currentModule, currentBiasModule, currentPolarizationModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -161,7 +160,8 @@ static void currentHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the SIS Magnet current */
-    if (getSisMagnetBias(SIS_MAGNET_BIAS_CURRENT) == ERROR) {
+    if (getSisMagnetBias(SIS_MAGNET_BIAS_CURRENT, currentModule, currentBiasModule, currentPolarizationModule) ==
+        ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            can message state. */
         CAN_STATUS = ERROR;
@@ -186,9 +186,7 @@ static void currentHandler(void) {
 }
 
 // set the specified SIS magnet to STANDBY2 mode.
-void sisMagnetGoStandby2() {
-    int ret;
-
+void sisMagnetGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* Check if the selected sideband is outfitted with the desired SIS */
     if (frontend.cartridge[currentModule]
             .polarization[currentBiasModule]
@@ -199,12 +197,16 @@ void sisMagnetGoStandby2() {
     }
 
 #ifdef DEBUG_GO_STANDBY2
+    int ret;
     printf(" - sisMagnetGoStandby2 pol=%d sb=%d\n", currentBiasModule, currentPolarizationModule);
-#endif  // DEBUG_GO_STANDBY2
-
     // set the SIS magnet current to 0:
     CONV_FLOAT = 0.0;
-    ret = setSisMagnetBias();
+    ret = setSisMagnetBias(currentModule, currentBiasModule, currentPolarizationModule);
+#else
+    // set the SIS magnet current to 0:
+    CONV_FLOAT = 0.0;
+    setSisMagnetBias(currentModule, currentBiasModule, currentPolarizationModule);
+#endif  // DEBUG_GO_STANDBY2
 
 #ifdef DEBUG_GO_STANDBY2
     if (ret) printf(" -- ret=%d\n", ret);

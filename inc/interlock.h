@@ -30,10 +30,6 @@
                                            1 -> interlockStateHandler */
 #define INTERLOCK_MODULES_MASK_SHIFT 5  // Bits right shift for the submodule mask
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockModule;  //!< Currently addressed interlock module
-
 /* Typedefs */
 //! Current state of the FETIM interlock system
 /*! This structure represent the current state of the FETIM interlock system
@@ -52,7 +48,6 @@ typedef struct {
 } INTERLOCK;
 
 /* Prototypes */
-/* Externs */
-extern void interlockHandler(void);  //!< This function deals with the incoming CAN messages
+void interlockHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_H */

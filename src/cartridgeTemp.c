@@ -16,12 +16,9 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentCartridgeTempModule = 0;
-
 /* Statics */
-static HANDLER cartridgeTempModulesHandler[CARTRIDGE_TEMP_MODULES_NUMBER] = {tempHandler, tempOffsetHandler};
+static HANDLER_INT_INT cartridgeTempModulesHandler[CARTRIDGE_TEMP_MODULES_NUMBER] = {cartTempHandler,
+                                                                                     cartTempOffsetHandler};
 
 /* A static variable to assign the sensors to the proper hardware */
 static TEMP_SENSOR temperatureSensor[CARTRIDGE_TEMP_SENSORS_NUMBER][CARTRIDGES_NUMBER] =
@@ -39,13 +36,14 @@ static TEMP_SENSOR temperatureSensor[CARTRIDGE_TEMP_SENSORS_NUMBER][CARTRIDGES_N
 /* Cartridge Temperature sensors handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cartridges temperature sensors. */
-void cartridgeTempHandler(void) {
+void cartridgeTempHandler(int currentModule, int currentCartridgeTempSubsystemModule) {
 #ifdef DEBUG
     printf("    Cartridge Temperature Sensors: %d\n", currentCartridgeTempSubsystemModule);
 #endif /* DEBUG */
 
     /* Check if the specified submodule is in range */
-    currentCartridgeTempModule = (CAN_ADDRESS & CARTRIDGE_TEMP_MODULES_RCA_MASK) >> CARTRIDGE_TEMP_MODULES_MASK_SHIFT;
+    int currentCartridgeTempModule =
+        (CAN_ADDRESS & CARTRIDGE_TEMP_MODULES_RCA_MASK) >> CARTRIDGE_TEMP_MODULES_MASK_SHIFT;
     if (currentCartridgeTempModule >= CARTRIDGE_TEMP_MODULES_NUMBER) {
         storeError(ERR_CARTRIDGE_TEMP, ERC_MODULE_RANGE);  // Cartridge subsystem out of range
 
@@ -54,11 +52,11 @@ void cartridgeTempHandler(void) {
     }
 
     /* Call the correct handler */
-    (cartridgeTempModulesHandler[currentCartridgeTempModule])();
+    (cartridgeTempModulesHandler[currentCartridgeTempModule])(currentModule, currentCartridgeTempModule);
 }
 
 /* Temperature Offset Handler */
-static void tempOffsetHandler(void) {
+void cartTempOffsetHandler(int currentModule, int currentCartridgeTempSubsystemModule) {
 #ifdef DEBUG
     printf("      Temperature Offset\n");
 #endif /* DEBUG */
@@ -98,7 +96,7 @@ static void tempOffsetHandler(void) {
 }
 
 /* Temperature Value Handler */
-static void tempHandler(void) {
+void cartTempHandler(int currentModule, int currentCartridgeTempSubsystemModule) {
 #ifdef DEBUG
     printf("      Temperature Value\n");
 #endif /* DEBUG */
@@ -127,7 +125,8 @@ static void tempHandler(void) {
 
     /* Monitor the temperature sensor */
     getTemp(temperatureSensor[currentCartridgeTempSubsystemModule][currentModule].polarization,
-            temperatureSensor[currentCartridgeTempSubsystemModule][currentModule].sensorNumber);
+            temperatureSensor[currentCartridgeTempSubsystemModule][currentModule].sensorNumber, currentModule,
+            currentCartridgeTempSubsystemModule);
 
     /* If error during monitoring, the error state was stored in the outgoing CAN message during by getTemp().
        Whether or not an error occurred, store the last read value in the outgoing message: */

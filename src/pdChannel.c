@@ -15,16 +15,13 @@
 #include "frontend.h"
 #include "pdSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPdChannelModule = 0;
 /* Statics */
-static HANDLER pdChannelModulesHandler[PD_CHANNEL_MODULES_NUMBER] = {currentHandler, voltageHandler};
+static HANDLER_INT_INT_INT pdChannelModulesHandler[PD_CHANNEL_MODULES_NUMBER] = {pdCurrentHandler, pdVoltageHandler};
 
 /* Power distribution channel handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the power distribution channel modules. */
-void pdChannelHandler(void) {
+void pdChannelHandler(int currentPowerDistributionModule, int currentPdModuleModule) {
 #ifdef DEBUG_POWERDIS
     printf("   Power Distribution Channel: %d\n", currentPdModuleModule);
 #endif /* DEBUG_POWERDIS */
@@ -33,7 +30,7 @@ void pdChannelHandler(void) {
        modules, no hardware check is performed. */
 
     /* Check if the specified submodule is in range */
-    currentPdChannelModule = (CAN_ADDRESS & PD_CHANNEL_MODULES_RCA_MASK);
+    int currentPdChannelModule = (CAN_ADDRESS & PD_CHANNEL_MODULES_RCA_MASK);
     if (currentPdChannelModule >= PD_CHANNEL_MODULES_NUMBER) {
         storeError(ERR_PD_CHANNEL, ERC_MODULE_RANGE);  // Power distribution channel submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of error
@@ -41,11 +38,12 @@ void pdChannelHandler(void) {
     }
 
     /* Call the correct handler */
-    (pdChannelModulesHandler[currentPdChannelModule])();
+    (pdChannelModulesHandler[currentPdChannelModule])(currentPowerDistributionModule, currentPdModuleModule,
+                                                      currentPdChannelModule);
 }
 
 /* Power distribution channel voltage handler */
-static void voltageHandler(void) {
+void pdVoltageHandler(int currentPowerDistributionModule, int currentPdModuleModule, int currentPdChannelModule) {
 #ifdef DEBUG_POWERDIS
     printf("    Voltage\n");
 #endif /* DEBUG_POWERDIS */
@@ -67,7 +65,7 @@ static void voltageHandler(void) {
     }
 
     /* Monitor the voltage for the desired channel */
-    if (getPdChannel() == ERROR) {
+    if (getPdChannel(currentPowerDistributionModule, currentPdModuleModule, currentPdChannelModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -90,7 +88,7 @@ static void voltageHandler(void) {
 }
 
 /* Power distribution channel current handler */
-static void currentHandler(void) {
+void pdCurrentHandler(int currentPowerDistributionModule, int currentPdModuleModule, int currentPdChannelModule) {
 #ifdef DEBUG_POWERDIS
     printf("    Current\n");
 #endif /* DEBUG_POWERDIS */
@@ -112,7 +110,7 @@ static void currentHandler(void) {
     }
 
     /* Monitor the current for the desired channel */
-    if (getPdChannel() == ERROR) {
+    if (getPdChannel(currentPowerDistributionModule, currentPdModuleModule, currentPdChannelModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

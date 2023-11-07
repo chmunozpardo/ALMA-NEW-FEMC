@@ -20,19 +20,16 @@
 #include "globalDefinitions.h"
 #include "loSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPaChannelModule = 0;
 /* Statics */
 /* A static to deal with the mapping of the PA cahnnels. This global variable is
    used to indicate if the mapping is defined or not. */
-static HANDLER paChannelModulesHandler[PA_CHANNEL_MODULES_NUMBER] = {gateVoltageHandler, drainVoltageHandler,
-                                                                     drainCurrentHandler};
+static HANDLER_INT_INT_INT paChannelModulesHandler[PA_CHANNEL_MODULES_NUMBER] = {
+    paGateVoltageHandler, paDrainVoltageHandler, paDrainCurrentHandler};
 
 /* PA Channel handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the PA Channel. */
-void paChannelHandler(void) {
+void paChannelHandler(int currentModule, int currentPaModule) {
 #ifdef DEBUG
     printf("     PA Channel: %d (mapped to Polarization: %d)\n", currentPaModule, currentPaChannel());
 #endif /* DEBUG */
@@ -41,7 +38,7 @@ void paChannelHandler(void) {
        is performed. */
 
     /* Check if the submodule is in range */
-    currentPaChannelModule = (CAN_ADDRESS & PA_CHANNEL_MODULES_RCA_MASK);
+    int currentPaChannelModule = (CAN_ADDRESS & PA_CHANNEL_MODULES_RCA_MASK);
     if (currentPaChannelModule >= PA_CHANNEL_MODULES_NUMBER) {
         storeError(ERR_PA_CHANNEL, ERC_MODULE_RANGE);  // PA channel submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of the error
@@ -49,13 +46,13 @@ void paChannelHandler(void) {
     }
 
     /* Call the correct handler */
-    (paChannelModulesHandler[currentPaChannelModule])();
+    (paChannelModulesHandler[currentPaChannelModule])(currentModule, currentPaModule, currentPaChannelModule);
 }
 
 /* Gate Voltage Handler */
 /* This function will deal with monitor and control requests to the gate
    voltage. */
-static void gateVoltageHandler(void) {
+void paGateVoltageHandler(int currentModule, int currentPaModule, int currentPaChannelModule) {
 #ifdef DEBUG
     printf("      Gate Voltage\n");
 #endif /* DEBUG */
@@ -63,16 +60,20 @@ static void gateVoltageHandler(void) {
     /* If control (size !=0) */
     if (CAN_SIZE) {
         // save the incoming message:
-        SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastGateVoltage)
+        SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule]
+                                      .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                                      .lastGateVoltage)
 
         /* Extract the float from the can message */
         changeEndian(CONV_CHR_ADD, CAN_DATA_ADD);
 
         /* Set the PA channel gate voltage. If an error occurs then store the
            state and return the error state then return. */
-        if (setPaChannel() == ERROR) {
+        if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastGateVoltage.status = ERROR;
+            frontend.cartridge[currentModule]
+                .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                .lastGateVoltage.status = ERROR;
             return;
         }
         /* If everything went fine, it's a control message, we're done. */
@@ -82,20 +83,22 @@ static void gateVoltageHandler(void) {
     /* If monitor on control RCA */
     if (currentClass == CONTROL_CLASS) {  // If monitor on a control RCA
         // return the last control message and status
-        RETURN_LAST_CONTROL_MESSAGE(
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastGateVoltage)
+        RETURN_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule]
+                                        .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                                        .lastGateVoltage)
         return;
     }
 
     /* If monitor on a monitor RCA */
     /* Monitor the PA channel gate voltage */
-    if (getPaChannel() == ERROR) {
+    if (getPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
     }
     /* Store the last known value in the outgoing message */
-    CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].gateVoltage;
+    CONV_FLOAT =
+        frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)].gateVoltage;
 
     /* Load the CAN message payload with the returned value and set the
        size. The value has to be converted from little endian (Intel) to
@@ -108,7 +111,7 @@ static void gateVoltageHandler(void) {
 /* Drain Voltage Handler */
 /* This function will deal with monitor and control requests to the drain
    voltage. */
-static void drainVoltageHandler(void) {
+void paDrainVoltageHandler(int currentModule, int currentPaModule, int currentPaChannelModule) {
     float temp4K, temp12K;
     unsigned int state = DISABLE;
     signed char ret;
@@ -157,15 +160,17 @@ static void drainVoltageHandler(void) {
             storeError(ERR_PA_CHANNEL, ERC_HARDWARE_BLOCKED);
 
             // Store the status in the last control message:
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status =
-                HARDW_BLKD_ERR;
+            frontend.cartridge[currentModule]
+                .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                .lastDrainVoltage.status = HARDW_BLKD_ERR;
 
             return;
         }
 
         // save the incoming message:
-        SAVE_LAST_CONTROL_MESSAGE(
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage)
+        SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule]
+                                      .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                                      .lastDrainVoltage)
 
         /* Extract the float from the can message */
         changeEndian(CONV_CHR_ADD, CAN_DATA_ADD);
@@ -177,27 +182,33 @@ static void drainVoltageHandler(void) {
         if (frontend.mode == TROUBLESHOOTING_MODE)
             ret = NO_ERROR;
         else
-            ret = limitSafePaDrainVoltage(currentPaModule);
+            ret = limitSafePaDrainVoltage(currentPaModule, currentModule);
 
         if (ret != NO_ERROR) {
             // report that the limit was violated:
             storeError(ERR_PA_CHANNEL, ERC_HARDWARE_BLOCKED);  // Attempted to set LO PA above max safe power level.
 
             /* save the modified command setting to the "last control message" location */
-            changeEndian(frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.data,
+            changeEndian(frontend.cartridge[currentModule]
+                             .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                             .lastDrainVoltage.data,
                          CONV_CHR_ADD);
         }
 
         /* Set the PA channel drain voltage. If an error occurs then store the
            state and then return. */
-        if (setPaChannel() == ERROR) {
+        if (setPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status = ERROR;
+            frontend.cartridge[currentModule]
+                .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                .lastDrainVoltage.status = ERROR;
             return;
         }
 
         /* if limitSafePaDrainVoltage() above returned a problem, we want to save that error status */
-        frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage.status = ret;
+        frontend.cartridge[currentModule]
+            .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+            .lastDrainVoltage.status = ret;
 
         /* If everything went fine, it's a control message, we're done. */
         return;
@@ -206,20 +217,23 @@ static void drainVoltageHandler(void) {
     /* If monitor on control RCA */
     if (currentClass == CONTROL_CLASS) {  // If monitor on a control RCA
         // return the last control message and status
-        RETURN_LAST_CONTROL_MESSAGE(
-            frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].lastDrainVoltage)
+        RETURN_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule]
+                                        .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                                        .lastDrainVoltage)
         return;
     }
 
     /* If monitor on a monitor RCA */
     /* Monitor the PA channel drain voltage */
-    if (getPaChannel() == ERROR) {
+    if (getPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
     }
     /* Store the last known value in the outgoing message */
-    CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainVoltage;
+    CONV_FLOAT = frontend.cartridge[currentModule]
+                     .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                     .drainVoltage;
 
     /* Load the CAN message payload with the returned value and set the
        size. The value has to be converted from little endian (Intel) to
@@ -233,7 +247,7 @@ static void drainVoltageHandler(void) {
 /* This function deals with all the monitor requests directed to the PA channel
    drain current. There are no control messages allowed for the PA channel drain
    current. */
-static void drainCurrentHandler(void) {
+void paDrainCurrentHandler(int currentModule, int currentPaModule, int currentPaChannelModule) {
 #ifdef DEBUG
     printf("      Drain Current\n");
 #endif /* DEBUG */
@@ -255,13 +269,15 @@ static void drainCurrentHandler(void) {
     }
 
     /* Monitor the PA channel drain current */
-    if (getPaChannel() == ERROR) {
+    if (getPaChannel(currentModule, currentPaModule, currentPaChannelModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
     }
     /* Store the last known value in the outgoing message */
-    CONV_FLOAT = frontend.cartridge[currentModule].lo.pa.paChannel[currentPaChannel()].drainCurrent;
+    CONV_FLOAT = frontend.cartridge[currentModule]
+                     .lo.pa.paChannel[currentPaChannel(currentModule, currentPaModule)]
+                     .drainCurrent;
 
     /* Load the CAN message payload with the returned value and set the
        size. The value has to be converted from little endian (Intel) to
@@ -282,7 +298,7 @@ static void drainCurrentHandler(void) {
     \return
         - \ref PA_CHANNEL_A
         - \ref PA_CHANNEL_B */
-int currentPaChannel(void) {
+int currentPaChannel(int currentModule, int currentPaModule) {
     /* Switch on cartridge number */
     switch (currentModule) {
         case BAND3:

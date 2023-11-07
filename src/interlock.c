@@ -14,8 +14,6 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockModule = 0;
 /* Statics */
 static HANDLER interlockModulesHandler[INTERLOCK_MODULES_NUMBER] = {interlockSensorsHandler, interlockStateHandler};
 
@@ -28,7 +26,7 @@ void interlockHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentInterlockModule = (CAN_ADDRESS & INTERLOCK_MODULES_RCA_MASK) >> INTERLOCK_MODULES_MASK_SHIFT;
+    int currentInterlockModule = (CAN_ADDRESS & INTERLOCK_MODULES_RCA_MASK) >> INTERLOCK_MODULES_MASK_SHIFT;
     if (currentInterlockModule >= INTERLOCK_MODULES_NUMBER) {
         storeError(ERR_INTERLOCK, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                   // Notify incoming CAN message of error

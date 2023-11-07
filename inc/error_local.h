@@ -126,16 +126,14 @@ extern unsigned char errorOldest;   //!< A global to keep track of the oldest er
 extern unsigned int* errorHistory;  //!< A global pointer to the error history
 
 /* Prototypes */
-/* Statics */
 #ifdef ERROR_REPORT
-static void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo);
-#endif /* ERROR_REPORT */
-/* Externs */
-extern int errorInit(void);  //!< Initialize error routine
-extern int errorStop(void);  //!< Shutdown the error routine
-extern void storeError(unsigned char moduleNo,
-                       unsigned char errorNo);  //!< Store error
-extern void criticalError(unsigned char moduleNo,
-                          unsigned char errorNo);  //!< Report critical error
+void reportErrorConsole(unsigned char moduleNo, unsigned char errorNo);
+#endif                /* ERROR_REPORT */
+int errorInit(void);  //!< Initialize error routine
+int errorStop(void);  //!< Shutdown the error routine
+void storeError(unsigned char moduleNo,
+                unsigned char errorNo);  //!< Store error
+void criticalError(unsigned char moduleNo,
+                   unsigned char errorNo);  //!< Report critical error
 
 #endif /* _ERROR_H */

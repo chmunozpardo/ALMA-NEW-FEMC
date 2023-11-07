@@ -354,22 +354,19 @@ typedef struct {
 /* Externs */
 extern CRYO_REGISTERS cryoRegisters;  //!< Cryostat Registers
 /* Prototypes */
-/* Statics */
-static int getCryoAnalogMonitor(void);  // Perform core analog monitor functions
-
-/* Externs */
-extern int setBackingPumpEnable(unsigned char enable);  //!< This function enables/disables/ the backing pump
-extern int getSupplyCurrent230V(void);                  //!< This function monitors the 230V supply current
-extern int setTurboPumpEnable(unsigned char enable);    //!< This function enables/disables the turbo pump
-extern int getTurboPumpStates(void);                //!< This function monitors the different states of the turbo pump
-extern int setGateValveState(unsigned char state);  //!< This function opens/closes the gate valve
-extern int getGateValveState(void);                 //!< This function monitors the state of the gate valve
-extern int setSolenoidValveState(unsigned char state);      //!< This function opens/closes the solenoid valve
-extern int getSolenoidValveState(void);                     //!< This function monitors the state of the solenoid valve
-extern int getVacuumSensor(void);                           //!< This function monitors the vacuum sensor pressure
-extern int setVacuumControllerEnable(unsigned char state);  //!< This function enables/disables the vacuumn controller
-extern int getVacuumControllerState(void);  //!< This function monitors the state of the vacuum controller
-extern int getCryostatTemp(void);           //!< This function monitors the cryostat temperature
-extern int getCryoHardwRevision(void);      //!< This function returns the cryostat M&C board hardware revision level
+int getCryoAnalogMonitor(void);                  // Perform core analog monitor functions
+int setBackingPumpEnable(unsigned char enable);  //!< This function enables/disables/ the backing pump
+int getSupplyCurrent230V(void);                  //!< This function monitors the 230V supply current
+int setTurboPumpEnable(unsigned char enable);    //!< This function enables/disables the turbo pump
+int getTurboPumpStates(void);                    //!< This function monitors the different states of the turbo pump
+int setGateValveState(unsigned char state);      //!< This function opens/closes the gate valve
+int getGateValveState(void);                     //!< This function monitors the state of the gate valve
+int setSolenoidValveState(unsigned char state);  //!< This function opens/closes the solenoid valve
+int getSolenoidValveState(void);                 //!< This function monitors the state of the solenoid valve
+int getVacuumSensor(int currentAsyncVacuumControllerModule);  //!< This function monitors the vacuum sensor pressure
+int setVacuumControllerEnable(unsigned char state);           //!< This function enables/disables the vacuumn controller
+int getVacuumControllerState(void);                   //!< This function monitors the state of the vacuum controller
+int getCryostatTemp(int currentAsyncCryoTempModule);  //!< This function monitors the cryostat temperature
+int getCryoHardwRevision(void);  //!< This function returns the cryostat M&C board hardware revision level
 
 #endif /* _CRYOSTATSERIALINTERFACE_H */

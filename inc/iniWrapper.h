@@ -21,11 +21,9 @@
 #define ITEMS_NO_ERROR (-6)
 
 /* Prototypes */
-/* Statics */
-/* Externs */
-extern int myReadCfg(const char *fileName, char *sectionName, CFG_STRUCT *searchVar, unsigned char expectedItems);
+int myReadCfg(const char *fileName, char *sectionName, CFG_STRUCT *searchVar, unsigned char expectedItems);
 //!< This function will read the specified data from the specified file
 //!< If expectedItems == 0 then no error if zero or too many items returned.
-extern int myWriteCfg(const char *fileName, char *sectionName, char *varWanted,
-                      char *newData);  //! This function will update the INI file
-#endif                                 /* _INIWRAPPER_H */
+int myWriteCfg(const char *fileName, char *sectionName, char *varWanted,
+               char *newData);  //! This function will update the INI file
+#endif                          /* _INIWRAPPER_H */

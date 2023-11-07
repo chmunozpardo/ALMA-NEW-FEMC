@@ -14,12 +14,8 @@
                1 -> collectorBytePol0                \
                2 -> collectorBytePol1 */
 
-/* Externs */
-extern unsigned char currentTeledynePaModule;  //!< Current addressed Teledyne PA submodule
-extern void teledynePaHandler();
-
-/* Statics */
-static void hasTeledynePaHandler();
-static void collectorByteHandler();
+void teledynePaHandler(int currentModule);
+void hasTeledynePaHandler(int currentModule, int currentTeledynePaModule);
+void collectorByteHandler(int currentModule, int currentTeledynePaModule);
 
 #endif

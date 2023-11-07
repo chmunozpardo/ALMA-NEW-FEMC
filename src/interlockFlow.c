@@ -14,11 +14,9 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockFlowModule = 0;
 /* Statics */
-static HANDLER interlockFlowModulesHandler[INTERLOCK_FLOW_MODULES_NUMBER] = {interlockFlowSensHandler,
-                                                                             interlockFlowSensHandler};
+static HANDLER_INT interlockFlowModulesHandler[INTERLOCK_FLOW_MODULES_NUMBER] = {interlockFlowSensHandler,
+                                                                                 interlockFlowSensHandler};
 
 /* Interlock Flow Handler */
 /*! This function will be called by the CAN message handler when the received
@@ -29,7 +27,8 @@ void interlockFlowHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentInterlockFlowModule = (CAN_ADDRESS & INTERLOCK_FLOW_MODULES_RCA_MASK) >> INTERLOCK_FLOW_MODULES_MASK_SHIFT;
+    int currentInterlockFlowModule =
+        (CAN_ADDRESS & INTERLOCK_FLOW_MODULES_RCA_MASK) >> INTERLOCK_FLOW_MODULES_MASK_SHIFT;
     if (currentInterlockFlowModule >= INTERLOCK_FLOW_MODULES_NUMBER) {
         storeError(ERR_INTRLK_FLOW, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                     // Notify incoming CAN message of error
@@ -37,7 +36,7 @@ void interlockFlowHandler(void) {
     }
 
     /* Call the correct function */
-    (interlockFlowModulesHandler[currentInterlockFlowModule])();
+    (interlockFlowModulesHandler[currentInterlockFlowModule])(currentInterlockFlowModule);
 
     return;
 }

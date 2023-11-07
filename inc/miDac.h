@@ -43,14 +43,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastResetStrobe;
 } MI_DAC;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentMiDacModule;  //!< Current addressed modulation input DAC submodule
-
 /* Prototypes */
-/* Statics */
-static void resetStrobeHandler(void);
-/* Externs */
-extern void miDacHandler(void);  //!< This function deals with the incoming can message
+void miDacResetStrobeHandler(void);
+void miDacHandler(void);  //!< This function deals with the incoming can message
 
 #endif /* _MIDAC_H */

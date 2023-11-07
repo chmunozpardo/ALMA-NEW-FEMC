@@ -69,20 +69,14 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastOpenLoop;
 } SIS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentSisModule;  //!< Current addressed SIS submodule
-
 /* Prototypes */
-/* Statics */
-static void senseResistorHandler(void);
-static void voltageHandler(void);
-static void currentHandler(void);
-static void openLoopHandler(void);
-/* Externs */
-extern void sisHandler(void);  //!< This function deals with the incoming can message
-
-extern void sisGoStandby2();
+void senseResistorHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void openLoopHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisHandler(int currentModule, int currentBiasModule,
+                int currentPolarizationModule);  //!< This function deals with the incoming can message
+void sisGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule);
 //!< set the specified SIS to STANDBY2 mode
 
 #endif /* _SIS_H */

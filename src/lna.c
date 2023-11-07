@@ -15,24 +15,21 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLnaModule = 0;
 /* Statics */
-static HANDLER lnaModulesHandler[LNA_MODULES_NUMBER] = {lnaStageHandler,    lnaStageHandler,    lnaStageHandler,
-                                                        RESERVEDLNAHandler, RESERVEDLNAHandler, RESERVEDLNAHandler,
-                                                        enableHandler};
+static HANDLER_INT_INT_INT_INT lnaModulesHandler[LNA_MODULES_NUMBER] = {
+    lnaStageHandler,    lnaStageHandler,    lnaStageHandler, RESERVEDLNAHandler,
+    RESERVEDLNAHandler, RESERVEDLNAHandler, lnaEnableHandler};
 
 /* LNA handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the LNA. */
-void lnaHandler(void) {
+void lnaHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("      LNA\n");
 #endif /* DEBUG */
 
     /* Check if the submodule is in range */
-    currentLnaModule = (CAN_ADDRESS & LNA_MODULES_RCA_MASK) >> LNA_MODULES_MASK_SHIFT;
+    int currentLnaModule = (CAN_ADDRESS & LNA_MODULES_RCA_MASK) >> LNA_MODULES_MASK_SHIFT;
     if (currentLnaModule >= LNA_MODULES_NUMBER) {
         storeError(ERR_LNA, ERC_MODULE_RANGE);  // LNA submodule out of range
 
@@ -41,10 +38,11 @@ void lnaHandler(void) {
     }
 
     /* Call the correct handler */
-    (lnaModulesHandler[currentLnaModule])();
+    (lnaModulesHandler[currentLnaModule])(currentModule, currentBiasModule, currentPolarizationModule,
+                                          currentLnaModule);
 }
 
-void RESERVEDLNAHandler(void) {
+void RESERVEDLNAHandler(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule) {
     // Handler for LNA stages 4,5,6 which don't exist
     storeError(ERR_LNA, ERC_MODULE_ABSENT);  // LNA not installed
     CAN_STATUS = HARDW_RNG_ERR;              // Notify incoming CAN message of error
@@ -52,7 +50,7 @@ void RESERVEDLNAHandler(void) {
 }
 
 /* LNA enable handler */
-static void enableHandler(void) {
+void lnaEnableHandler(int currentModule, int currentBiasModule, int currentPolarizationModule, int currentLnaModule) {
 #ifdef DEBUG
     printf("       enable\n");
 #endif /* DEBUG */
@@ -77,7 +75,8 @@ static void enableHandler(void) {
 
         /* Change the status of the LNA according to the content of the CAN
            message. */
-        if (setLnaBiasEnable(CAN_BYTE ? LNA_BIAS_ENABLE : LNA_BIAS_DISABLE) == ERROR) {
+        if (setLnaBiasEnable(CAN_BYTE ? LNA_BIAS_ENABLE : LNA_BIAS_DISABLE, currentModule, currentBiasModule,
+                             currentPolarizationModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -89,7 +88,8 @@ static void enableHandler(void) {
         /* If this is band 1 or 2, and if this is SB1, also set SB2:    */
         if ((currentModule == BAND1 || currentModule == BAND2) && currentPolarizationModule == SIDEBAND0) {
             currentPolarizationModule = SIDEBAND1;
-            setLnaBiasEnable(CAN_BYTE ? LNA_BIAS_ENABLE : LNA_BIAS_DISABLE);
+            setLnaBiasEnable(CAN_BYTE ? LNA_BIAS_ENABLE : LNA_BIAS_DISABLE, currentModule, currentBiasModule,
+                             currentPolarizationModule);
             currentPolarizationModule = SIDEBAND0;
         }
 
@@ -119,15 +119,16 @@ static void enableHandler(void) {
 }
 
 // set the specified LNA to STANDBY2 mode
-void lnaGoStandby2() {
-    int ret;
-
+void lnaGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG_GO_STANDBY2
+    int ret;
     printf(" - lnaGoStandby2 pol=%d sb=%d\n", currentBiasModule, currentPolarizationModule);
-#endif  // DEBUG_GO_STANDBY2
-
     // disable the LNA:
-    ret = setLnaBiasEnable(LNA_BIAS_DISABLE);
+    ret = setLnaBiasEnable(LNA_BIAS_DISABLE, currentModule, currentBiasModule, currentPolarizationModule);
+#else
+    // disable the LNA:
+    setLnaBiasEnable(LNA_BIAS_DISABLE, currentModule, currentBiasModule, currentPolarizationModule);
+#endif  // DEBUG_GO_STANDBY2
 
 #ifdef DEBUG_GO_STANDBY2
     if (ret) printf(" -- ret=%d\n", ret);

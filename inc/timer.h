@@ -28,42 +28,42 @@
 
 /*** Bias Module ***/
 /* ADC */
-#define TIMER_BIAS_ADC_RDY 20      // Timer number
-#define TIMER_BIAS_TO_ADC_RDY 100  // Timeout in milliseconds
+#define TIMER_BIAS_ADC_RDY 20       // Timer number
+#define TIMER_BIAS_TO_ADC_RDY 1000  // Timeout in milliseconds
 /* DAC1 */
-#define TIMER_BIAS_DAC1_RDY 21      // Timer number
-#define TIMER_BIAS_TO_DAC1_RDY 100  // Timeout in milliseconds
+#define TIMER_BIAS_DAC1_RDY 21       // Timer number
+#define TIMER_BIAS_TO_DAC1_RDY 1000  // Timeout in milliseconds
 /* BAND9 SIS Heater */
 #define TIMER_BIAS_B9_HEATER(pol) (22 + pol)  // Timer number
 #define TIMER_BIAS_TO_B9_HEATER 10000         // Timeout in milliseconds
 
 /*** LO Module ***/
 /* ADC */
-#define TIMER_LO_ADC_RDY 30      // Timer number
-#define TIMER_LO_TO_ADC_RDY 100  // Timeout in milliseconds
+#define TIMER_LO_ADC_RDY 30       // Timer number
+#define TIMER_LO_TO_ADC_RDY 1000  // Timeout in milliseconds
 
 /*** Power distribution Module */
 /* ADC */
-#define TIMER_PD_ADC_RDY 40      // Timer number
-#define TIMER_PD_TO_ADC_RDY 100  // Timeout in milliseconds
+#define TIMER_PD_ADC_RDY 40     // Timer number
+#define TIMER_PD_TO_ADC_RDY 50  // Timeout in milliseconds
 
 /*** IF Switch Module ***/
 /* ADC */
-#define TIMER_IF_ADC_RDY 50      // Timer number
-#define TIMER_IF_TO_ADC_RDY 100  // Timeout in milliseconds
+#define TIMER_IF_ADC_RDY 50       // Timer number
+#define TIMER_IF_TO_ADC_RDY 1000  // Timeout in milliseconds
 
 /*** Cryostat Module ***/
 /* ADC */
-#define TIMER_CRYO_ANALOG_WAIT 60      // Timer number
-#define TIMER_CRYO_TO_ANALOG_WAIT 100  // Timeout in milliseconds
+#define TIMER_CRYO_ANALOG_WAIT 60     // Timer number
+#define TIMER_CRYO_TO_ANALOG_WAIT 50  // Timeout in milliseconds
 /* CRYOSTAT_LOG_HOURS */
 #define TIMER_CRYO_LOG_HOURS 61             // Timer number
 #define TIMER_CRYO_LOG_HOURS_WAIT 3600000L  // Timeout in milliseconds
 
 /*** LPR Module ***/
 /* ADC */
-#define TIMER_LPR_ADC_RDY 70      // Timer number
-#define TIMER_LPR_TO_ADC_RDY 100  // Timeout in milliseconds
+#define TIMER_LPR_ADC_RDY 70       // Timer number
+#define TIMER_LPR_TO_ADC_RDY 1000  // Timeout in milliseconds
 /* SWITCH READY */
 #define TIMER_LPR_SWITCH_RDY 71       // Timer number
 #define TIMER_LPR_TO_SWITCH_RDY 5000  // Timeout in milliseconds
@@ -71,7 +71,7 @@
 /*** One Wire Bus Module ***/
 /* IRQ */
 #define TIMER_OWB_IRQ 80       // Timer number
-#define TIMER_TO_OWB_IRQ 10000  // Timeout in milliseconds
+#define TIMER_TO_OWB_IRQ 1000  // Timeout in milliseconds
 /* RESET */
 #define TIMER_OWB_RESET 81        // Timer number
 #define TIMER_TO_OWB_RESET 10000  // Timeout in milliseconds
@@ -87,10 +87,8 @@
 #define TIMER_NO_OUT_OF_RANGE (-3)  //!< Signal for timer number out of range
 
 /* Prototypes */
-/* Externs */
-extern void waitMilliseconds(unsigned int milliseconds);  //!< Wait a defined number of milliseconds
-extern int startAsyncTimer(unsigned char timerNo, unsigned long mSeconds,
-                           unsigned char reload);   //!< Setup and start the asynchronous timer
-extern int queryAsyncTimer(unsigned char timerNo);  //!< Query the state of the asynchronous timer
-extern int stopAsyncTimer(unsigned char timerNo);   //!< Clear the state of the asynchronous timer
-#endif                                              /* _TIMER_H */
+int startAsyncTimer(unsigned char timerNo, unsigned long mSeconds,
+                    unsigned char reload);   //!< Setup and start the asynchronous timer
+int queryAsyncTimer(unsigned char timerNo);  //!< Query the state of the asynchronous timer
+int stopAsyncTimer(unsigned char timerNo);   //!< Clear the state of the asynchronous timer
+#endif                                       /* _TIMER_H */

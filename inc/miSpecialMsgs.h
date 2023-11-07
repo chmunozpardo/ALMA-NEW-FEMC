@@ -41,12 +41,7 @@ typedef struct {
     MI_DAC miDac;
 } MI_SPECIAL_MSGS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentMiSpecialMsgsModule;  //!< Current addressed modulation input special submodule
-
 /* Prototypes */
-/* Externs */
-extern void miSpecialMsgsHandler(void);  //!< This function deals with the incoming can message
+void miSpecialMsgsHandler(void);  //!< This function deals with the incoming can message
 
 #endif /* _MISPECIALMSGS_H */

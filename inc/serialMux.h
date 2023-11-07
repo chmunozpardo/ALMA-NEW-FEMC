@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,6 +81,7 @@
 extern int fd_mem;
 
 extern volatile unsigned int *pico_mem;
+extern pthread_mutex_t pico_lock;
 
 /* Typedefs */
 //! Serial multiplexing board's frame
@@ -150,10 +152,6 @@ typedef struct {
     unsigned int busy;
 } FRAME;
 
-/* Globals */
-/* Externs */
-extern FRAME frame;  //!< A global to create the frame for the mux board
-
 extern int LATCH_DEBUG_SERIAL_WRITE;
 //!< DEBUG_SERIAL_WRITE works as a one-shot.  Must set this to 1 before each
 //!< call.
@@ -161,9 +159,9 @@ extern int LATCH_DEBUG_SERIAL_WRITE;
 /* Prototypes */
 /* Statics */
 /* Externs */
-extern int writeMux(void);  //!< Serial Mux Board write
-extern int readMux(void);   //!< Serial Mux Board read
+int writeMux(FRAME *frame);  //!< Serial Mux Board write
+int readMux(FRAME *frame);   //!< Serial Mux Board read
 
-extern unsigned char init_mem_map(void);
+unsigned char init_mem_map(void);
 
 #endif  // _SERIALMUX_H

@@ -11,8 +11,7 @@
 #define _GLOBALOPERATIONS_H
 
 /* Prototypes */
-/* Externs */
-extern int initialization(void);  //!< This function performs a global initialization of the system
-extern int shutDown(void);        //!< This function performs a global shutdown of the system
+int initialization(void);  //!< This function performs a global initialization of the system
+int shutDown(void);        //!< This function performs a global shutdown of the system
 
 #endif /* _GLOBALOPERATION_H */

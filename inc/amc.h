@@ -149,26 +149,20 @@ typedef struct {
 
 } AMC;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentAmcModule;  //!< Current addressed MC submodule
-
 /* Prototypes */
-/* Statics */
-static void gateAVoltageHandler(void);
-static void drainAVoltageHandler(void);
-static void drainACurrentHandler(void);
-static void gateBVoltageHandler(void);
-static void drainBVoltageHandler(void);
-static void drainBCurrentHandler(void);
-static void multiplierDVoltageHandler(void);
-static void multiplierDCurrentHandler(void);
-static void gateEVoltageHandler(void);
-static void drainEVoltageHandler(void);
-static void drainECurrentHandler(void);
-static void supplyVoltage5VHandler(void);
+void gateAVoltageHandler(int currentModule);
+void drainAVoltageHandler(int currentModule);
+void drainACurrentHandler(int currentModule);
+void gateBVoltageHandler(int currentModule);
+void drainBVoltageHandler(int currentModule);
+void drainBCurrentHandler(int currentModule);
+void multiplierDVoltageHandler(int currentModule);
+void multiplierDCurrentHandler(int currentModule);
+void gateEVoltageHandler(int currentModule);
+void drainEVoltageHandler(int currentModule);
+void drainECurrentHandler(int currentModule);
+void amcSupplyVoltage5VHandler(int currentModule);
 
-/* Externs */
-extern void amcHandler(void);  //!< This function deals with the incoming can message
+void amcHandler(int currentModule);  //!< This function deals with the incoming can message
 
 #endif /* _AMC_H */

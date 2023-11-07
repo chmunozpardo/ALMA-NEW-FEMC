@@ -15,19 +15,16 @@
 #include "frontend.h"
 #include "loSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentAmcModule = 0;
 /* Statics */
-static HANDLER amcModulesHandler[AMC_MODULES_NUMBER] = {
+static HANDLER_INT amcModulesHandler[AMC_MODULES_NUMBER] = {
     gateAVoltageHandler,  drainAVoltageHandler, drainACurrentHandler,      gateBVoltageHandler,
     drainBVoltageHandler, drainBCurrentHandler, multiplierDVoltageHandler, gateEVoltageHandler,
-    drainEVoltageHandler, drainECurrentHandler, multiplierDCurrentHandler, supplyVoltage5VHandler};
+    drainEVoltageHandler, drainECurrentHandler, multiplierDCurrentHandler, amcSupplyVoltage5VHandler};
 
 /* AMC handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the MC. */
-void amcHandler(void) {
+void amcHandler(int currentModule) {
 #ifdef DEBUG
     printf("    AMC\n");
 #endif /* DEBUG */
@@ -36,7 +33,7 @@ void amcHandler(void) {
        is performed. */
 
     /* Check if the submodule is in range */
-    currentAmcModule = (CAN_ADDRESS & AMC_MODULES_RCA_MASK);
+    int currentAmcModule = (CAN_ADDRESS & AMC_MODULES_RCA_MASK);
     if (currentAmcModule >= AMC_MODULES_NUMBER) {
         storeError(ERR_AMC, ERC_MODULE_RANGE);  // AMC submodule out of range
 
@@ -44,13 +41,13 @@ void amcHandler(void) {
         return;
     }
     /* Call the correct handler */
-    (amcModulesHandler[currentAmcModule])();
+    (amcModulesHandler[currentAmcModule])(currentModule);
 }
 
 /* Gate A Voltage Handler */
 /* This function deals with all the monitor requests directed to the AMC gate A
    voltage. There are no control messages allowed for the gate A voltage. */
-static void gateAVoltageHandler(void) {
+void gateAVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Gate A Voltage\n");
 #endif /* DEBUG */
@@ -73,7 +70,7 @@ static void gateAVoltageHandler(void) {
     }
 
     /* Monitor the amc A gate voltage */
-    if (getAmc(AMC_GATE_A_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_GATE_A_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -95,7 +92,7 @@ static void gateAVoltageHandler(void) {
 /* Drain A Voltage Handler */
 /* This function deals with all the monitor requests directed to the AMC drain A
    voltage. There are no control messages allowed for the drain A voltage. */
-static void drainAVoltageHandler(void) {
+void drainAVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Drain A Voltage\n");
 #endif /* DEBUG */
@@ -117,7 +114,7 @@ static void drainAVoltageHandler(void) {
     }
 
     /* Monitor the amc A drain voltage */
-    if (getAmc(AMC_DRAIN_A_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_DRAIN_A_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -139,7 +136,7 @@ static void drainAVoltageHandler(void) {
 /* Drain A Current Handler */
 /* This function deals with all the monitor requests directed to the AMC drain A
    current. There are no control messages allowed for the drain A current. */
-static void drainACurrentHandler(void) {
+void drainACurrentHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Drain A Current\n");
 #endif /* DEBUG */
@@ -162,7 +159,7 @@ static void drainACurrentHandler(void) {
     }
 
     /* Monitor the AMC drain A current */
-    if (getAmc(AMC_DRAIN_A_CURRENT) == ERROR) {
+    if (getAmc(AMC_DRAIN_A_CURRENT, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -184,7 +181,7 @@ static void drainACurrentHandler(void) {
 /* Gate B Voltage Handler */
 /* This function deals with all the monitor requests directed to the AMC gate B
    voltage. There are no control messages allowed for the gate B voltage. */
-static void gateBVoltageHandler(void) {
+void gateBVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Gate B Voltage\n");
 #endif /* DEBUG */
@@ -207,7 +204,7 @@ static void gateBVoltageHandler(void) {
     }
 
     /* Monitor the amc B gate voltage */
-    if (getAmc(AMC_GATE_B_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_GATE_B_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -229,7 +226,7 @@ static void gateBVoltageHandler(void) {
 /* Drain B Voltage Handler */
 /* This function will deal with monitor and control requests to the drain b
    voltage. */
-static void drainBVoltageHandler(void) {
+void drainBVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Drain B Voltage\n");
 #endif /* DEBUG */
@@ -244,7 +241,7 @@ static void drainBVoltageHandler(void) {
 
         /* Set the AMC drain B voltage. If an error occurs then store the state
            and return the error state then return. */
-        if (setAmc(AMC_DRAIN_B_VOLTAGE) == ERROR) {
+        if (setAmc(AMC_DRAIN_B_VOLTAGE, currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.amc.lastDrainBVoltage.status = ERROR;
 
@@ -265,7 +262,7 @@ static void drainBVoltageHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the AMC drain B voltage */
-    if (getAmc(AMC_DRAIN_B_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_DRAIN_B_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -286,7 +283,7 @@ static void drainBVoltageHandler(void) {
 /* Drain B Current Handler */
 /* This function deals with all the monitor requests directed to the AMC drain B
    current. There are no control messages allowed for the drain B current. */
-static void drainBCurrentHandler(void) {
+void drainBCurrentHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Drain B Current\n");
 #endif /* DEBUG */
@@ -309,7 +306,7 @@ static void drainBCurrentHandler(void) {
     }
 
     /* Monitor the AMC drain B current */
-    if (getAmc(AMC_DRAIN_B_CURRENT) == ERROR) {
+    if (getAmc(AMC_DRAIN_B_CURRENT, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -331,7 +328,7 @@ static void drainBCurrentHandler(void) {
 /* Multiplier D Voltage Handler */
 /* This function will deal with monitor and control requests to the multiplier
    D voltage. */
-static void multiplierDVoltageHandler(void) {
+void multiplierDVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Multiplier D Voltage\n");
 #endif /* DEBUG */
@@ -342,7 +339,7 @@ static void multiplierDVoltageHandler(void) {
         SAVE_LAST_CONTROL_MESSAGE(frontend.cartridge[currentModule].lo.amc.lastMultiplierDVoltage);
         /* Set the AMC multiplier D voltage. If an error occurs then store the state
            and return the error state then return. */
-        if (setAmc(AMC_MULTIPLIER_D_VOLTAGE) == ERROR) {
+        if (setAmc(AMC_MULTIPLIER_D_VOLTAGE, currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.amc.lastMultiplierDVoltage.status = ERROR;
             return;
@@ -371,7 +368,7 @@ static void multiplierDVoltageHandler(void) {
 
 /* Multiplier D Current Handler */
 /* This function will deal with monitor requests to the multiplier D current. */
-static void multiplierDCurrentHandler(void) {
+void multiplierDCurrentHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Multiplier D Current\n");
 #endif /* DEBUG */
@@ -395,7 +392,7 @@ static void multiplierDCurrentHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the AMC multiplier D voltage */
-    if (getAmc(AMC_MULTIPLIER_D_CURRENT) == ERROR) {
+    if (getAmc(AMC_MULTIPLIER_D_CURRENT, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -416,7 +413,7 @@ static void multiplierDCurrentHandler(void) {
 /* Gate E Voltage Handler */
 /* This function will deal with monitor and control requests to the gate E
    voltage. */
-static void gateEVoltageHandler(void) {
+void gateEVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Gate E Voltage\n");
 #endif /* DEBUG */
@@ -431,7 +428,7 @@ static void gateEVoltageHandler(void) {
 
         /* Set the AMC gate E voltage. If an error occurs then store the state
            and return the error state then return. */
-        if (setAmc(AMC_GATE_E_VOLTAGE) == ERROR) {
+        if (setAmc(AMC_GATE_E_VOLTAGE, currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.amc.lastGateEVoltage.status = ERROR;
             return;
@@ -450,7 +447,7 @@ static void gateEVoltageHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the AMC gate E voltage */
-    if (getAmc(AMC_GATE_E_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_GATE_E_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -471,7 +468,7 @@ static void gateEVoltageHandler(void) {
 /* Drain E Voltage Handler */
 /* This function will deal with monitor and control requests to the gate E
    voltage. */
-static void drainEVoltageHandler(void) {
+void drainEVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Drain E Voltage\n");
 #endif /* DEBUG */
@@ -486,7 +483,7 @@ static void drainEVoltageHandler(void) {
 
         /* Set the AMC drain E voltage. If an error occurs then store the state
            and return the error state then return. */
-        if (setAmc(AMC_DRAIN_E_VOLTAGE) == ERROR) {
+        if (setAmc(AMC_DRAIN_E_VOLTAGE, currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.amc.lastDrainEVoltage.status = ERROR;
 
@@ -506,7 +503,7 @@ static void drainEVoltageHandler(void) {
 
     /* If monitor on a monitor RCA */
     /* Monitor the AMC drain E voltage */
-    if (getAmc(AMC_DRAIN_E_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_DRAIN_E_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -527,7 +524,7 @@ static void drainEVoltageHandler(void) {
 /* Drain E Current Handler */
 /* This function deals with all the monitor requests directed to the AMC drain E
    current. There are no control messages allowed for the drain E current. */
-static void drainECurrentHandler(void) {
+void drainECurrentHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Drain E Current\n");
 #endif /* DEBUG */
@@ -550,7 +547,7 @@ static void drainECurrentHandler(void) {
     }
 
     /* Monitor the AMC drain E current */
-    if (getAmc(AMC_DRAIN_E_CURRENT) == ERROR) {
+    if (getAmc(AMC_DRAIN_E_CURRENT, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -573,7 +570,7 @@ static void drainECurrentHandler(void) {
 /* This function deals with all the monitor requests directed to the AMC 5V
    supply voltage. There are no control messages allowed for the 5V supply
    voltage. */
-static void supplyVoltage5VHandler(void) {
+void amcSupplyVoltage5VHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Supply Voltage 5V\n");
 #endif /* DEBUG */
@@ -596,7 +593,7 @@ static void supplyVoltage5VHandler(void) {
     }
 
     /* Monitor the AMC 5V supply voltage */
-    if (getAmc(AMC_5V_SUPPLY_VOLTAGE) == ERROR) {
+    if (getAmc(AMC_5V_SUPPLY_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

@@ -16,9 +16,6 @@
 #include "error_local.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentMiSpecialMsgsModule = 0;
 /* Statics */
 static HANDLER miSpecialMsgsModulesHandler[MI_SPECIAL_MSGS_MODULES_NUMBER] = {miDacHandler};
 
@@ -42,5 +39,5 @@ void miSpecialMsgsHandler(void) {
     /* Since the is only one submodule in the modulation input special messages,
        the check to see if the desired submodule is in range, is not needed and
        we can directly call the correct handler. */
-    (miSpecialMsgsModulesHandler[currentMiSpecialMsgsModule])();
+    (miSpecialMsgsModulesHandler[0])();
 }

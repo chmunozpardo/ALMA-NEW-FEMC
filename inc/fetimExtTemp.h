@@ -45,15 +45,9 @@ typedef struct {
     unsigned char tempOutRng;
 } COMP_TEMP;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentFetimExtTempModule;  //!< Currently addressed compressor temperature sensor module
-
 /* Prototypes */
-/* Statics */
-static void tempHandler(void);
-static void outOfRangeHandler(void);
-/* Externs */
-extern void fetimExtTempHandler(void);  //!< This function deals with the incoming CAN messages
+void fetimTempHandler(int currentCompressorModule);
+void outOfRangeHandler(int currentCompressorModule);
+void fetimExtTempHandler(int currentCompressorModule);  //!< This function deals with the incoming CAN messages
 
 #endif /* _FETIM_EXT_TEMP_H */

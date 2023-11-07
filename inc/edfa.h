@@ -62,14 +62,8 @@ typedef struct {
     unsigned char driverTempAlarm;
 } EDFA;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentEdfaModule;  //!< Currently addressed EDFA submodule
-
 /* Prototypes */
-/* Statics */
-static void driverStateHandler(void);
-/* Externs */
-extern void edfaHandler(void);  //!< This function deals with the incoming CAN messages
+void driverStateHandler(void);
+void edfaHandler(int currentLprModule);  //!< This function deals with the incoming CAN messages
 
 #endif /* _EDFA_H */

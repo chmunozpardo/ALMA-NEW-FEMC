@@ -15,10 +15,9 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockGlitchModule = 0;
 /* Statics */
-static HANDLER interlockGlitchModulesHandler[INTERLOCK_GLITCH_MODULES_NUMBER] = {valueHandler, countTrigHandler};
+static HANDLER interlockGlitchModulesHandler[INTERLOCK_GLITCH_MODULES_NUMBER] = {interlockGlitchValueHandler,
+                                                                                 countTrigHandler};
 
 /* Interlock Glitch Handler */
 /*! This function will be called by the CAN message handler when the received
@@ -29,7 +28,7 @@ void interlockGlitchHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentInterlockGlitchModule =
+    int currentInterlockGlitchModule =
         (CAN_ADDRESS & INTERLOCK_GLITCH_MODULES_RCA_MASK) >> INTERLOCK_GLITCH_MODULES_MASK_SHIFT;
     if (currentInterlockGlitchModule >= INTERLOCK_GLITCH_MODULES_NUMBER) {
         storeError(ERR_INTRLK_GLITCH, ERC_MODULE_RANGE);  // Submodule out of range
@@ -45,7 +44,7 @@ void interlockGlitchHandler(void) {
 
 /* Glitch analog value handler */
 /* Deal with the analog value of the glitch counter */
-static void valueHandler(void) {
+void interlockGlitchValueHandler(void) {
 #ifdef DEBUG_FETIM
     printf("     Analog value\n");
 #endif /* DEBUG_FETIM */
@@ -92,7 +91,7 @@ static void valueHandler(void) {
 
 /* Glitch triggered handler */
 /* Deal with the glitch counter triggered value */
-static void countTrigHandler(void) {
+void countTrigHandler(void) {
 #ifdef DEBUG_FETIM
     printf("     Counter triggered\n");
 #endif /* DEBUG_FETIM */
@@ -116,7 +115,7 @@ static void countTrigHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_GLITCH_CNT) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_GLITCH_CNT, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

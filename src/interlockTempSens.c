@@ -15,15 +15,13 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockTempSensModule = 0;
 /* Statics */
-static HANDLER interlockTempSensModulesHandler[INTERLOCK_TEMP_SENS_MODULES_NUMBER] = {tempHandler};
+static HANDLER_INT interlockTempSensModulesHandler[INTERLOCK_TEMP_SENS_MODULES_NUMBER] = {interlockTempSensTempHandler};
 
 /* Interlock Temperature Sensor Handler */
 /*! This function will be called by the CAN message handler when the received
     message is in the address range of the interlock temperature sensor */
-void interlockTempSensHandler(void) {
+void interlockTempSensHandler(int currentInterlockTempModule) {
 #ifdef DEBUG_FETIM
     printf("     Temperature Sensor: %d\n", currentInterlockTempModule);
 #endif /* DEBUG_FETIM */
@@ -32,13 +30,13 @@ void interlockTempSensHandler(void) {
        module, the check to see if the desired submodule is in range, is not
        needed and we can directly call the correct handler. */
     /* Call the correct handler */
-    (interlockTempSensModulesHandler[currentInterlockTempSensModule])();
+    (interlockTempSensModulesHandler[0])(currentInterlockTempModule);
 
     return;
 }
 
 /* Tmperature sensor handler */
-void tempHandler(void) {
+void interlockTempSensTempHandler(int currentInterlockTempModule) {
 #ifdef DEBUG_FETIM
     printf("      Temperature\n");
 #endif /* DEBUG_FETIM */
@@ -60,7 +58,7 @@ void tempHandler(void) {
     }
 
     /* Monitor Interlock temperature */
-    if (getInterlockTemp() == ERROR) {
+    if (getInterlockTemp(currentInterlockTempModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

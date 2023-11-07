@@ -15,17 +15,14 @@
 #include "globalDefinitions.h"
 #include "loSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPaModule = 0;
 /* Statics */
-static HANDLER paModulesHandler[PA_MODULES_NUMBER] = {paChannelHandler, paChannelHandler, supplyVoltage3VHandler,
-                                                      supplyVoltage5VHandler};
+static HANDLER_INT_INT paModulesHandler[PA_MODULES_NUMBER] = {paChannelHandler, paChannelHandler,
+                                                              paSupplyVoltage3VHandler, paSupplyVoltage5VHandler};
 
 /* PA handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the PA. */
-void paHandler(void) {
+void paHandler(int currentModule) {
 #ifdef DEBUG
     printf("    PA\n");
 #endif /* DEBUG */
@@ -34,7 +31,7 @@ void paHandler(void) {
        is performed. */
 
     /* Check if the submodule is in range */
-    currentPaModule = (CAN_ADDRESS & PA_MODULES_RCA_MASK) >> PA_MODULES_MASK_SHIFT;
+    int currentPaModule = (CAN_ADDRESS & PA_MODULES_RCA_MASK) >> PA_MODULES_MASK_SHIFT;
     if (currentPaModule >= PA_MODULES_NUMBER) {
         storeError(ERR_PA, ERC_MODULE_RANGE);  // PA submodule out of range
 
@@ -42,14 +39,14 @@ void paHandler(void) {
         return;
     }
     /* Call the correct handler */
-    (paModulesHandler[currentPaModule])();
+    (paModulesHandler[currentPaModule])(currentModule, currentPaModule);
 }
 
 /* Supply Voltage 3V Handler */
 /* This function deals with all the monitor requests directed to the PA 3V
    supply voltage. There are no control messages allowed for the 3V supply
    voltage. */
-void supplyVoltage3VHandler(void) {
+void paSupplyVoltage3VHandler(int currentModule, int currentPaModule) {
 #ifdef DEBUG
     printf("     Supply Voltage 3V\n");
 #endif /* DEBUG */
@@ -71,7 +68,7 @@ void supplyVoltage3VHandler(void) {
     }
 
     /* Monitor the 3V supply voltage */
-    if (getPa(PA_3V_SUPPLY_VOLTAGE) == ERROR) {
+    if (getPa(PA_3V_SUPPLY_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -93,7 +90,7 @@ void supplyVoltage3VHandler(void) {
 /* This function deals with all the monitor requests directed to the PA 5V
    supply voltage. There are no control messages allowed for the 5V supply
    voltage. */
-void supplyVoltage5VHandler(void) {
+void paSupplyVoltage5VHandler(int currentModule, int currentPaModule) {
 #ifdef DEBUG
     printf("     Supply Voltage 5V\n");
 #endif /* DEBUG */
@@ -115,7 +112,7 @@ void supplyVoltage5VHandler(void) {
     }
 
     /* Monitor the 5V supply voltage */
-    if (getPa(PA_5V_SUPPLY_VOLTAGE) == ERROR) {
+    if (getPa(PA_5V_SUPPLY_VOLTAGE, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

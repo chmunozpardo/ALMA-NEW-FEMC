@@ -16,11 +16,8 @@
 #include "frontend.h"
 #include "lprSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPhotoDetectorModule = 0;
-static HANDLER photoDetectorModulesHandler[PHOTO_DETECTOR_MODULES_NUMBER] = {currentHandler, conversionCoeffHandler,
-                                                                             powerHandler};
+static HANDLER photoDetectorModulesHandler[PHOTO_DETECTOR_MODULES_NUMBER] = {photoDetectorCurrentHandler,
+                                                                             conversionCoeffHandler, powerHandler};
 
 /* Photo Detector handler */
 /*! This function will be called by the CAN message handler when the received
@@ -34,7 +31,7 @@ void photoDetectorHandler(void) {
        check is performed. */
 
     /* Check if the specified submodule is in range */
-    currentPhotoDetectorModule = (CAN_ADDRESS & PHOTO_DETECTOR_MODULES_RCA_MASK);
+    int currentPhotoDetectorModule = (CAN_ADDRESS & PHOTO_DETECTOR_MODULES_RCA_MASK);
     if (currentPhotoDetectorModule >= PHOTO_DETECTOR_MODULES_NUMBER) {
         storeError(ERR_PHOTO_DETECTOR, ERC_MODULE_RANGE);  // EDFA photo detector submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                        // Notify incoming CAN message of error
@@ -46,7 +43,7 @@ void photoDetectorHandler(void) {
 }
 
 /* EDFA photo detector current handler */
-static void currentHandler(void) {
+void photoDetectorCurrentHandler(void) {
 #ifdef DEBUG_LPR
     printf("    Current\n");
 #endif /* DEBUG_LPR */
@@ -119,7 +116,7 @@ void conversionCoeffHandler(void) {
 }
 
 /* EDFA photo detector power handler */
-static void powerHandler(void) {
+void powerHandler(void) {
 #ifdef DEBUG_LPR
     printf("    Power\n");
 #endif /* DEBUG_LPR */

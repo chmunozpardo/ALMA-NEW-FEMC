@@ -59,17 +59,12 @@ typedef struct {
 } FETIM;
 
 /* Globals */
-/* Externs */
-extern unsigned char currentFetimModule;              //!< Currently addressed FETIM module
-extern unsigned char currentAsyncFetimExtTempModule;  //!< A global to keep track of the FETIM external temperature
-                                                      //!< module currently addressed by the async routine
 extern int asyncFetimExtTempError[FETIM_EXT_SENSORS_NUMBER];  //!< A global to keep track of the async error while
                                                               //!< monitoring FETIM external temperatures
 extern int asyncFetimHePressError;  //!< A global to keep track of the async error while monitoring FETIM He2 pressure
 /* Prototypes */
-/* Externs */
-extern void fetimHandler(void);  //!< This function deals with the incoming CAN messages
-extern int fetimStartup(void);   //!< This function initializes the FETIM subsystem
-extern int fetimAsync(void);     //!< This function deals with the asynchronous operation of the FETIM
+void fetimHandler(int currentModule);  //!< This function deals with the incoming CAN messages
+int fetimStartup(void);                //!< This function initializes the FETIM subsystem
+int fetimAsync(void);                  //!< This function deals with the asynchronous operation of the FETIM
 
 #endif /* _FETIM_H */

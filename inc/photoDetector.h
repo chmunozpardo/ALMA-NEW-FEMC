@@ -53,16 +53,10 @@ typedef struct {
 
 } PHOTO_DETECTOR;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPhotoDetectorModule;  //!< Currently addressed EDFA photo detector submodule
-
 /* Prototypes */
-/* Statics */
-static void currentHandler(void);
-static void conversionCoeffHandler(void);
-static void powerHandler(void);
-/* Externs */
-extern void photoDetectorHandler(void);  //!< This function deals with the incoming CAN message
+void photoDetectorCurrentHandler(void);
+void conversionCoeffHandler(void);
+void powerHandler(void);
+void photoDetectorHandler(void);  //!< This function deals with the incoming CAN message
 
 #endif /* _PHOTODETECTOR_H */

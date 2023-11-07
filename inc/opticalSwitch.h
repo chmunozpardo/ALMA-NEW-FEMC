@@ -102,18 +102,12 @@ typedef struct {
     unsigned char busy;
 } OPTICAL_SWITCH;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentOpticalSwitchModule;  //!< Currently addressed optical switch module
-
 /* Prototypes */
-/* Statics */
-static void portHandler(void);
-static void shutterHandler(void);
-static void forceShutterHandler(void);
-static void stateHandler(void);
-static void busyHandler(void);
-/* Externs */
-extern void opticalSwitchHandler(void);  //!< This function deals with the incoming CAN messages
+void portHandler(void);
+void shutterHandler(void);
+void forceShutterHandler(void);
+void stateHandler(void);
+void busyHandler(void);
+void opticalSwitchHandler(int currentLprModule);  //!< This function deals with the incoming CAN messages
 
 #endif /* _OPTICALSWITCH_H */

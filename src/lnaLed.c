@@ -16,16 +16,13 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentLnaLedModule = 0;
 /* Statics */
-static HANDLER lnaLedModulesHandler[LNA_LED_MODULES_NUMBER] = {enableHandler};
+static HANDLER_INT_INT_INT lnaLedModulesHandler[LNA_LED_MODULES_NUMBER] = {lnaLedEnableHandler};
 
 /* LNA led handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the LNA led. */
-void lnaLedHandler(void) {
+void lnaLedHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* The value of currentLnaLedModule is not changed since there is only one
        submodule in the LNA led module.
        This structure is preserved only for consistency.
@@ -40,11 +37,11 @@ void lnaLedHandler(void) {
        desired submodule is in range, is not needed and we can directly call
        the correct handler. */
     /* Call the correct handler */
-    (lnaLedModulesHandler[currentLnaLedModule])();
+    (lnaLedModulesHandler[0])(currentModule, currentBiasModule, currentPolarizationModule);
 }
 
 /*  LNA led enable Handler */
-static void enableHandler(void) {
+void lnaLedEnableHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("     LNA led enable\n");
 #endif /* DEBUG */
@@ -64,7 +61,8 @@ static void enableHandler(void) {
 
         /* Change the status of the LNA led according to the content of the CAN
            message. */
-        if (setLnaLedEnable(CAN_BYTE ? LNA_LED_ENABLE : LNA_LED_DISABLE) == ERROR) {
+        if (setLnaLedEnable(CAN_BYTE ? LNA_LED_ENABLE : LNA_LED_DISABLE, currentModule, currentBiasModule,
+                            currentPolarizationModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].polarization[currentBiasModule].lnaLed.lastEnable.status = ERROR;
 
@@ -92,15 +90,16 @@ static void enableHandler(void) {
 }
 
 // set the specified LNA LED to STANDBY2 mode
-void lnaLedGoStandby2() {
-    int ret;
-
+void lnaLedGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG_GO_STANDBY2
+    int ret;
     printf(" - lnaLedGoStandby2 pol=%d\n", currentBiasModule);
-#endif  // DEBUG_GO_STANDBY2
-
     // disable the LNA LED:
-    ret = setLnaLedEnable(LNA_LED_DISABLE);
+    ret = setLnaLedEnable(LNA_LED_DISABLE, currentModule, currentBiasModule, currentPolarizationModule);
+#else
+    // disable the LNA LED:
+    setLnaLedEnable(LNA_LED_DISABLE, currentModule, currentBiasModule, currentPolarizationModule);
+#endif  // DEBUG_GO_STANDBY2
 
 #ifdef DEBUG_GO_STANDBY2
     if (ret) printf(" -- ret=%d\n", ret);

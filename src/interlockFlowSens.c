@@ -15,15 +15,13 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockFlowSensModule = 0;
 /* Statics */
-static HANDLER interlockFlowSensModulesHandler[INTERLOCK_FLOW_SENS_MODULES_NUMBER] = {flowHandler};
+static HANDLER_INT interlockFlowSensModulesHandler[INTERLOCK_FLOW_SENS_MODULES_NUMBER] = {flowHandler};
 
 /* Interlock Flow Sensor Handler */
 /*! This function will be called by the CAN message handler when the received
     message is in the address range of the interlock flow sensor */
-void interlockFlowSensHandler(void) {
+void interlockFlowSensHandler(int currentInterlockFlowModule) {
 #ifdef DEBUG_FETIM
     printf("     Flow Sensor: %d\n", currentInterlockFlowModule);
 #endif /* DEBUG_FETIM */
@@ -32,7 +30,7 @@ void interlockFlowSensHandler(void) {
        the check to see if the desired submodule is in range, is not needed and
        we can directly call the correct handler. */
     /* Call the correct handler */
-    (interlockFlowSensModulesHandler[currentInterlockFlowSensModule])();
+    (interlockFlowSensModulesHandler[0])(currentInterlockFlowModule);
 
     return;
 }
@@ -40,7 +38,7 @@ void interlockFlowSensHandler(void) {
 /* Flow sensor handler */
 /*! This function is called by the CAN message handler when the received
     message is in the address range of the interlock airflow sensor */
-void flowHandler(void) {
+void flowHandler(int currentInterlockFlowModule) {
 #ifdef DEBUG_FETIM
     printf("      Flow\n");
 #endif /* DEBUG_FETIM */
@@ -63,7 +61,7 @@ void flowHandler(void) {
     }
 
     /* Monitor Interlock airflow */
-    if (getInterlockFlow() == ERROR) {
+    if (getInterlockFlow(currentInterlockFlowModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

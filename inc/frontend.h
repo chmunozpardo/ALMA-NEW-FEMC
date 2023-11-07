@@ -118,16 +118,14 @@ typedef struct {
 } FRONTEND;
 
 /* Globals */
-/* Externs */
 extern FRONTEND frontend;  //!< Current status of the frontend
 
 /* Prototypes */
-/* Externs */
-extern int frontendInit(void);                        //!< This function initializes the frontend
-extern int frontendStop(void);                        //!< This function stops the frontend
-extern int frontendInitIPAddress(void);               //!< Initialize the ipaddress from SOCKETS
-extern int frontendWriteNVMemory(void);               //!< Implement SET_WRITE_NV_MEMORY
-extern int feAndCartridgesConfigurationReport(void);  //!< Print FE and cartridges configuration report
-extern int loPaLimitsTablesReport(void);              //!< Print LO PA_LIMITS tables report
+int frontendInit(void);                        //!< This function initializes the frontend
+int frontendStop(void);                        //!< This function stops the frontend
+int frontendInitIPAddress(void);               //!< Initialize the ipaddress from SOCKETS
+int frontendWriteNVMemory(void);               //!< Implement SET_WRITE_NV_MEMORY
+int feAndCartridgesConfigurationReport(void);  //!< Print FE and cartridges configuration report
+int loPaLimitsTablesReport(void);              //!< Print LO PA_LIMITS tables report
 
 #endif  // _FRONTEND_H

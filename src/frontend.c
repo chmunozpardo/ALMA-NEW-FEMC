@@ -59,7 +59,7 @@ int frontendInit(void) {
 #ifndef CHECK_HW_AVAIL
 
     /* Cartridge availability and INI filenames */
-    for (currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
+    for (int currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
         frontend.cartridge[currentModule].available = TRUE;
         sprintf(frontend.cartridge[currentModule].configFile, "CART%d.INI", currentModule + 1);
         sprintf(frontend.cartridge[currentModule].lo.configFile, "WCA%d.INI", currentModule + 1);
@@ -112,15 +112,15 @@ int frontendInit(void) {
 #endif  // CHECK_HW_AVAIL
 
     /* Perform CCA and LO startup */
-    for (currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
+    for (int currentModule = 0; currentModule < CARTRIDGES_NUMBER; currentModule++) {
         if (frontend.cartridge[currentModule].available) {
             /* Perform cartridge startup configuration */
-            if (cartridgeStartup() == ERROR) {
+            if (cartridgeStartup(currentModule) == ERROR) {
                 return ERROR;
             }
 
             /* Perform LO startup configuration */
-            if (loStartup() == ERROR) {
+            if (loStartup(currentModule) == ERROR) {
                 return ERROR;
             }
         }

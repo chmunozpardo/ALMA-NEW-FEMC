@@ -60,15 +60,12 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastClearStrobe;
 } POL_DAC;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPolDacModule;  //!< Current addressed polarization DAC submodule
-
 /* Prototypes */
-/* Statics */
-static void resetStrobeHandler(void);
-static void clearStrobeHandler(void);
-/* Externs */
-extern void polDacHandler(void);  //!< This function deals with the incoming can message
+void polDacResetStrobeHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                              int currentPolSpecialMsgsModule, int currentPolDacModule);
+void polDacClearStrobeHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                              int currentPolSpecialMsgsModule, int currentPolDacModule);
+void polDacHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                   int currentPolSpecialMsgsModule);  //!< This function deals with the incoming can message
 
 #endif /* _POLDAC_H */

@@ -20,7 +20,6 @@
 
 /* Globals */
 /* Externs */
-unsigned char currentCryostatTempModule = 0;
 /* An extern to perform the mapping between the temperature sensor number and
    the bit address. This is not done with the usual define because of the non
    linearity of the mapping. */
@@ -39,12 +38,13 @@ unsigned int currentCryostatTempSensorAdd[CRYOSTAT_TEMP_SENSORS_NUMBER] = {
     0x0140,   // Sensor 11 -> PRT Sensor 90K plate far side
     0x0160};  // Sensor 12 -> PRT Sensor 90K shield top
 /* Statics */
-static HANDLER cryostatTempModulesHandler[CRYOSTAT_TEMP_MODULES_NUMBER] = {tempHandler, sequentialCoeffHandler};
+static HANDLER_INT_INT cryostatTempModulesHandler[CRYOSTAT_TEMP_MODULES_NUMBER] = {cryostatTempTempHandler,
+                                                                                   sequentialCoeffHandler};
 
 /* Cryostat temperatures sensors handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cryostat temperature sensors. */
-void cryostatTempHandler(void) {
+void cryostatTempHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  Cryostat Temperature Sensor: %d\n", currentCryostatModule);
 #endif /* DEBUG_CRYOSTAT */
@@ -53,7 +53,7 @@ void cryostatTempHandler(void) {
        no hardware check is performed. */
 
     /* Check if the submodule is in range */
-    currentCryostatTempModule = (CAN_ADDRESS & CRYOSTAT_TEMP_MODULES_RCA_MASK) >> CRYOSTAT_TEMP_MODULES_MASK_SHIFT;
+    int currentCryostatTempModule = (CAN_ADDRESS & CRYOSTAT_TEMP_MODULES_RCA_MASK) >> CRYOSTAT_TEMP_MODULES_MASK_SHIFT;
     if (currentCryostatTempModule >= CRYOSTAT_TEMP_MODULES_NUMBER) {
         storeError(ERR_CRYOSTAT_TEMP, ERC_MODULE_RANGE);  // Cryostat submodule out of range
 
@@ -62,13 +62,13 @@ void cryostatTempHandler(void) {
         return;
     }
     /* Call the correct handler */
-    (cryostatTempModulesHandler[currentCryostatTempModule])();
+    (cryostatTempModulesHandler[currentCryostatTempModule])(currentCryostatModule, currentCryostatTempModule);
 }
 
 /* Temperature Value Handler */
 /* This function deals with the messages directed to the cryostat temperature
    sensors. */
-static void tempHandler(void) {
+void cryostatTempTempHandler(int currentCryostatModule, int currentCryostatTempModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Temperature Value\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -109,11 +109,6 @@ static void tempHandler(void) {
         CONV_FLOAT = frontend.cryostat.cryostatTemp[currentCryostatModule].temp;
     }
 
-    /* If the async monitoring is disabled, notify the monitored message */
-    if (asyncState == ASYNC_OFF) {
-        CAN_STATUS = HARDW_BLKD_ERR;
-    }
-
     /* Load the CAN message payload with the returned value and set the size.
        The value has to be converted from little endian (Intel) to big endian
        (CAN). */
@@ -121,7 +116,7 @@ static void tempHandler(void) {
     CAN_SIZE = CAN_FLOAT_SIZE;
 }
 
-static void sequentialCoeffHandler(void) {
+void sequentialCoeffHandler(int currentCryostatModule, int currentCryostatTempModule) {
     // This implements GET_CRYOSTAT_TEMP[Se]_TVO_COEFF and SET_CRYOSTAT_TEMP[Se]_TVO_COEFF
     // which set/get the coefficients in a round-robin manner and are therefore stateful.
     unsigned char coeff;
@@ -182,7 +177,7 @@ static void sequentialCoeffHandler(void) {
     frontend.cryostat.cryostatTemp[currentCryostatModule].nextCoeff = coeff;
 }
 
-void specificCoeffHandler(unsigned int sensor, unsigned int coeff) {
+void specificCoeffHandler(unsigned int sensor, unsigned int coeff, int currentCryostatModule) {
     // This implements GET_CRYOSTAT_TEMP[Se]_TVO_COEFF[Co] and SET_CRYOSTAT_TEMP[Se]_TVO_COEFF[Co
     // which set/get specific coefficients encoded in the RCA are therefore stateless.
 #ifdef DEBUG_CRYOSTAT

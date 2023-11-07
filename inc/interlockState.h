@@ -96,18 +96,12 @@ typedef struct {
     unsigned char shutdownTrig;
 } INTRLK_STATE;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockStateModule;  //!< Currently addressed interlock state module
-
 /* Prototypes */
-/* Statics */
-static void multiFailHandler(void);
-static void tempOutOfRangeHandler(void);
-static void flowOutOfRangeHandler(void);
-static void delayTrigHandler(void);
-static void shutdownTrigHandler(void);
-/* Externs */
-extern void interlockStateHandler(void);  //!< This function deals with the incoming CAN messages
+void multiFailHandler(void);
+void tempOutOfRangeHandler(void);
+void flowOutOfRangeHandler(void);
+void delayTrigHandler(void);
+void shutdownTrigHandler(void);
+void interlockStateHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_STATE_H */

@@ -26,22 +26,12 @@
 
 /* Globals */
 /* Externs */
-unsigned char currentCryostatModule = 0;
-unsigned char currentAsyncCryoTempModule = 0;          /*!< This global keeps track of
-                                                            the cryostat temperature
-                                                            module currently addressed by
-                                                            the asynchronous routine. */
-int asyncCryoTempError[CRYOSTAT_TEMP_SENSORS_NUMBER];  /*!< A global to keep
-                                                            track of the async
-                                                            error while
-                                                            monitoring cryostat
-                                                            temperatures */
-unsigned char currentAsyncVacuumControllerModule = 0;  /*!< This global keeps
-                                                            track of the cryostat
-                                                            pressure module
-                                                            currently addressed
-                                                            by the asynchronous
-                                                            routine. */
+int asyncCryoTempError[CRYOSTAT_TEMP_SENSORS_NUMBER]; /*!< A global to keep
+                                                           track of the async
+                                                           error while
+                                                           monitoring cryostat
+                                                           temperatures */
+
 int asyncVacuumControllerError[VACUUM_SENSORS_NUMBER]; /*!< A global to keep
                                                             track of the async
                                                             error while
@@ -54,7 +44,7 @@ int asyncSupplyCurrent230VError;                       /*!< A global to keep tra
 int asyncCryostaLogHoursError;  //!< Global error result from logging cold head hours
 
 /* Statics */
-static HANDLER cryostatModulesHandler[CRYOSTAT_MODULES_NUMBER] = {
+static HANDLER_INT cryostatModulesHandler[CRYOSTAT_MODULES_NUMBER] = {
     cryostatTempHandler, cryostatTempHandler,  cryostatTempHandler,     cryostatTempHandler,      cryostatTempHandler,
     cryostatTempHandler, cryostatTempHandler,  cryostatTempHandler,     cryostatTempHandler,      cryostatTempHandler,
     cryostatTempHandler, cryostatTempHandler,  cryostatTempHandler,     backingPumpHandler,       turboPumpHandler,
@@ -63,7 +53,7 @@ static HANDLER cryostatModulesHandler[CRYOSTAT_MODULES_NUMBER] = {
 /* Cryostat handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the cryostat. */
-void cryostatHandler(void) {
+void cryostatHandler(int currentModule) {
 #ifdef DEBUG_CRYOSTAT
     printf(" Cryostat\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -74,18 +64,18 @@ void cryostatHandler(void) {
         return;
     }
     // get the cryostat submodule bits:
-    currentCryostatModule = (CAN_ADDRESS & CRYOSTAT_MODULES_RCA_MASK) >> CRYOSTAT_MODULES_MASK_SHIFT;
+    int currentCryostatModule = (CAN_ADDRESS & CRYOSTAT_MODULES_RCA_MASK) >> CRYOSTAT_MODULES_MASK_SHIFT;
 
     if (currentCryostatModule < CRYOSTAT_MODULES_UNNASIGNED_RANGE_START) {
         // call the cryostat subsystem handler:
-        (cryostatModulesHandler[currentCryostatModule])();
+        (cryostatModulesHandler[currentCryostatModule])(currentCryostatModule);
         return;
 
     } else if (currentCryostatModule >= CRYOSTAT_MODULES_TVO_RANGE_START &&
                currentCryostatModule < CRYOSTAT_MODULES_NUMBER) {
         // get the sensor and coeff from the un-shifted RCA and call specific TVO coeffs handler:
         specificCoeffHandler((CAN_ADDRESS & CRYOSTAT_TVO_SENSOR_MASK) >> CRYOSTAT_TVO_SENSOR_MASK_SHIFT,
-                             CAN_ADDRESS & CRYOSTAT_TVO_COEFF_MASK);
+                             CAN_ADDRESS & CRYOSTAT_TVO_COEFF_MASK, currentCryostatModule);
         return;
     }
     // NOTE: not checking CRYOSTAT_MODULES_TVO_RANGE_END because the check of CRYOSTAT_MODULES_NUMBER covers that.
@@ -131,7 +121,6 @@ int cryostatStartup(void) {
        variable used to select the communication channel. This is only
        necessary if the serial communication is not initiated by a CAN
        message. */
-    currentModule = CRYO_MODULE;
 
 #ifdef DEBUG_STARTUP
     printf(" Initializing Cryostat Module...\n\n");
@@ -165,7 +154,7 @@ int cryostatStartup(void) {
     frontend.cryostat.coldHeadHoursDirty = 0;
 
     // Check whether the cold head hours file exists
-    if (file = fopen(frontend.cryostat.coldHeadHoursFile, "r")) {
+    if ((file = fopen(frontend.cryostat.coldHeadHoursFile, "r"))) {
         fclose(file);
     } else {
         // no, create it:
@@ -296,7 +285,7 @@ int cryostatSensorTablesReport(void) {
 /* This function deals with all the monitor requests diected to the 230V supply
    current. There are no control messages allowed for the 230V supply
    current. */
-void supplyCurrent230VHandler(void) {
+void supplyCurrent230VHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  230V Supply current\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -334,11 +323,6 @@ void supplyCurrent230VHandler(void) {
         CAN_STATUS = HARDW_BLKD_ERR;
     }
 
-    /* If the async monitoring is disabled, notify the monitored message */
-    if (asyncState == ASYNC_OFF) {
-        CAN_STATUS = HARDW_BLKD_ERR;
-    }
-
     /* Load the CAN message payload with the returned value and set the size.
        The value has to be converted from little endian (Intel) to big endian
        (CAN). */
@@ -347,7 +331,7 @@ void supplyCurrent230VHandler(void) {
 }
 
 // Handler to set/monitor cold head hours
-void coldHeadHoursHandler(void) {
+void coldHeadHoursHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Cold head hours\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -385,11 +369,6 @@ void coldHeadHoursHandler(void) {
     //  so cast it to a unsigned int.
     CONV_UINT(0) = (unsigned int)frontend.cryostat.coldHeadHours;
 
-    /* If the async monitoring is disabled, notify the monitored message */
-    if (asyncState == ASYNC_OFF) {
-        CAN_STATUS = HARDW_BLKD_ERR;
-    }
-
     /* Load the CAN message payload with the returned value and set the size.
        The value has to be converted from little endian (Intel) to big endian
        (CAN). */
@@ -405,6 +384,10 @@ void coldHeadHoursHandler(void) {
         - \ref ASYNC_DONE   -> once all the async operations are done
         - \ref ERROR        -> if something went wrong */
 int cryostatAsync(void) {
+    /* A static to keep track of the currently addressed cartridge */
+    static int currentAsyncCryoTempModule = 0;
+    static int currentAsyncVacuumControllerModule = 0;
+
     /* A static enum to track the state of the async function */
     static enum {
         ASYNC_CRYO_GET_TEMP,
@@ -416,16 +399,13 @@ int cryostatAsync(void) {
     // Don't do async if there is no cryostat:
     if (frontend.cryostat.available == UNAVAILABLE) return NO_ERROR;
 
-    /* Address the cryostat */
-    currentModule = CRYO_MODULE;
-
     /* Switch to the correct state */
     switch (asyncCryoGetState) {
         /* Monitor all the temperatures one at the time asynchronously */
         case ASYNC_CRYO_GET_TEMP:
 
             /* Get cryostat temperatures */
-            asyncCryoTempError[currentAsyncCryoTempModule] = getCryostatTemp();
+            asyncCryoTempError[currentAsyncCryoTempModule] = getCryostatTemp(currentAsyncCryoTempModule);
 
             /* If done or error, go to next sensor */
             switch (asyncCryoTempError[currentAsyncCryoTempModule]) {
@@ -456,7 +436,8 @@ int cryostatAsync(void) {
         case ASYNC_CRYO_GET_PRES:
 
             /* Get cryostat pressures */
-            asyncVacuumControllerError[currentAsyncVacuumControllerModule] = getVacuumSensor();
+            asyncVacuumControllerError[currentAsyncVacuumControllerModule] =
+                getVacuumSensor(currentAsyncVacuumControllerModule);
 
             /* If done or error, go to next sensor */
             switch (asyncVacuumControllerError[currentAsyncVacuumControllerModule]) {

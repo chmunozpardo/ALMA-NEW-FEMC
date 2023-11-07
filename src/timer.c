@@ -23,16 +23,11 @@
 #include "error_local.h"
 #include "globalDefinitions.h"
 
-/* Globals */
 static clock_t asyncStartTime[MAX_TIMERS_NUMBER];       // A global for the async
                                                         // timer start time
 static unsigned char asyncRunning[MAX_TIMERS_NUMBER];   // A global for the async
                                                         // timer current state
 static unsigned long asyncMSeconds[MAX_TIMERS_NUMBER];  // A global for the async timer wait time
-
-/*! This function will wait \p milliseconds seconds before returning.
-    \param  milliSeconds     The amount of milliseconds to wait */
-void waitMilliseconds(unsigned int milliseconds) { usleep(milliseconds); }
 
 /*! This function will initialize and start the asynchronous timer. The timer
     will wait the ammount specified in the parameter.
@@ -97,7 +92,7 @@ int queryAsyncTimer(unsigned char timerNo) {
     }
 
     /* Check if the async timer is running */
-    if ((clock() - asyncStartTime[timerNo]) < asyncMSeconds[timerNo]) {
+    if (((clock() - asyncStartTime[timerNo]) * 1000 / CLOCKS_PER_SEC) < asyncMSeconds[timerNo]) {
         return TIMER_RUNNING;
     }
 

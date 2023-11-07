@@ -14,10 +14,8 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockTempModule = 0;
 /* Statics */
-static HANDLER interlockTempModulesHandler[INTERLOCK_TEMP_MODULES_NUMBER] = {
+static HANDLER_INT interlockTempModulesHandler[INTERLOCK_TEMP_MODULES_NUMBER] = {
     interlockTempSensHandler, interlockTempSensHandler, interlockTempSensHandler, interlockTempSensHandler,
     interlockTempSensHandler};
 
@@ -30,7 +28,8 @@ void interlockTempHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentInterlockTempModule = (CAN_ADDRESS & INTERLOCK_TEMP_MODULES_RCA_MASK) >> INTERLOCK_TEMP_MODULES_MASK_SHIFT;
+    int currentInterlockTempModule =
+        (CAN_ADDRESS & INTERLOCK_TEMP_MODULES_RCA_MASK) >> INTERLOCK_TEMP_MODULES_MASK_SHIFT;
     if (currentInterlockTempModule >= INTERLOCK_TEMP_MODULES_NUMBER) {
         storeError(ERR_INTRLK_TEMP, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                     // Notify incoming CAN message of error
@@ -38,7 +37,7 @@ void interlockTempHandler(void) {
     }
 
     /* Call the correct function */
-    (interlockTempModulesHandler[currentInterlockTempModule])();
+    (interlockTempModulesHandler[currentInterlockTempModule])(currentInterlockTempModule);
 
     return;
 }

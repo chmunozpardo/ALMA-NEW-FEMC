@@ -173,31 +173,24 @@ typedef struct {
 
 /* Globals */
 /* Externs */
-extern unsigned char currentCryostatModule;       //!< Currently addressed cryostat submodule
-extern unsigned char currentAsyncCryoTempModule;  //!< A global to keep track of the cryostat temperature module
-                                                  //!< currently addressed by the async routine
-extern int asyncCryoTempError[CRYOSTAT_TEMP_SENSORS_NUMBER];  //!< A global to keep track of the async error while
-                                                              //!< monitoring cryostat temperatures
-extern unsigned char currentAsyncVacuumControllerModule;  //!< A global to keep track of the cryostat pressure module
-                                                          //!< currently addressed by the async routine
+extern int asyncCryoTempError[CRYOSTAT_TEMP_SENSORS_NUMBER];   //!< A global to keep track of the async error while
+                                                               //!< monitoring cryostat temperatures
 extern int asyncVacuumControllerError[VACUUM_SENSORS_NUMBER];  //!< A global to keep track of the async error while
                                                                //!< monitoring cryostat pressures
 extern int asyncSupplyCurrent230VError;  //!< A global to keep track of the async error while monitoring the cryostat
                                          //!< supply voltage current
 
 /* Prototypes */
-/* Statics */
-static void supplyCurrent230VHandler(void);
-static void coldHeadHoursHandler(void);
-/* Externs */
-extern void cryostatHandler(void);
+void supplyCurrent230VHandler(int currentCryostatModule);
+void coldHeadHoursHandler(int currentCryostatModule);
+void cryostatHandler(int currentModule);
 //!< This function deals with the incoming CAN messages
-extern int cryostatStartup(void);
+int cryostatStartup(void);
 //!< This function deals with the initialization of the cryostat
-extern int cryostatAsync(void);
+int cryostatAsync(void);
 //!< This function deals with the asychronous monitoring of the cryostat
-extern int cryostatAsyncLogHours(void);
+int cryostatAsyncLogHours(void);
 //!< Asynchronous recording of cryostat cold head hours.
-extern int cryostatSensorTablesReport(void);
+int cryostatSensorTablesReport(void);
 //!< Print cryostat sensor tables report
 #endif /* _CRYTOSTAT_H */

@@ -15,12 +15,10 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentCompressorModule = 0;
 /* Statics */
-static HANDLER compressorModulesHandler[COMPRESSOR_MODULES_NUMBER] = {fetimExtTempHandler,    fetimExtTempHandler,
-                                                                      he2PressHandler,        feStatusHandler,
-                                                                      interlockStatusHandler, compCableStatusHandler};
+static HANDLER_INT compressorModulesHandler[COMPRESSOR_MODULES_NUMBER] = {
+    fetimExtTempHandler, fetimExtTempHandler,    he2PressHandler,
+    feStatusHandler,     interlockStatusHandler, compCableStatusHandler};
 
 /* Compressor Handler */
 /*! This function will be called by the CAN message handler when the received
@@ -31,7 +29,7 @@ void compressorHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentCompressorModule = (CAN_ADDRESS & COMPRESSOR_MODULES_RCA_MASK) >> COMPRESSOR_MODULES_MASK_SHIFT;
+    int currentCompressorModule = (CAN_ADDRESS & COMPRESSOR_MODULES_RCA_MASK) >> COMPRESSOR_MODULES_MASK_SHIFT;
     if (currentCompressorModule >= COMPRESSOR_MODULES_NUMBER) {
         storeError(ERR_COMPRESSOR, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of error
@@ -39,7 +37,7 @@ void compressorHandler(void) {
     }
 
     /* Call the correct function */
-    (compressorModulesHandler[currentCompressorModule])();
+    (compressorModulesHandler[currentCompressorModule])(currentCompressorModule);
 
     return;
 }
@@ -49,7 +47,7 @@ void compressorHandler(void) {
    represent the current status of the FE as evaluated by the FEMC. It will
    signal to the FETIM if, according to the FEMC, it is ok to start the
    comrpessor. */
-static void feStatusHandler(void) {
+void feStatusHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("   FE Status\n");
 #endif /* DEBUG_FETIM */
@@ -84,7 +82,7 @@ static void feStatusHandler(void) {
 
 /* Interlock status handler */
 /* This function return the current status of the compressor interlock */
-static void interlockStatusHandler(void) {
+void interlockStatusHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("   Interlock Status Handler\n");
 #endif /* DEBUG_FETIM */
@@ -108,7 +106,7 @@ static void interlockStatusHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_INTRLK_STA) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_INTRLK_STA, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -123,7 +121,7 @@ static void interlockStatusHandler(void) {
 
 /* Compressor cable status handler */
 /* This function return the current status of the compressor cable */
-static void compCableStatusHandler(void) {
+void compCableStatusHandler(int currentCompressorModule) {
 #ifdef DEBUG_FETIM
     printf("   Compressor Cable Status Handler\n");
 #endif /* DEBUG_FETIM */
@@ -146,7 +144,7 @@ static void compCableStatusHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_COMP_CBL_STA) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_COMP_CBL_STA, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

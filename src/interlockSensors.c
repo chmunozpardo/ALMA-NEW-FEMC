@@ -15,8 +15,6 @@
 #include "fetimSerialInterface.h"
 #include "frontend.h"
 
-/* Globals */
-unsigned char currentInterlockSensorsModule = 0;
 /* Statics */
 static HANDLER interlockSensorsModulesHandler[INTERLOCK_SENSORS_MODULES_NUMBER] = {
     interlockTempHandler, interlockFlowHandler, singleFailHandler};
@@ -30,7 +28,7 @@ void interlockSensorsHandler(void) {
 #endif /* DEBUG_FETIM */
 
     /* Check if the specified submodule is in range */
-    currentInterlockSensorsModule =
+    int currentInterlockSensorsModule =
         (CAN_ADDRESS & INTERLOCK_SENSORS_MODULES_RCA_MASK) >> INTERLOCK_SENSORS_MODULES_MASK_SHIFT;
     if (currentInterlockSensorsModule >= INTERLOCK_SENSORS_MODULES_NUMBER) {
         storeError(ERR_INTRLK_SENS, ERC_MODULE_RANGE);  // Submodule out of range
@@ -47,7 +45,7 @@ void interlockSensorsHandler(void) {
 /* Single failure handler */
 /* Tins function handles the single failure status for the FETIM interlock
    sensors. */
-static void singleFailHandler(void) {
+void singleFailHandler(void) {
 #ifdef DEBUG_FETIM
     printf("    Single Failure\n");
 #endif /* DEBUG_FETIM */
@@ -70,7 +68,7 @@ static void singleFailHandler(void) {
 
     /* If Monitor on a Monitor RCA */
     /* Monitor Single Fail digital line */
-    if (getFetimDigital(FETIM_DIG_SINGLE_FAIL) == ERROR) {
+    if (getFetimDigital(FETIM_DIG_SINGLE_FAIL, 0) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

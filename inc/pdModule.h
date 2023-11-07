@@ -92,17 +92,11 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } PD_MODULE;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPdModuleModule;  //!< Currently addressed power distribution module submodule
-extern void printPoweredModuleCounts(void);
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-static int allowPowerOn(int module, int standby2);
-static int allowStandby2(int module);
-/* Externs */
-extern void pdModuleHandler(void);  //!< This function deals wit the incoming CAN message
+void printPoweredModuleCounts(void);
+void pdEnableHandler(int currentPowerDistributionModule, int currentPdModuleModule);
+int allowPowerOn(int module, int standby2);
+int allowStandby2(int module);
+void pdModuleHandler(int currentPowerDistributionModule);  //!< This function deals wit the incoming CAN message
 
 #endif /* _PDMODULE_H */

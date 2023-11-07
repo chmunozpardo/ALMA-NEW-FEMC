@@ -71,16 +71,10 @@ typedef struct {
     float photoDetectCurrent;
 } LASER;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLaserModule;  //!< Currently addressed EDFA laser module
-
 /* Prototypes */
-/* Statics */
-static void pumpTempHandler(void);
-static void driveCurrentHandler(void);
-static void photoDetectCurrentHandler(void);
-/* Externs */
-extern void laserHandler(void);  //!< This function deals with the incoming CAN messages
+void pumpTempHandler(void);
+void driveCurrentHandler(void);
+void photoDetectCurrentHandler(void);
+void laserHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _LASER_H */

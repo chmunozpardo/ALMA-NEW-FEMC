@@ -192,26 +192,17 @@ typedef struct {
     char configFile[MAX_FILE_NAME_SIZE];
 } CARTRIDGE;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentCartridgeSubsystem;            //!< Current addressed cartridge subsystem
-extern unsigned char currentLoAndTempModule;               //!< Current addressed O and cartridge temperature submodule
-extern unsigned char currentCartridgeTempSubsystemModule;  //!< Current addressed cartridge temperature submodule
-extern unsigned char currentBiasModule;                    //!< Current addressed BIAS submodule
-
 /* Prototypes */
-/* Statics */
-static void loAndTempSubsystemHandler(void);
-static void cartridgeTempSubsystemHandler(void);
-static void biasSubsystemHandler(void);
-static int asyncCartridgeInit(void);
-static int asyncCartridgeGoStandby2(void);
+void loAndTempSubsystemHandler(int currentModule);
+void cartridgeTempSubsystemHandler(int currentModule);
+void biasSubsystemHandler(int currentModule);
+int asyncCartridgeInit(int currentModule);
+int asyncCartridgeGoStandby2(int currentModule);
 
-/* Externs */
-extern int cartridgeStartup(void);                  //!< This function initializes the selected cartridge during startup
-extern void cartridgeHandler(void);                 //!< This function deals with the incoming can message
-extern int cartridgeInit(unsigned char cartridge);  //!< This function initializes the selected cartridge at runtime
-extern int cartridgeStop(unsigned char cartridge);  //!< Shut down the selected cartridge
-extern int cartridgeAsync(void);  //!< This function deals with the asynchronous operation of a cartridge
+int cartridgeStartup(int currentModule);     //!< This function initializes the selected cartridge during startup
+void cartridgeHandler(int currentModule);    //!< This function deals with the incoming can message
+int cartridgeInit(unsigned char cartridge);  //!< This function initializes the selected cartridge at runtime
+int cartridgeStop(unsigned char cartridge);  //!< Shut down the selected cartridge
+int cartridgeAsync(void);                    //!< This function deals with the asynchronous operation of a cartridge
 
 #endif /* _CARTRIDGE_H */

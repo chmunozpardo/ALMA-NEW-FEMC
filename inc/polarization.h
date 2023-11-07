@@ -74,14 +74,12 @@ typedef struct {
     POL_SPECIAL_MSGS polSpecialMsgs;
 } POLARIZATION;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPolarizationModule;  //!< Current addressed polarization submodule
-
 /* Prototypes */
-/* Externs */
-extern void polarizationHandler(void);  //!< This function deals with the incoming can message
-extern void RESERVEDHandler(void);      //!< Dummy handler for where schottkyMixer used to be.
-extern int polarizationInit(void);      //!< This function initializes the selected polarization at runtime
+void polarizationHandler(int currentModule,
+                         int currentBiasModule);  //!< This function deals with the incoming can message
+void RESERVEDHandler(int currentModule, int currentBiasModule,
+                     int currentPolarizationModule);  //!< Dummy handler for where schottkyMixer used to be.
+int polarizationInit(int currentModule,
+                     int currentBiasModule);  //!< This function initializes the selected polarization at runtime
 
 #endif /* _POLARIZATION_H */

@@ -54,14 +54,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastYtoCoarseTune;
 } YTO;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentYtoModule;  //!< Current addressed YTO submodule
-
 /* Prototypes */
-/* Statics */
-static void ytoCoarseTuneHandler(void);
-/* Externs */
-extern void ytoHandler(void);  //!< This function deals with the incoming can message
+void ytoCoarseTuneHandler(int currentModule);
+void ytoHandler(int currentModule);  //!< This function deals with the incoming can message
 
 #endif /* _YTO_H */

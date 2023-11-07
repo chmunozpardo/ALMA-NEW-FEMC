@@ -20,6 +20,7 @@
 #include "fetimSerialInterface.h"
 
 #include <stdio.h> /* printf */
+#include <unistd.h>
 
 #include "async.h"
 #include "debug.h"
@@ -27,9 +28,6 @@
 #include "frontend.h"
 #include "serialInterface.h"
 
-/* Globals */
-/* Externs */
-/* Statics */
 FETIM_REGISTERS fetimRegisters;
 
 /* Get internal interlock temperature sensors */
@@ -39,7 +37,7 @@ FETIM_REGISTERS fetimRegisters;
     \return
         - \ref NO_ERROR -> if no error occured
         - \ref ERROR    -> if something wrong happened */
-int getInterlockTemp(void) {
+int getInterlockTemp(int currentInterlockTempModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the FETIM AREG */
         fetimRegisters.aRegOut.integer = 0x0000;
@@ -69,7 +67,7 @@ int getInterlockTemp(void) {
     \return
         - \ref NO_ERROR -> if no error occured
         - \ref ERROR    -> if something wrong happened */
-int getInterlockFlow(void) {
+int getInterlockFlow(int currentInterlockFlowModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the FETIM AREG */
         fetimRegisters.aRegOut.integer = 0x0000;
@@ -126,7 +124,7 @@ int getIntrlkGlitchValue(void) {
     \return
         - \ref NO_ERROR -> if no error occured
         - \ref ERROR    -> if something wrong happened */
-int getFetimExtTemp(void) {
+int getFetimExtTemp(int currentAsyncFetimExtTempModule) {
     if (frontend.mode != SIMULATION_MODE) {
         /* Clear the FETIM BREG */
         fetimRegisters.bRegOut.integer = 0x0000;
@@ -228,7 +226,7 @@ int setN2FillEnable(unsigned char enable) {
         fetimRegisters.cRegOut.bitField.n2Fill = (enable == N2_FILL_ENABLE) ? N2_FILL_ENABLE : N2_FILL_DISABLE;
 
         if (serialAccess(FETIM_PARALLEL_WRITE(FETIM_CREG_OUT), &fetimRegisters.cRegOut.integer, FETIM_CREG_OUT_SIZE,
-                         FETIM_CREG_OUT_SHIFT_SIZE, FETIM_CREG_OUT_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         FETIM_CREG_OUT_SHIFT_SIZE, FETIM_CREG_OUT_SHIFT_DIR, SERIAL_WRITE, FETIM_MODULE, 0) == ERROR) {
             /* Restore CREG_OUT to its original saved value */
             fetimRegisters.cRegOut.integer = tempCRegOut;
             return ERROR;
@@ -267,7 +265,7 @@ int setFeSafeStatus(unsigned char safe) {
         fetimRegisters.dRegOut.bitField.feStatus = (safe == FE_STATUS_SAFE) ? FE_STATUS_SAFE : FE_STATUS_UNSAFE;
 
         if (serialAccess(FETIM_PARALLEL_WRITE(FETIM_DREG_OUT), &fetimRegisters.dRegOut.integer, FETIM_DREG_OUT_SIZE,
-                         FETIM_DREG_OUT_SHIFT_SIZE, FETIM_DREG_OUT_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                         FETIM_DREG_OUT_SHIFT_SIZE, FETIM_DREG_OUT_SHIFT_DIR, SERIAL_WRITE, FETIM_MODULE, 0) == ERROR) {
             /* Restore CREG_OUT to its original saved value */
             fetimRegisters.dRegOut.integer = tempDRegOut;
             return ERROR;
@@ -300,14 +298,14 @@ int setFeSafeStatus(unsigned char safe) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something went wrong */
-int getFetimDigital(unsigned char port) {
+int getFetimDigital(unsigned char port, int currentCompressorModule) {
     /* A variable to temporarily hold the read data */
     int tempDigData = 0x0000;
 
     if (frontend.mode != SIMULATION_MODE) {
         /* Read the digital data */
         if (serialAccess(FETIM_PARALLEL_READ(FETIM_BREG_IN), &tempDigData, FETIM_BREG_IN_SIZE, FETIM_BREG_IN_SHIFT_SIZE,
-                         FETIM_BREG_IN_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                         FETIM_BREG_IN_SHIFT_DIR, SERIAL_READ, FETIM_MODULE, 0) == ERROR) {
             return ERROR;
         }
 
@@ -413,20 +411,23 @@ int getFetimParallelMonitor(void) {
 
     /* Perform a parallel write to select the desired monitor point */
     if (serialAccess(FETIM_PARALLEL_WRITE(FETIM_AREG_OUT), &fetimRegisters.aRegOut.integer, FETIM_AREG_OUT_SIZE,
-                     FETIM_AREG_OUT_SHIFT_SIZE, FETIM_AREG_OUT_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     FETIM_AREG_OUT_SHIFT_SIZE, FETIM_AREG_OUT_SHIFT_DIR, SERIAL_WRITE, FETIM_MODULE, 0) == ERROR) {
         return ERROR;
     }
+
+    usleep(1);
 
     /* Initiate the conversion. This includes also extra clock cycles necessary
        to allow time for the converion to complete. */
     if (serialAccess(FETIM_PAR_ADC_CONV_STROBE, NULL, FETIM_PAR_ADC_STROBE_SIZE, FETIM_PAR_ADC_STROBE_SHIFT_SIZE,
-                     FETIM_PAR_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                     FETIM_PAR_ADC_STROBE_SHIFT_DIR, SERIAL_WRITE, FETIM_MODULE, 0) == ERROR) {
         return ERROR;
     }
 
     /* Read the converted data */
     if (serialAccess(FETIM_PARALLEL_READ(FETIM_AREG_IN), &tempParAdcValue, FETIM_PAR_ADC_DATA_SIZE,
-                     FETIM_PAR_ADC_DATA_SHIFT_SIZE, FETIM_PAR_ADC_DATA_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                     FETIM_PAR_ADC_DATA_SHIFT_SIZE, FETIM_PAR_ADC_DATA_SHIFT_DIR, SERIAL_READ, FETIM_MODULE,
+                     0) == ERROR) {
         return ERROR;
     }
 
@@ -458,7 +459,8 @@ int getFetimSerialMonitor(void) {
 
             /* Parallel write BREG_OUT */
             if (serialAccess(FETIM_PARALLEL_WRITE(FETIM_BREG_OUT), &fetimRegisters.bRegOut.integer, FETIM_BREG_OUT_SIZE,
-                             FETIM_BREG_OUT_SHIFT_SIZE, FETIM_BREG_OUT_SHIFT_DIR, SERIAL_WRITE) == ERROR) {
+                             FETIM_BREG_OUT_SHIFT_SIZE, FETIM_BREG_OUT_SHIFT_DIR, SERIAL_WRITE, FETIM_MODULE,
+                             0) == ERROR) {
                 return ERROR;
             }
 
@@ -472,6 +474,8 @@ int getFetimSerialMonitor(void) {
             /* A variable to hold the incoming serial ADC data */
             int tempSerAdcValue[2];
 
+            usleep(1);
+
 #ifdef DEBUG_FETIM_ASYNC
             if (fetimRegisters.bRegOut.bitField.monitorPoint == FETIM_BREG_OUT_HE2_PRESS)
                 printf("Async -> FETIM -> He2 Pressure -> Conv+Read\n");
@@ -480,8 +484,9 @@ int getFetimSerialMonitor(void) {
 #endif /* DEBUG_FETIM_ASYNC */
 
             /* Conversion+Read the converted data */
-            if (serialAccess(FETIM_SER_ADC_ACCESS, &tempSerAdcValue, FETIM_SER_ADC_DATA_SIZE,
-                             FETIM_SER_ADC_DATA_SHIFT_SIZE, FETIM_SER_ADC_DATA_SHIFT_DIR, SERIAL_READ) == ERROR) {
+            if (serialAccess(FETIM_SER_ADC_ACCESS, tempSerAdcValue, FETIM_SER_ADC_DATA_SIZE,
+                             FETIM_SER_ADC_DATA_SHIFT_SIZE, FETIM_SER_ADC_DATA_SHIFT_DIR, SERIAL_READ, FETIM_MODULE,
+                             0) == ERROR) {
                 /* Reset state */
                 asyncFetimSerialState = ASYNC_FETIM_SERIAL_BREG;
 
@@ -519,7 +524,7 @@ int getFetimSerialMonitor(void) {
 int getFetimHardwRevision(void) {
     /* If an error occurs, notify the calling function */
     if (serialAccess(FETIM_PARALLEL_READ(FETIM_CREG_IN), &fetimRegisters.cRegIn.integer, FETIM_CREG_IN_SIZE,
-                     FETIM_CREG_IN_SHIFT_SIZE, FETIM_CREG_IN_SHIFT_DIR, SERIAL_READ) == ERROR) {
+                     FETIM_CREG_IN_SHIFT_SIZE, FETIM_CREG_IN_SHIFT_DIR, SERIAL_READ, FETIM_MODULE, 0) == ERROR) {
         /* If error monitoring, assume no FETIM installed */
         frontend.fetim.available = UNAVAILABLE;
 

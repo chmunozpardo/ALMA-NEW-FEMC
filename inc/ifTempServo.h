@@ -54,14 +54,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } IF_TEMP_SERVO;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentIfTempServoModule;  //!< Current addressed IF temperature servo submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-/* Externs */
-extern void ifTempServoHandler(void);  //!< This function deals with the incoming CAN message
+void ifTempServoEnableHandler(int currentIfSwitchModule);
+void ifTempServoHandler(int currentIfSwitchModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _IFTEMPSERVO_H */

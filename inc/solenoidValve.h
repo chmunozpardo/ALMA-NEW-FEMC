@@ -54,14 +54,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastState;
 } SOLENOID_VALVE;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentSolenoidValveModule;  //!< Currently addressed solenoid valve submodule
-
 /* Prototypes */
-/* Statics */
-static void stateHandler(void);
-/* Externs */
-extern void solenoidValveHandler(void);  //!< This function deals with the incoming CAN message
+void solenoidValveStateHandler(void);
+void solenoidValveHandler(int currentCryostatModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _SOLENOIDVALVE_H */

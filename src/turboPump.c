@@ -17,16 +17,14 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentTurboPumpModule = 0;
 /* Statics */
-static HANDLER turboPumpModulesHandler[TURBO_PUMP_MODULES_NUMBER] = {enableHandler, stateHandler, speedHandler};
+static HANDLER turboPumpModulesHandler[TURBO_PUMP_MODULES_NUMBER] = {turboPumpEnableHandler, turboPumpStateHandler,
+                                                                     turboPumpSpeedHandler};
 
 /* Turbo pump handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cryostat turbo pump. */
-void turboPumpHandler(void) {
+void turboPumpHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  Turbo Pump\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -35,7 +33,7 @@ void turboPumpHandler(void) {
        check is required. */
 
     /* Check if the submodule is in range */
-    currentTurboPumpModule = (CAN_ADDRESS & TURBO_PUMP_MODULES_RCA_MASK);
+    int currentTurboPumpModule = (CAN_ADDRESS & TURBO_PUMP_MODULES_RCA_MASK);
     if (currentTurboPumpModule >= TURBO_PUMP_MODULES_NUMBER) {
         storeError(ERR_TURBO_PUMP, ERC_MODULE_RANGE);  // Turbo Pump submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of the error
@@ -51,7 +49,7 @@ void turboPumpHandler(void) {
 /* Turbo pump enable handler */
 /* This function deals with the messages directed to the enable state of the
    turbo pump in the cryostat module. */
-static void enableHandler(void) {
+void turboPumpEnableHandler(void) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Turbo Enable\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -122,7 +120,7 @@ static void enableHandler(void) {
 /* Turbo pump state handler */
 /* This function deals with the message directed to the error state of the
    turbo pump in the cryostat module. */
-static void stateHandler(void) {
+void turboPumpStateHandler(void) {
     unsigned char prevErrorState;
 
 #ifdef DEBUG_CRYOSTAT
@@ -181,7 +179,7 @@ static void stateHandler(void) {
 /* Turbo pump speed handler */
 /* This function deals with the messages directed to the speed state of the
    turbo pump in the cryostat module. */
-static void speedHandler(void) {
+void turboPumpSpeedHandler(void) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Turbo speed\n");
 #endif /* DEBUG_CRYOSTAT */

@@ -87,15 +87,9 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } VACUUM_CONTROLLER;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentVacuumControllerModule;  //!< Currently addressed vacuum controller submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-static void stateHandler(void);
-/* Externs */
-extern void vacuumControllerHandler(void);  //!< This function deals with the incoming CAN message
+void vacuumControllerEnableHandler(int currentVacuumControllerModule);
+void vacuumControllerStateHandler(int currentVacuumControllerModule);
+void vacuumControllerHandler(int currentCryostatModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _VACUUMCONTROLLER_H */

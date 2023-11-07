@@ -57,14 +57,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastState;
 } GATE_VALVE;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentGateValveModule;  //!< Currently addressed gate valve submodule
-
 /* Prototypes */
-/* Statics */
-static void stateHandler(void);
-/* Externs */
-extern void gateValveHandler(void);  //!< This function deals with the incoming CAN message
+void gatevalveStateHandler(void);
+void gateValveHandler(int currentCryostatModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _GATEVALVE_H */

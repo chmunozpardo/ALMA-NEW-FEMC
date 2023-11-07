@@ -45,17 +45,14 @@
 #include "error_local.h"
 #include "frontend.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentSisModule = 0;
 /* Statics */
-static HANDLER sisModulesHandler[SIS_MODULES_NUMBER] = {senseResistorHandler, voltageHandler, currentHandler,
-                                                        openLoopHandler};
+static HANDLER_INT_INT_INT sisModulesHandler[SIS_MODULES_NUMBER] = {senseResistorHandler, sisVoltageHandler,
+                                                                    sisCurrentHandler, openLoopHandler};
 
 /* SIS handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the SIS. */
-void sisHandler(void) {
+void sisHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("      SIS\n");
 #endif /* DEBUG */
@@ -72,7 +69,7 @@ void sisHandler(void) {
 
     /* Check if the submodule is in range */
     /* Note that this monitor RCA is not supported for band 1 = RCA 0x00000 */
-    currentSisModule = ((CAN_ADDRESS & SIS_MODULES_RCA_MASK) >> SIS_MODULES_MASK_SHIFT);
+    int currentSisModule = ((CAN_ADDRESS & SIS_MODULES_RCA_MASK) >> SIS_MODULES_MASK_SHIFT);
 
     if (currentSisModule >= SIS_MODULES_NUMBER) {
         storeError(ERR_SIS, ERC_MODULE_RANGE);  // SIS submodule out of range
@@ -81,11 +78,11 @@ void sisHandler(void) {
     }
 
     /* Call the correct handler */
-    (sisModulesHandler[currentSisModule])();
+    (sisModulesHandler[currentSisModule])(currentModule, currentBiasModule, currentPolarizationModule);
 }
 
 /* SIS sense resistor handler */
-static void senseResistorHandler(void) {
+void senseResistorHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     unsigned char pol, sb;
 #ifdef DEBUG
     printf("       senseResistor\n");
@@ -140,7 +137,7 @@ static void senseResistorHandler(void) {
 /* SIS voltage handler */
 /* This function will deal with all the monitor and control requests directed
    to the SIS voltage. */
-static void voltageHandler(void) {
+void sisVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("       Voltage\n");
 #endif /* DEBUG */
@@ -168,7 +165,7 @@ static void voltageHandler(void) {
 
         /* Set the SIS mixer bias voltage. If an error occurs, store the state
            and then return. */
-        if (setSisMixerBias() == ERROR) {
+        if (setSisMixerBias(currentModule, currentBiasModule, currentPolarizationModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -192,7 +189,7 @@ static void voltageHandler(void) {
 
     /* If monitor on monitor RCA */
     /* Monitor the SIS mixer voltage */
-    if (getSisMixerBias(SIS_MIXER_BIAS_VOLTAGE) == ERROR) {
+    if (getSisMixerBias(SIS_MIXER_BIAS_VOLTAGE, currentModule, currentBiasModule, currentPolarizationModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            can message state. */
         CAN_STATUS = ERROR;
@@ -218,7 +215,7 @@ static void voltageHandler(void) {
 /* SIS current handler */
 /* This function will handle all the monitor requests directed to the junction
    current. No control messages are allowed for the junction current. */
-static void currentHandler(void) {
+void sisCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("       Current\n");
 #endif /* DEBUG */
@@ -240,7 +237,7 @@ static void currentHandler(void) {
     }
 
     /* Monitor the SIS mixer current */
-    if (getSisMixerBias(SIS_MIXER_BIAS_CURRENT) == ERROR) {
+    if (getSisMixerBias(SIS_MIXER_BIAS_CURRENT, currentModule, currentBiasModule, currentPolarizationModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -265,7 +262,7 @@ static void currentHandler(void) {
 }
 
 /* SIS open loop handler */
-static void openLoopHandler(void) {
+void openLoopHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("       Open Loop\n");
 #endif /* DEBUG */
@@ -290,7 +287,8 @@ static void openLoopHandler(void) {
 
         /* Change the status of the loop according to the content of the CAN
            message. */
-        if (setSisMixerLoop(CAN_BYTE ? SIS_MIXER_BIAS_MODE_OPEN : SIS_MIXER_BIAS_MODE_CLOSE) == ERROR) {
+        if (setSisMixerLoop(CAN_BYTE ? SIS_MIXER_BIAS_MODE_OPEN : SIS_MIXER_BIAS_MODE_CLOSE, currentModule,
+                            currentBiasModule, currentPolarizationModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule]
                 .polarization[currentBiasModule]
@@ -325,9 +323,7 @@ static void openLoopHandler(void) {
 }
 
 // set the specified SIS to STANDBY2 mode
-void sisGoStandby2() {
-    int ret;
-
+void sisGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule) {
     /* Check if the selected sideband is outfitted with the desired SIS */
     if (frontend.cartridge[currentModule]
             .polarization[currentBiasModule]
@@ -337,15 +333,17 @@ void sisGoStandby2() {
         return;
     }
 
-    ret = 0;
-
 #ifdef DEBUG_GO_STANDBY2
+    int ret;
     printf(" - sisGoStandby2 pol=%d sb=%d\n", currentBiasModule, currentPolarizationModule);
-#endif  // DEBUG_GO_STANDBY2
-
     // set the SIS voltage to 0:
     CONV_FLOAT = 0.0;
-    ret = setSisMixerBias();
+    ret = setSisMixerBias(currentModule, currentBiasModule, currentPolarizationModule);
+#else
+    // set the SIS voltage to 0:
+    CONV_FLOAT = 0.0;
+    setSisMixerBias(currentModule, currentBiasModule, currentPolarizationModule);
+#endif  // DEBUG_GO_STANDBY2
 
 #ifdef DEBUG_GO_STANDBY2
     if (ret) printf(" -- ret=%d\n", ret);

@@ -16,16 +16,14 @@
 #include "frontend.h"
 #include "loSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPhotomixerModule = 0;
 /* Statics */
-static HANDLER photomixerModulesHandler[PHOTOMIXER_MODULES_NUMBER] = {enableHandler, voltageHandler, currentHandler};
+static HANDLER_INT photomixerModulesHandler[PHOTOMIXER_MODULES_NUMBER] = {pmxEnableHandler, pmxVoltageHandler,
+                                                                          pmxCurrentHandler};
 
 /* 1st LO photomixer handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the 1st LO photomixer. */
-void photomixerHandler(void) {
+void photomixerHandler(int currentModule) {
 #ifdef DEBUG
     printf("    Photomixer\n");
 #endif /* DEBUG */
@@ -34,7 +32,7 @@ void photomixerHandler(void) {
        is performed. */
 
     /* Check if the submodule is in range */
-    currentPhotomixerModule = (CAN_ADDRESS & PHOTOMIXER_MODULES_RCA_MASK) >> PHOTOMIXER_MODULES_MASK_SHIFT;
+    int currentPhotomixerModule = (CAN_ADDRESS & PHOTOMIXER_MODULES_RCA_MASK) >> PHOTOMIXER_MODULES_MASK_SHIFT;
     if (currentPhotomixerModule >= PHOTOMIXER_MODULES_NUMBER) {
         storeError(ERR_PHOTOMIXER, ERC_MODULE_RANGE);  // Photomixer submodule out of range
 
@@ -43,11 +41,11 @@ void photomixerHandler(void) {
         return;
     }
     /* Call the correct handler */
-    (photomixerModulesHandler[currentPhotomixerModule])();
+    (photomixerModulesHandler[currentPhotomixerModule])(currentModule);
 }
 
 /* Enable Handler */
-static void enableHandler(void) {
+void pmxEnableHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Enable\n");
 #endif /* DEBUG */
@@ -59,7 +57,7 @@ static void enableHandler(void) {
 
         /* Change the status of the photomixer according to the content of the
            CAN message. */
-        if (setPhotomixerEnable(CAN_BYTE ? PHOTOMIXER_ENABLE : PHOTOMIXER_DISABLE) == ERROR) {
+        if (setPhotomixerEnable(CAN_BYTE ? PHOTOMIXER_ENABLE : PHOTOMIXER_DISABLE, currentModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].lo.photomixer.lastEnable.status = ERROR;
 
@@ -89,7 +87,7 @@ static void enableHandler(void) {
 /* Voltage Handler */
 /* This function deals with all the monitor requests diected to the photomixer
    voltage. There are no control messages allowed for the photomixer voltage. */
-static void voltageHandler(void) {
+void pmxVoltageHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Voltage\n");
 #endif /* DEBUG */
@@ -111,7 +109,7 @@ static void voltageHandler(void) {
     }
 
     /* Monitor the photomixer voltage */
-    if (getPhotomixer(PHOTOMIXER_BIAS_V) == ERROR) {
+    if (getPhotomixer(PHOTOMIXER_BIAS_V, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;
@@ -132,7 +130,7 @@ static void voltageHandler(void) {
 /* Current Handler */
 /* This function deals with all the monitor requests directed to the photomixer
    current. There are no control messages allowed for the photomixer current. */
-static void currentHandler(void) {
+void pmxCurrentHandler(int currentModule) {
 #ifdef DEBUG
     printf("     Current\n");
 #endif /* DEBUG */
@@ -158,10 +156,10 @@ static void currentHandler(void) {
         once (if ever) the hardware is going to be able to return a stable
         reading within the allocated time, this should be removed. For this
         fix, the first readout will not check for errors. **/
-    getPhotomixer(PHOTOMIXER_BIAS_C);
+    getPhotomixer(PHOTOMIXER_BIAS_C, currentModule);
     /** End Fix **/
 
-    if (getPhotomixer(PHOTOMIXER_BIAS_C) == ERROR) {
+    if (getPhotomixer(PHOTOMIXER_BIAS_C, currentModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

@@ -53,15 +53,9 @@ typedef struct {
     unsigned char countTrig;
 } INTRLK_GLITCH;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockGlitchModule;  //!< Currently addressed interlock glitch module
-
 /* Prototypes */
-/* Statics */
-static void valueHandler(void);
-static void countTrigHandler(void);
-/* Externs */
-extern void interlockGlitchHandler(void);  //!< This function deals with the incoming CAN messages
+void interlockGlitchValueHandler(void);
+void countTrigHandler(void);
+void interlockGlitchHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_GLITCH_H */

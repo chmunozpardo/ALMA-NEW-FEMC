@@ -32,13 +32,4 @@ typedef enum {
     ASYNC_ON
 } ASYNC_STATE;  //!< Current state of the async process
 
-/* Globals */
-/* Externs */
-extern ASYNC_STATE asyncState;  //!< Currenst state of the async process
-/* Statics */
-
-/* Prototypes */
-/* Externs */
-extern void async(void);  //!< This function takes care of the async operations
-
 #endif /* _ASYNC_H */

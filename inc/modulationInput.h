@@ -59,14 +59,8 @@ typedef struct {
     MI_SPECIAL_MSGS miSpecialMsgs;
 } MODULATION_INPUT;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentModulationInputModule;  //!< Currently addressed EDFA modulation input submodule
-
 /* Prototypes */
-/* Statics */
-static void valueHandler(void);
-/* Externs */
-extern void modulationInputHandler(void);  //!< This function deals with the incoming CAN message
+void modulationInputValueHandler(void);
+void modulationInputHandler(void);  //!< This function deals with the incoming CAN message
 
 #endif /* _MODULATIONINPUT_H */

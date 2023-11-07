@@ -83,7 +83,7 @@ void changeEndianInt(unsigned char *destination, unsigned char *source) {
     \note   This function doesn't perform any check on the provided data to
             speed up the execution. */
 char *buildString(unsigned char *prefix, unsigned char number, unsigned char *suffix) {
-    static unsigned char string[MAX_STRING_SIZE];
+    static char string[MAX_STRING_SIZE];
 
     if (suffix == NULL) {
         if (prefix == NULL) {
@@ -106,7 +106,7 @@ char *buildString(unsigned char *prefix, unsigned char number, unsigned char *su
 /*! This function is used when an already established monitor/control point is
     removed from the hardware. It is used as a placeholder in case something
     new will be connected in the hardware. */
-void bogoFunction(void) {
+void bogoFunction(int currentModule) {
 #ifdef DEBUG
     printf("Bogo Function!\n");
 #endif /* DEBUG */

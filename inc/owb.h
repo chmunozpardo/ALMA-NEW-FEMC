@@ -70,20 +70,13 @@
 #define OWM_WRITE 0x01
 #define OWM_READ 0x02
 
-/* Globals */
-/* Externs */
-extern unsigned char esnDevicesFound;                               //!< Number of devices with ESN found on the bus
-extern unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE];  // Array to store the ESNs of the found devices
-
 /* Prototypes */
-/* Statics */
-static int owbReset(void);              // Send the reset signal on the one wire bus
-static int waitIrq(unsigned char irq);  // Check on the state of the selected irq signal
-static int RecoverROM(int* ReceiveData, int* TransmitData,
-                      unsigned char* ROMCode);  // Algorithm to discover the available devices
-static int writeOwb(int data);                  // Writes data to the one wire bus
-/* Externs */
-extern int owbInit(void);    //!< Performs the initialization of the one wire bus
-extern int owbGetEsn(void);  //!< Gather the available ESN from the OWB
+int owbReset(void);              // Send the reset signal on the one wire bus
+int waitIrq(unsigned char irq);  // Check on the state of the selected irq signal
+int RecoverROM(int* ReceiveData, int* TransmitData,
+               unsigned char* ROMCode);  // Algorithm to discover the available devices
+int writeOwb(int data);                  // Writes data to the one wire bus
+int owbInit(void);                       //!< Performs the initialization of the one wire bus
+int owbGetEsn(void);                     //!< Gather the available ESN from the OWB
 
 #endif /* _OWB_H */

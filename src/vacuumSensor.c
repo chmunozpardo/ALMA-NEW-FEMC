@@ -18,16 +18,13 @@
 #include "globalDefinitions.h"
 #include "packet.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentVacuumSensorModule = 0;
 /* Statics */
-static HANDLER vacuumSensorModulesHandler[VACUUM_SENSOR_MODULES_NUMBER] = {pressureHandler};
+static HANDLER_INT vacuumSensorModulesHandler[VACUUM_SENSOR_MODULES_NUMBER] = {vaccumSensorPressureHandler};
 
 /* Cryostat vacuum sensors handler */
 /*! This function will be called by the CAN message handling subroutine when the
     receivd message is pertinent to the cryostat vacuum sensors. */
-void vacuumSensorHandler(void) {
+void vacuumSensorHandler(int currentVacuumControllerModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Vacuum Sensor: %d\n", currentVacuumControllerModule);
 #endif /* DEBUG_CRYOSTAT */
@@ -39,11 +36,11 @@ void vacuumSensorHandler(void) {
        check to see if the desired submodule is in range is not needed and we
        can directly call the correct handler. */
     /* Call the correct handler */
-    (vacuumSensorModulesHandler[currentVacuumSensorModule])();
+    (vacuumSensorModulesHandler[0])(currentVacuumControllerModule);
 }
 
 /* Pressure Handler */
-static void pressureHandler(void) {
+void vaccumSensorPressureHandler(int currentVacuumControllerModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("    Pressure Value\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -81,10 +78,6 @@ static void pressureHandler(void) {
     } else {
         /* if no error during monitor process, gather the stored data */
         CONV_FLOAT = frontend.cryostat.vacuumController.vacuumSensor[currentVacuumControllerModule].pressure;
-    }
-    /* If the async monitoring is disabled, notify the monitored message */
-    if (asyncState == ASYNC_OFF) {
-        CAN_STATUS = HARDW_BLKD_ERR;
     }
 
     /* Load the CAN message payload with the returned value and set the size.

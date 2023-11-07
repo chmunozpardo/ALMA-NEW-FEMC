@@ -68,15 +68,10 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } SIS_HEATER;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentSisHeaterModule;  //!< Current addressed SIS heater submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-static void currentHandler(void);
-/* Externs */
-extern void sisHeaterHandler(void);  //!< This function deals with the incoming CAN message
+void sisHeaterEnableHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisHeaterCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisHeaterHandler(int currentModule, int currentBiasModule,
+                      int currentPolarizationModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _SISHEATER_H */

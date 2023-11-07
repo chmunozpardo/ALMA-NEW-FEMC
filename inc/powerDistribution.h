@@ -84,17 +84,11 @@ typedef struct {
 
 } POWER_DISTRIBUTION;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPowerDistributionModule;  //!< Current addressed power distribution module
-
 /* Prototypes */
-/* Statics */
-static void poweredModulesHandler(void);
-/* Externs */
-extern int powerDistributionStartup(
-    void);  //!< This function deals with the initialization of the power distribution system
-extern void powerDistributionHandler(void);  //!< This function deals with the incoming can message
-extern int powerDistributionStop(void);  //!< This function deals with the shut down of the power distribution system
+void poweredModulesHandler(int currentPowerDistributionModule);
+int powerDistributionStartup(void);  //!< This function deals with the initialization of the power distribution
+                                     //!< system
+void powerDistributionHandler(int currentModule);  //!< This function deals with the incoming can message
+int powerDistributionStop(void);  //!< This function deals with the shut down of the power distribution system
 
 #endif /* _POWERDISTRIBUTION_H */

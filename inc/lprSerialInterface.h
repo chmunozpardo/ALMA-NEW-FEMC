@@ -314,27 +314,20 @@ typedef struct {
 
 } LPR_REGISTERS;
 
-/* Globals */
-/* Externs */
-extern LPR_REGISTERS lprRegisters;  //!< Local Oscillator Photonic Reference registers
-
 /* Prototypes */
-/* Statics */
-static int getLprAnalogMonitor(void);  // Perform core analog monitor functions
-
-/* Externs */
-extern int getLprTemp(void);            //!< This function monitors the LPR temperature sensors
-extern int setOpticalSwitchPort(void);  //!< This function controls the port selection for the optical switch
-extern int setOpticalSwitchShutter(unsigned char mode);  //!< This function enables the LPR optical switch shutter
-extern int getLprStates(void);                           //!< This function monitors the states of several LPR hardware
-extern int getLaserPumpTemperature(void);                //!< This function monitors the temperature of the laser pump
-extern int setLaserDriveCurrent(void);                   //!< This function controls the EDFA laser drive current
-extern int getLaserDriveCurrent(void);                   //!< This function monitors the EDFA laser drive current
-extern int getLaserPhotoDetectCurrent(void);  //!< This function monitors the EDFA laser photo detector current
-extern int getPhotoDetectorCurrent(void);     //!< This fucntion monitors the EDFA photodetector current
-extern int getPhotoDetectorPower(void);       //!< This function monitors the EDFA photodetector power
-extern int setModulationInputEnable(
-    unsigned char enable);                 //!< This function controls the EDFA modulation input port enable state
-extern int setModulationInputValue(void);  //!< This function control the EDFA modulation input value
-extern int setLprDacStrobe(void);          //!< This function sends the desired strobe to the DAC
-#endif                                     /* _LPRSERIALINTERFACE_H */
+int getLprAnalogMonitor(void);                    // Perform core analog monitor functions
+int getLprTemp(int currentLprModule);             //!< This function monitors the LPR temperature sensors
+int setOpticalSwitchPort(void);                   //!< This function controls the port selection for the optical switch
+int setOpticalSwitchShutter(unsigned char mode);  //!< This function enables the LPR optical switch shutter
+int getLprStates(void);                           //!< This function monitors the states of several LPR hardware
+int getLaserPumpTemperature(void);                //!< This function monitors the temperature of the laser pump
+int setLaserDriveCurrent(void);                   //!< This function controls the EDFA laser drive current
+int getLaserDriveCurrent(void);                   //!< This function monitors the EDFA laser drive current
+int getLaserPhotoDetectCurrent(void);             //!< This function monitors the EDFA laser photo detector current
+int getPhotoDetectorCurrent(void);                //!< This fucntion monitors the EDFA photodetector current
+int getPhotoDetectorPower(void);                  //!< This function monitors the EDFA photodetector power
+int setModulationInputEnable(
+    unsigned char enable);          //!< This function controls the EDFA modulation input port enable state
+int setModulationInputValue(void);  //!< This function control the EDFA modulation input value
+int setLprDacStrobe(void);          //!< This function sends the desired strobe to the DAC
+#endif                              /* _LPRSERIALINTERFACE_H */

@@ -37,14 +37,8 @@ typedef struct {
     float temp;
 } INTRLK_TEMP_SENS;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockTempSensModule;  //!< Currently addressed FETIM interlock temp sens module
-
 /* Prototypes */
-/* Statics */
-static void tempHandler(void);
-/* Externs */
-extern void interlockTempSensHandler(void);  //!< This function deals with teh incoming CAN message
+void interlockTempSensTempHandler(int currentInterlockTempModule);
+void interlockTempSensHandler(int currentInterlockTempModule);  //!< This function deals with teh incoming CAN message
 
 #endif /* _INTERLOCK_TEMP_SENS_H */

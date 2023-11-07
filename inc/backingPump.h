@@ -52,14 +52,8 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } BACKING_PUMP;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentBackingPumpModule;  //!< Currently addressed backing pump submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-/* Externs */
-extern void backingPumpHandler(void);  //!< This function deals with the incoming CAN message
+void backingPumpEnableHandler(void);
+void backingPumpHandler(int currentCryostatModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _BACKINGPUMP_H */

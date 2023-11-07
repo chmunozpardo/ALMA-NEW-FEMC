@@ -48,17 +48,12 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastDrainVoltage;
 } PA_CHANNEL;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPaChannelModule;  //!< Current addressed PA channel submodule
-
 /* Prototypes */
-/* Statics */
-static void gateVoltageHandler(void);
-static void drainVoltageHandler(void);
-static void drainCurrentHandler(void);
-/* Externs */
-extern void paChannelHandler(void);  //!< This function deals with the incoming can message
-extern int currentPaChannel(void);   //!< This function returns the current PA channel
+void paGateVoltageHandler(int currentModule, int currentPaModule, int currentPaChannelModule);
+void paDrainVoltageHandler(int currentModule, int currentPaModule, int currentPaChannelModule);
+void paDrainCurrentHandler(int currentModule, int currentPaModule, int currentPaChannelModule);
+void paChannelHandler(int currentModule,
+                      int currentPaModule);                    //!< This function deals with the incoming can message
+int currentPaChannel(int currentModule, int currentPaModule);  //!< This function returns the current PA channel
 
 #endif /* _PACHANNEL_H */

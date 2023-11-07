@@ -55,15 +55,9 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastTeledyneCollectorByte[2];
 } PA;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentPaModule;  //!< Current addressed PA submodule
-
 /* Prototypes */
-/* Statics */
-static void supplyVoltage3VHandler(void);
-static void supplyVoltage5VHandler(void);
-/* Externs */
-extern void paHandler(void);  //!< This function deals with the incoming can message
+void paSupplyVoltage3VHandler(int currentModule, int currentPaModule);
+void paSupplyVoltage5VHandler(int currentModule, int currentPaModule);
+void paHandler(int currentModule);  //!< This function deals with the incoming can message
 
 #endif /* _PA_H */

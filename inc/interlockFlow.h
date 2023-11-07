@@ -47,12 +47,7 @@ typedef struct {
     INTRLK_FLOW_SENS intrlkFlowSens[INTERLOCK_FLOW_SENSORS_NUMBER];
 } INTRLK_FLOW;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockFlowModule;  //!< Currently addressed interlock flow module
-
 /* Prototypes */
-/* Externs */
-extern void interlockFlowHandler(void);  //!< This function deals with the incoming CAN messages
+void interlockFlowHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_FLOW_H */

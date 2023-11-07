@@ -42,17 +42,11 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastEnable;
 } LNA_LED;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLnaLedModule;  //!< Current addressed LNA led submodule
-
 /* Prototypes */
-/* Statics */
-static void enableHandler(void);
-/* Externs */
-extern void lnaLedHandler(void);  //!< This function deals with the incoming can message
-
-extern void lnaLedGoStandby2();
+void lnaLedEnableHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void lnaLedHandler(int currentModule, int currentBiasModule,
+                   int currentPolarizationModule);  //!< This function deals with the incoming can message
+void lnaLedGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule);
 //!< set the specified LNA LED to STANDBY2 mode
 
 #endif /* _LNALED_H */

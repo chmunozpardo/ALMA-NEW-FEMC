@@ -60,18 +60,12 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastCurrent;
 } SIS_MAGNET;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentSisMagnetModule;  //!< Current addressed SIS magnet submodule
-
 /* Prototypes */
-/* Statics */
-static void voltageHandler(void);
-static void currentHandler(void);
-/* Externs */
-extern void sisMagnetHandler(void);  //!< This function deals with the incoming can message
-
-extern void sisMagnetGoStandby2();
+void sisMagnetVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisMagnetCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule);
+void sisMagnetHandler(int currentModule, int currentBiasModule,
+                      int currentPolarizationModule);  //!< This function deals with the incoming can message
+void sisMagnetGoStandby2(int currentModule, int currentBiasModule, int currentPolarizationModule);
 //!< set the specified SIS magnet to STANDBY2 mode.
 
 #endif /* _SISMAGNET_H */

@@ -17,17 +17,14 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentVacuumControllerModule = 0;
 /* Statics */
-static HANDLER vacuumControllerModulesHandler[VACUUM_CONTROLLER_MODULES_NUMBER] = {
-    vacuumSensorHandler, vacuumSensorHandler, enableHandler, stateHandler};
+static HANDLER_INT vacuumControllerModulesHandler[VACUUM_CONTROLLER_MODULES_NUMBER] = {
+    vacuumSensorHandler, vacuumSensorHandler, vacuumControllerEnableHandler, vacuumControllerStateHandler};
 
 /* Vacuum controller handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cryostat vacuum controller. */
-void vacuumControllerHandler(void) {
+void vacuumControllerHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  Vacuum Controller\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -36,7 +33,7 @@ void vacuumControllerHandler(void) {
        hardware check is required. */
 
     /* Check if the submodule is in range */
-    currentVacuumControllerModule = (CAN_ADDRESS & VACUUM_CONTROLLER_MODULES_RCA_MASK);
+    int currentVacuumControllerModule = (CAN_ADDRESS & VACUUM_CONTROLLER_MODULES_RCA_MASK);
     if (currentVacuumControllerModule >= VACUUM_CONTROLLER_MODULES_NUMBER) {
         storeError(ERR_VACUUM_CONTROLLER, ERC_MODULE_RANGE);  // Vacuum Controller submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                           // Notify incoming CAN message of the error
@@ -44,7 +41,7 @@ void vacuumControllerHandler(void) {
     }
 
     /* Call the correct handler */
-    (vacuumControllerModulesHandler[currentVacuumControllerModule])();
+    (vacuumControllerModulesHandler[currentVacuumControllerModule])(currentVacuumControllerModule);
 
     return;
 }
@@ -52,7 +49,7 @@ void vacuumControllerHandler(void) {
 /* Vacuum Controlller Enable Handler */
 /* This function deals with the monitor and control requests to the vacuum
    controller enable. */
-static void enableHandler(void) {
+void vacuumControllerEnableHandler(int currentVacuumControllerModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Controller enable\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -93,7 +90,7 @@ static void enableHandler(void) {
 /* Vacuum Controller State Handler */
 /* This function deals with the monitor and control requests to the vacuum
    controller state. */
-static void stateHandler(void) {
+void vacuumControllerStateHandler(int currentVacuumControllerModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Controller state\n");
 #endif /* DEBUG_CRYOSTAT */

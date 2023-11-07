@@ -16,16 +16,13 @@
 #include "frontend.h"
 #include "ifSerialInterface.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentIfTempServoModule = 0;
 /* Statics */
-static HANDLER ifTempServoModulesHandler[IF_TEMP_SERVO_MODULES_NUMBER] = {enableHandler};
+static HANDLER_INT ifTempServoModulesHandler[IF_TEMP_SERVO_MODULES_NUMBER] = {ifTempServoEnableHandler};
 
 /* IF switch temperature servo handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the IF switch temperature servo system. */
-void ifTempServoHandler(void) {
+void ifTempServoHandler(int currentIfSwitchModule) {
 /* The value of currentIfTempServoModule is not changed since there is only
    one submodule in the IF temperature servo module.
    Ths structure is preserved only for consistency.
@@ -41,13 +38,13 @@ void ifTempServoHandler(void) {
     /* Since the is only one submodule in the temperature servo, the check to
        see if the desired submodule is in range, is not needed and we can
        directly call the correct handler. */
-    (ifTempServoModulesHandler[currentIfTempServoModule])();
+    (ifTempServoModulesHandler[0])(currentIfSwitchModule);
 }
 
 /* IF switch temperature servo enable handler */
 /* This function deals with the monitor and control requests to the IF switch
    temperature servo system enable. */
-static void enableHandler(void) {
+void ifTempServoEnableHandler(int currentIfSwitchModule) {
 #ifdef DEBUG_IFSWITCH
     printf("   Servo enable\n");
 #endif /* DEBUG_SWITCH */
@@ -73,7 +70,8 @@ static void enableHandler(void) {
 
         /* Change the status of the temperature servo according to the content
            of the CAN message. */
-        if (setIfTempServoEnable(CAN_BYTE ? IF_TEMP_SERVO_ENABLE : IF_TEMP_SERVO_DISABLE) == ERROR) {
+        if (setIfTempServoEnable(CAN_BYTE ? IF_TEMP_SERVO_ENABLE : IF_TEMP_SERVO_DISABLE, currentIfSwitchModule) ==
+            ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.ifSwitch
                 .ifChannel[currentIfChannelPolarization[currentIfSwitchModule]]

@@ -47,12 +47,7 @@ typedef struct {
     INTRLK_TEMP_SENS intrlkTempSens[INTERLOCK_TEMP_SENSORS_NUMBER];
 } INTRLK_TEMP;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentInterlockTempModule;  //!< Currently addressed interlock temeprature module
-
 /* Prototypes */
-/* Externs */
-extern void interlockTempHandler(void);  //!< This function deals with the incoming CAN messages
+void interlockTempHandler(void);  //!< This function deals with the incoming CAN messages
 
 #endif /* _INTERLOCK_TEMP_H */

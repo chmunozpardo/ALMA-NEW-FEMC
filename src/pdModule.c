@@ -18,23 +18,20 @@
 #include "pdSerialInterface.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentPdModuleModule = 0;
 /* Statics */
-static HANDLER pdModuleModulesHandler[PD_MODULE_MODULES_NUMBER] = {pdChannelHandler, pdChannelHandler, pdChannelHandler,
-                                                                   pdChannelHandler, pdChannelHandler, pdChannelHandler,
-                                                                   enableHandler};
+static HANDLER_INT_INT pdModuleModulesHandler[PD_MODULE_MODULES_NUMBER] = {
+    pdChannelHandler, pdChannelHandler, pdChannelHandler, pdChannelHandler,
+    pdChannelHandler, pdChannelHandler, pdEnableHandler};
 /* Power distribution module handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the power distribution modules. */
-void pdModuleHandler(void) {
+void pdModuleHandler(int currentPowerDistributionModule) {
 #ifdef DEBUG_POWERDIS
     printf("  Power Distribution Module: %d\n", currentPowerDistributionModule);
 #endif /* DEBUG_POWERDIS */
 
     /* Check if the specified submodule is in range */
-    currentPdModuleModule = (CAN_ADDRESS & PD_MODULE_MODULES_RCA_MASK) >> PD_MODULE_MODULES_MASK_SHIFT;
+    int currentPdModuleModule = (CAN_ADDRESS & PD_MODULE_MODULES_RCA_MASK) >> PD_MODULE_MODULES_MASK_SHIFT;
     if (currentPdModuleModule >= PD_MODULE_MODULES_NUMBER) {
         storeError(ERR_PD_MODULE, ERC_MODULE_RANGE);  // Power distribution module submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                   // Notify incoming CAN message of error
@@ -50,17 +47,17 @@ void pdModuleHandler(void) {
     }
 
     /* Call the correct handler */
-    (pdModuleModulesHandler[currentPdModuleModule])();
+    (pdModuleModulesHandler[currentPdModuleModule])(currentPowerDistributionModule, currentPdModuleModule);
 }
 
-static int allowStandby2(int module) {
+int allowStandby2(int module) {
     // STANDBY2 only allowed for certain bands:
     if (module == BAND6) return TRUE;
 
     return FALSE;
 }
 
-static int allowPowerOn(int module, int standby2) {
+int allowPowerOn(int module, int standby2) {
     // Allow up to four to be powered on, so long as one of them is in STANDBY2 mode.
 
     int avail = frontend.powerDistribution.maxPoweredModules - frontend.powerDistribution.poweredModules;
@@ -90,7 +87,7 @@ void printPoweredModuleCounts(void) {
 }
 
 /* Power distribution module enable handler */
-static void enableHandler(void) {
+void pdEnableHandler(int currentPowerDistributionModule, int currentPdModuleModule) {
     unsigned char cmdStandby2;
     //!< true if the command is to set STANDBY2 mode
     //!<  or the former state was STANDBY2 mode.
@@ -217,7 +214,7 @@ static void enableHandler(void) {
                 }
 
                 // Turn on the cartridge:
-                if (setPdModuleEnable(PD_MODULE_ENABLE) == ERROR) {
+                if (setPdModuleEnable(PD_MODULE_ENABLE, currentPowerDistributionModule) == ERROR) {
                     // Store error in the last CAN message variable:
                     frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status = ERROR;
 
@@ -228,11 +225,6 @@ static void enableHandler(void) {
                 // yet initialized. This state will trigger the initialization by
                 // the cartridge async routine.
                 frontend.cartridge[currentPowerDistributionModule].state = CARTRIDGE_ON;
-
-                // Force the priority of the async to address the cartridge next.
-                // This will also re-eable the async procedure if it has been
-                // disabled via CAN message or console
-                asyncState = ASYNC_CARTRIDGE;
 
                 // Increse the number of currently turned on cartridges.
                 //  OR STANDBY2 cartridges.
@@ -334,11 +326,6 @@ static void enableHandler(void) {
                     // the cartridge async routine.
                     frontend.cartridge[currentPowerDistributionModule].state = CARTRIDGE_GO_STANDBY2;
 
-                    // Force the priority of the async to address the cartridge next.
-                    // This will also re-eable the async procedure if it has been
-                    // disabled via CAN message or console
-                    asyncState = ASYNC_CARTRIDGE;
-
                 default:
                     // illegal state transtition.  Should never happen.
                     storeError(ERR_PD_MODULE, ERC_DEBUG_ME);
@@ -367,7 +354,7 @@ static void enableHandler(void) {
             }
 
             // Turn off the power distributrion module.
-            if (setPdModuleEnable(PD_MODULE_DISABLE) == ERROR) {
+            if (setPdModuleEnable(PD_MODULE_DISABLE, currentPowerDistributionModule) == ERROR) {
                 // If an error occurs while stopping
                 //  store the Error state in the last control message variable:
                 frontend.powerDistribution.pdModule[currentPowerDistributionModule].lastEnable.status = ERROR;

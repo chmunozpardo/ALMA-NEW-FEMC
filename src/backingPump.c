@@ -18,16 +18,13 @@
 #include "frontend.h"
 #include "globalDefinitions.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentBackingPumpModule = 0;
 /* Statics */
-static HANDLER backingPumpModulesHandler[BACKING_PUMP_MODULES_NUMBER] = {enableHandler};
+static HANDLER backingPumpModulesHandler[BACKING_PUMP_MODULES_NUMBER] = {backingPumpEnableHandler};
 
 /* Backing pump handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the cryostat backing pump. */
-void backingPumpHandler(void) {
+void backingPumpHandler(int currentCryostatModule) {
 #ifdef DEBUG_CRYOSTAT
     printf("  Backing Pump\n");
 #endif /* DEBUG_CRYOSTAT */
@@ -38,7 +35,7 @@ void backingPumpHandler(void) {
     /* Since there is only one submodule in the backing pump, the check to see
        if the desired submodule is in range, is not needed and we can directly
        call the correct handler. */
-    (backingPumpModulesHandler[currentBackingPumpModule])();
+    (backingPumpModulesHandler[0])();
 
     return;
 }
@@ -46,7 +43,7 @@ void backingPumpHandler(void) {
 /* Backing pump enable handler */
 /* This function deals with the message directed to the enable state of the
    backing pump in the cryostat module. */
-static void enableHandler(void) {
+void backingPumpEnableHandler(void) {
 #ifdef DEBUG_CRYOSTAT
     printf("   Pump Enable\n");
 #endif /* DEBUG_CRYOSTAT */

@@ -19,12 +19,6 @@
 
 /* Globals */
 /* Externs */
-unsigned char currentFetimModule = 0;
-unsigned char currentAsyncFetimExtTempModule = 0;     /*! < This global keeps track of
-                                                            the FETIM external
-                                                            temperature module
-                                                            currently addressed by the
-                                                            asynchronous routine. */
 int asyncFetimExtTempError[FETIM_EXT_SENSORS_NUMBER]; /*!< A global to keep
                                                            track of the async
                                                            error while
@@ -42,7 +36,7 @@ static HANDLER fetimModulesHandler[FETIM_MODULES_NUMBER] = {interlockHandler, co
 /* FETIM Handler */
 /*! This function will be called by the CAN message handler when the received
     message is in the address range of the FETIM. */
-void fetimHandler(void) {
+void fetimHandler(int currentModule) {
 #ifdef DEBUG_FETIM
     printf(" FETIM: %d (currentModule)\n", currentModule);
 #endif /* DEBUG_FETIM */
@@ -55,7 +49,7 @@ void fetimHandler(void) {
     }
 
     /* Check if the specified submodule is in range */
-    currentFetimModule = (CAN_ADDRESS & FETIM_MODULES_RCA_MASK) >> FETIM_MODULES_MASK_SHIFT;
+    int currentFetimModule = (CAN_ADDRESS & FETIM_MODULES_RCA_MASK) >> FETIM_MODULES_MASK_SHIFT;
     if (currentFetimModule >= FETIM_MODULES_NUMBER) {
         storeError(ERR_FETIM, ERC_MODULE_RANGE);  // Submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;               // Notify incoming CAN message of the error
@@ -79,8 +73,6 @@ int fetimStartup(void) {
        selected. This is necessary because currentModule is the global variable
        used to select the communication channel. This is only necessary if
        serial communication have to be implemented. */
-    currentModule = FETIM_MODULE;
-
 #ifdef DEBUG_STARTUP
     printf(" Initializing FETIM Module...\n");
     printf("  - Reading FETIM module hardware revision level...\n");
@@ -124,6 +116,9 @@ int fetimStartup(void) {
         - \ref ASYNC_DONE   -> once all the async operations are done
         - \ref ERROR        -> if something went wrong */
 int fetimAsync(void) {
+    /* A static to keep track of the currently addressed cartridge */
+    static unsigned char currentAsyncFetimExtTempModule = 0;
+
     /* A static enum to track the state of the async function */
     static enum {
         ASYNC_FETIM_GET_EXT_TEMP,
@@ -137,16 +132,13 @@ int fetimAsync(void) {
         return ASYNC_DONE;
     }
 
-    /* Address the FETIM */
-    currentModule = FETIM_MODULE;
-
     /* Switch to the correct state */
     switch (asyncFetimState) {
         /* Monitor the external temperature asynchronously */
         case ASYNC_FETIM_GET_EXT_TEMP:
 
             /* Get the external temperatures */
-            asyncFetimExtTempError[currentAsyncFetimExtTempModule] = getFetimExtTemp();
+            asyncFetimExtTempError[currentAsyncFetimExtTempModule] = getFetimExtTemp(currentAsyncFetimExtTempModule);
 
 #ifdef DEBUG_FETIM_ASYNC
             printf("Async -> FETIM -> Ext Temp%d=%f\n", currentAsyncFetimExtTempModule,

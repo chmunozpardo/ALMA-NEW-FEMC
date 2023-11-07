@@ -54,16 +54,14 @@ typedef struct {
     LAST_CONTROL_MESSAGE lastDrainCurrent;
 } LNA_STAGE;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLnaStageModule;  //!< Current addressed LNA stage submodule
-
 /* Prototypes */
-/* Statics */
-static void drainVoltageHandler(void);
-static void drainCurrentHandler(void);
-static void gateVoltageHandler(void);
-/* Externs */
-extern void lnaStageHandler(void);  //!< This function deals with the incoming CAN message
+void lnaStageDrainVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                                 int currentLnaModule, int currentLnaStageModule);
+void lnaStageDrainCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                                 int currentLnaModule, int currentLnaStageModule);
+void lnaStageGateVoltageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                                int currentLnaModule, int currentLnaStageModule);
+void lnaStageHandler(int currentModule, int currentBiasModule, int currentPolarizationModule,
+                     int currentLnaModule);  //!< This function deals with the incoming CAN message
 
 #endif /* _LNASTAGE_H */

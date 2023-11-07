@@ -19,22 +19,22 @@
    function pointer is shifted by 3 during initialization. This saves time
    during normal execution. */
 static HANDLER classesHandler[CLASSES_NUMBER] = {standardRCAsHandler, standardRCAsHandler,
-                                                 specialRCAsHandler};  // The classes handler array is initialized.
-static HANDLER modulesHandler[MODULES_NUMBER] = {cartridgeHandler,     // Cartridge 0 -> Band 1
-                                                 cartridgeHandler,     // Cartridge 1 -> Band 2
-                                                 cartridgeHandler,     // Cartridge 2 -> Band 3
-                                                 cartridgeHandler,     // Cartridge 3 -> Band 4
-                                                 cartridgeHandler,     // Cartridge 4 -> Band 5
-                                                 cartridgeHandler,     // Cartridge 5 -> Band 6
-                                                 cartridgeHandler,     // Cartridge 6 -> Band 7
-                                                 cartridgeHandler,     // Cartridge 7 -> Band 8
-                                                 cartridgeHandler,     // Cartridge 8 -> Band 9
-                                                 cartridgeHandler,     // Cartridge 9 -> Band 10
-                                                 powerDistributionHandler,
-                                                 ifSwitchHandler,
-                                                 cryostatHandler,
-                                                 lprHandler,
-                                                 fetimHandler};  // The modules handler array is initialized
+                                                 specialRCAsHandler};   // The classes handler array is initialized.
+static HANDLER_INT modulesHandler[MODULES_NUMBER] = {cartridgeHandler,  // Cartridge 0 -> Band 1
+                                                     cartridgeHandler,  // Cartridge 1 -> Band 2
+                                                     cartridgeHandler,  // Cartridge 2 -> Band 3
+                                                     cartridgeHandler,  // Cartridge 3 -> Band 4
+                                                     cartridgeHandler,  // Cartridge 4 -> Band 5
+                                                     cartridgeHandler,  // Cartridge 5 -> Band 6
+                                                     cartridgeHandler,  // Cartridge 6 -> Band 7
+                                                     cartridgeHandler,  // Cartridge 7 -> Band 8
+                                                     cartridgeHandler,  // Cartridge 8 -> Band 9
+                                                     cartridgeHandler,  // Cartridge 9 -> Band 10
+                                                     powerDistributionHandler,
+                                                     ifSwitchHandler,
+                                                     cryostatHandler,
+                                                     lprHandler,
+                                                     fetimHandler};  // The modules handler array is initialized
 
 void CANMessageHandler(void) {
     /* Redirect to the correct class handler depending on the RCA */
@@ -43,7 +43,6 @@ void CANMessageHandler(void) {
     if (currentClass >= CLASSES_NUMBER) {
         storeError(ERR_CAN,
                    ERC_RCA_CLASS);  // Error: RCA class outside allowed range
-        newCANMsg = 0;              // Clear the new message flag
         return;
     }
     /* If in range call the function and let the handler figure out if the
@@ -52,14 +51,12 @@ void CANMessageHandler(void) {
        while in intialization mode respect to the standard operation. */
     (classesHandler[currentClass])();  // Call the appropriate handler
 
-    /* Clear the new message flag */
-    newCANMsg = 0;
-
     return;
 }
 
 /* Standard message handler. */
-static void standardRCAsHandler(void) {
+void standardRCAsHandler(void) {
+    int currentModule = 0;
     if (CAN_SIZE == CAN_MONITOR) {  // If it is a monitor message
 
         /* Check if maintenance mode. If we are, then block all standard
@@ -87,8 +84,8 @@ static void standardRCAsHandler(void) {
             CAN_STATUS = HARDW_RNG_ERR;             // Notify incoming CAN message of the error
         } else {
             /* Redirect to the correct module handler depending on the RCA */
-            (modulesHandler[currentModule])();  // Call the appropriate module
-                                                // handler
+            (modulesHandler[currentModule])(currentModule);  // Call the appropriate module
+                                                             // handler
         }
 
         sendCANMessage(TRUE);
@@ -126,18 +123,16 @@ static void standardRCAsHandler(void) {
        existing harware because we don't know with what hardware to associate
        the error. Since nothing is returned from a control message, we cannot
        return the error state as well. */
-    (modulesHandler[currentModule])();  // Call the appropriate module handler
+    (modulesHandler[currentModule])(currentModule);  // Call the appropriate module handler
 
     /* It's a control message, so we're done. */
     return;
 }
 
 /* Special messages handler */
-static void specialRCAsHandler(void) {
+void specialRCAsHandler(void) {
     /* A static to take care of the ESNs monitoring */
-    static unsigned char device = 0;
     /* Return code from stdlib calls: */
-    static int ret;
 
     /* Set the status to the default */
     CAN_STATUS = NO_ERROR;
@@ -301,7 +296,7 @@ static void specialRCAsHandler(void) {
                 if (CAN_BYTE == MAINTENANCE_MODE) {
                     if (frontend.mode != MAINTENANCE_MODE) {
                         // entering maintenance mode, start the ftp service:
-                        ret = system("ftpd.exe /r\n");
+                        system("ftpd.exe /r\n");
                     }
                     frontend.mode = MAINTENANCE_MODE;
 
@@ -397,11 +392,9 @@ static void specialRCAsHandler(void) {
     }
 }
 /* A function to build the outgoing message from CANMessage */
-static void sendCANMessage(int appendStatusByte) {
-    unsigned char cnt;
-
+void sendCANMessage(int appendStatusByte) {
     /* If there is space in the message then store the status byte as first
-       after the payload and increase the size of the message by 1 */
+   after the payload and increase the size of the message by 1 */
     if (appendStatusByte && CAN_SIZE < CAN_TX_MAX_PAYLOAD_SIZE) {
         CAN_DATA(CAN_SIZE++) = CAN_STATUS;
     }

@@ -20,7 +20,6 @@
 
 /* Globals */
 /* Externs */
-unsigned char currentIfChannelModule = 0;
 /* A couple of globals to perform the mapping between IF channels and the
    [polarization][sideband] coordinates. */
 unsigned char currentIfChannelPolarization[IF_CHANNELS_NUMBER] = {P0,   // IF Channel 0
@@ -33,13 +32,13 @@ unsigned char currentIfChannelSideband[IF_CHANNELS_NUMBER] = {S0,       // IF Ch
                                                               S1};      // IF Channel 3
 
 /* Statics */
-static HANDLER ifChannelModulesHandler[IF_CHANNEL_MODULES_NUMBER] = {ifTempServoHandler, attenuationHandler,
-                                                                     assemblyTempHandler};
+static HANDLER_INT ifChannelModulesHandler[IF_CHANNEL_MODULES_NUMBER] = {ifTempServoHandler, attenuationHandler,
+                                                                         ifChannelAssemblyTempHandler};
 
 /* If channel handler */
 /*! This function will be called by the CAN message handler when the received
     message is pertinent to the IF channel. */
-void ifChannelHandler(void) {
+void ifChannelHandler(int currentIfSwitchModule) {
 #ifdef DEBUG_IFSWITCH
     printf("  IF Channel\n");
 #endif /* DEBUG_SWITCH */
@@ -48,7 +47,7 @@ void ifChannelHandler(void) {
        hardware check is performed. */
 
     /* Check if the submodule is in range */
-    currentIfChannelModule = (CAN_ADDRESS & IF_CHANNEL_MODULES_RCA_MASK);
+    int currentIfChannelModule = (CAN_ADDRESS & IF_CHANNEL_MODULES_RCA_MASK);
     if (currentIfChannelModule >= IF_CHANNEL_MODULES_NUMBER) {
         storeError(ERR_IF_CHANNEL, ERC_MODULE_RANGE);  // IF channel submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of the error
@@ -56,13 +55,13 @@ void ifChannelHandler(void) {
     }
 
     /* Call the corrent handler */
-    (ifChannelModulesHandler[currentIfChannelModule])();
+    (ifChannelModulesHandler[currentIfChannelModule])(currentIfSwitchModule);
 }
 
 /* IF attenuation handler */
 /* This function will deal with monitor and control requests to the IF switch
    channel attenuation. */
-void attenuationHandler(void) {
+void attenuationHandler(int currentIfSwitchModule) {
 #ifdef DEBUG_IFSWITCH
     printf("   Attenuation\n");
 #endif /* DEBUG_SWITCH */
@@ -92,7 +91,7 @@ void attenuationHandler(void) {
 
         /* Set the IF channel attenuation. If an error occurs then store the
            state and then return. */
-        if (setIfChannelAttenuation() == ERROR) {
+        if (setIfChannelAttenuation(currentIfSwitchModule) == ERROR) {
             /* Store the Error state in the last control message variable */
             frontend.ifSwitch
                 .ifChannel[currentIfChannelPolarization[currentIfSwitchModule]]
@@ -133,7 +132,7 @@ void attenuationHandler(void) {
 /* This function deals with all the monitor requests directed to the IF switch
    channel assembly temperature. There are no control messages allowed for the
    IF switch channel assembly temperature. */
-void assemblyTempHandler(void) {
+void ifChannelAssemblyTempHandler(int currentIfSwitchModule) {
 #ifdef DEBUG_IFSWITCH
     printf("   Assembly Temperature\n");
 #endif /* DEBUG_SWITCH */
@@ -171,7 +170,7 @@ void assemblyTempHandler(void) {
     }
 
     /* Monitor the assembly temperature */
-    if ((CAN_STATUS = getIfChannelTemp()) != NO_ERROR) {
+    if ((CAN_STATUS = getIfChannelTemp(currentIfSwitchModule)) != NO_ERROR) {
         /* If error during monitoring, the error state was stored in the
            outgoing CAN message state during the previous statement. This
            different format is used because getCryostatTemp might return

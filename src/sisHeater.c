@@ -17,16 +17,14 @@
 #include "frontend.h"
 #include "timer.h"
 
-/* Globals */
-/* Externs */
-unsigned char currentSisHeaterModule = 0;
 /* Statics */
-static HANDLER sisHeaterModulesHandler[SIS_HEATER_MODULES_NUMBER] = {enableHandler, currentHandler};
+static HANDLER_INT_INT_INT sisHeaterModulesHandler[SIS_HEATER_MODULES_NUMBER] = {sisHeaterEnableHandler,
+                                                                                 sisHeaterCurrentHandler};
 
 /* SIS Heater handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the SIS heater. */
-void sisHeaterHandler(void) {
+void sisHeaterHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("     SIS Heater\n");
 #endif /* DEBUG */
@@ -39,7 +37,7 @@ void sisHeaterHandler(void) {
     }
 
     /* Check if the submodule is in range */
-    currentSisHeaterModule = (CAN_ADDRESS & SIS_HEATER_MODULES_RCA_MASK) >> SIS_HEATER_MODULES_MASK_SHIFT;
+    int currentSisHeaterModule = (CAN_ADDRESS & SIS_HEATER_MODULES_RCA_MASK) >> SIS_HEATER_MODULES_MASK_SHIFT;
     if (currentSisHeaterModule >= SIS_HEATER_MODULES_NUMBER) {
         storeError(ERR_SIS_HEATER, ERC_MODULE_RANGE);  // SIS heater submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;                    // Notify incoming CAN message of the error
@@ -47,11 +45,11 @@ void sisHeaterHandler(void) {
     }
 
     /* Call the correct handler */
-    (sisHeaterModulesHandler[currentSisHeaterModule])();
+    (sisHeaterModulesHandler[currentSisHeaterModule])(currentModule, currentBiasModule, currentPolarizationModule);
 }
 
 /* Heater enable handler */
-static void enableHandler(void) {
+void sisHeaterEnableHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("      Heater Enable\n");
 #endif /* DEBUG */
@@ -103,7 +101,8 @@ static void enableHandler(void) {
 
         /* Change the status of the SIS heater according to the content of the CAN
            message. */
-        if (setSisHeaterEnable(CAN_BYTE ? SIS_HEATER_ENABLE : SIS_HEATER_DISABLE) == ERROR) {
+        if (setSisHeaterEnable(CAN_BYTE ? SIS_HEATER_ENABLE : SIS_HEATER_DISABLE, currentModule, currentBiasModule,
+                               currentPolarizationModule) == ERROR) {
             /* Store the ERROR state in the last control message variable */
             frontend.cartridge[currentModule].polarization[currentBiasModule].sisHeater.lastEnable.status = ERROR;
 
@@ -134,7 +133,7 @@ static void enableHandler(void) {
 /* Heater current handler */
 /* This function deals with all the monitor requests directed to the sis heater
    current. There are no control messages allowed for the heater current. */
-static void currentHandler(void) {
+void sisHeaterCurrentHandler(int currentModule, int currentBiasModule, int currentPolarizationModule) {
 #ifdef DEBUG
     printf("      Heater Current\n");
 #endif /* DEBUG */
@@ -156,7 +155,7 @@ static void currentHandler(void) {
     }
 
     /* Monitor the SIS heater current */
-    if (getSisHeater() == ERROR) {
+    if (getSisHeater(currentModule, currentBiasModule, currentPolarizationModule) == ERROR) {
         /* If error during monitoring, store the ERROR state in the outgoing
            CAN message state. */
         CAN_STATUS = ERROR;

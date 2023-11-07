@@ -40,14 +40,8 @@ typedef struct {
     float temp;
 } LPR_TEMP;
 
-/* Globals */
-/* Externs */
-extern unsigned char currentLprTempModule;  //!< Currently addressed LPR temperature submodule
-
 /* Prototypes */
-/* Statics */
-static void tempHandler(void);
-/* Externs */
-extern void lprTempHandler(void);  //!< This function deals with teh incoming CAN message
+void lprSingleTempHandler(int currentLprModule);
+void lprTempHandler(int currentLprModule);  //!< This function deals with teh incoming CAN message
 
 #endif /* _LPRTEMP_H */

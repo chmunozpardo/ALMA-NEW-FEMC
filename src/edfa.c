@@ -14,9 +14,6 @@
 #include "frontend.h"
 #include "lprSerialInterface.h"
 
-/* Globals */
-/* Extern */
-unsigned char currentEdfaModule = 0;
 /* Statics */
 static HANDLER edfaModulesHandler[EDFA_MODULES_NUMBER] = {laserHandler, photoDetectorHandler, modulationInputHandler,
                                                           driverStateHandler};
@@ -24,7 +21,7 @@ static HANDLER edfaModulesHandler[EDFA_MODULES_NUMBER] = {laserHandler, photoDet
 /* EDFA handler */
 /*! This function will be called by the CAN message handling subroutine when the
     received message is pertinent to the EDFA. */
-void edfaHandler(void) {
+void edfaHandler(int currentLprModule) {
 #ifdef DEBUG_LPR
     printf("  EDFA\n");
 #endif /* DEBUG_LPR */
@@ -33,7 +30,7 @@ void edfaHandler(void) {
        performed. */
 
     /* Check if the specified submodule is in range. */
-    currentEdfaModule = (CAN_ADDRESS & EDFA_MODULES_RCA_MASK) >> EDFA_MODULES_MASK_SHIFT;
+    int currentEdfaModule = (CAN_ADDRESS & EDFA_MODULES_RCA_MASK) >> EDFA_MODULES_MASK_SHIFT;
     if (currentEdfaModule >= EDFA_MODULES_NUMBER) {
         storeError(ERR_EDFA, ERC_MODULE_RANGE);  // EDFA submodule out of range
         CAN_STATUS = HARDW_RNG_ERR;              // Notify incoming CAN message of error
@@ -47,7 +44,7 @@ void edfaHandler(void) {
 
 /* EDFA Driver State Handler */
 /* This functions deals with the monitor requests to the EDFA driver state. */
-static void driverStateHandler(void) {
+void driverStateHandler(void) {
 #ifdef DEBUG_LPR
     printf("   Driver State\n");
 #endif /* DEBUG_LPR */
