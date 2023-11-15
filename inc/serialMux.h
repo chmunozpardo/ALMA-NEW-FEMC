@@ -32,13 +32,12 @@
 #define BASE_LPR 0x43C00000
 #define MAP_SIZE 512
 
-#define STATUS 0
-#define PORT_SELECT 1
-#define LENGTH 2
-#define COMMAND 3
-#define DATAWR 4
-#define DATARD0 5
-#define DATARD1 6
+#define SSC_STATUS(port) 0 + 8 * (port + 1)
+#define SSC_LENGTH(port) 1 + 8 * (port + 1)
+#define SSC_COMMAND(port) 2 + 8 * (port + 1)
+#define SSC_DATAWR(port) 3 + 8 * (port + 1)
+#define SSC_DATARD0(port) 4 + 8 * (port + 1)
+#define SSC_DATARD1(port) 5 + 8 * (port + 1)
 
 #define START_SSC 0x1
 #define WR_SSC 0x2 + START_SSC
@@ -77,11 +76,12 @@
 #define MUX_OWB_CONTROL (OWB_BASE + 0x05)  //!< OWB Control Register (R/W)
 #define MUX_OWB_ENABLE (OWB_BASE + 0x0E)   //!< Enables the bus extending outside the FEMC (W)
 #define MUX_OWB_RESET (OWB_BASE + 0x0F)    //!< Reset the one wire master in the FPGA (W)
+#define NUMBER_OF_DEVICES 10 + 1           //!< Number of SSC devices + OWB
 
 extern int fd_mem;
 
 extern volatile unsigned int *pico_mem;
-extern pthread_mutex_t pico_lock;
+extern pthread_mutex_t pico_lock[NUMBER_OF_DEVICES];
 
 /* Typedefs */
 //! Serial multiplexing board's frame
@@ -159,8 +159,8 @@ extern int LATCH_DEBUG_SERIAL_WRITE;
 /* Prototypes */
 /* Statics */
 /* Externs */
-int writeMux(FRAME *frame);  //!< Serial Mux Board write
-int readMux(FRAME *frame);   //!< Serial Mux Board read
+int writeMux(unsigned int port, FRAME *frame);  //!< Serial Mux Board write
+int readMux(unsigned int port, FRAME *frame);   //!< Serial Mux Board read
 
 unsigned char init_mem_map(void);
 

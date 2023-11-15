@@ -52,7 +52,6 @@ unsigned char out_buff_sock[SOCK_BUFF_SIZE] = {0};
 
 // Function designed for chat between client and server.
 static inline void func_sock(int connfd) {
-    int n = 0;
     for (;;) {
         bzero(buff_sock, SOCK_BUFF_SIZE);
 
@@ -115,26 +114,6 @@ static inline void func_sock(int connfd) {
                     /* Number of errors and last error */
                     case 0x30001:
                         out_buff_sock[4] = 4;
-                        write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
-                        break;
-                    /* GET_ESNS */
-                    /* Fake values */
-                    case 0x2000B:
-                        n++;
-                        if (n != 2) {
-                            out_buff_sock[4] = 8;
-                            out_buff_sock[5] = 1;
-                            out_buff_sock[6] = 2;
-                            out_buff_sock[7] = 3;
-                            out_buff_sock[8] = 4;
-                            out_buff_sock[9] = 1;
-                            out_buff_sock[10] = 2;
-                            out_buff_sock[11] = 3;
-                            out_buff_sock[12] = 4;
-                        } else {
-                            out_buff_sock[4] = 8;
-                            n = 0;
-                        }
                         write(connfd, out_buff_sock, 13 * sizeof(unsigned char));
                         break;
                     /* Request by LabVIEW I don't understand this yet */

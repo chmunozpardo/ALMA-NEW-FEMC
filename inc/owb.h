@@ -62,13 +62,18 @@
 #define DS2433_READ_MEMORY 0xF0
 
 /* PicoZed Registers and values */
-#define OWM_STATUS 7
-#define OWM_ADDRESS 8
-#define OWM_WRITEREG 9
-#define OWM_READREG 10
+#define OWM_STATUS 0
+#define OWM_ADDRESS 1
+#define OWM_WRITEREG 2
+#define OWM_READREG 3
 
 #define OWM_WRITE 0x01
 #define OWM_READ 0x02
+
+/* Globals */
+/* Externs */
+extern unsigned char esnDevicesFound;                               //!< Number of devices with ESN found on the bus
+extern unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE];  // Array to store the ESNs of the found devices
 
 /* Prototypes */
 int owbReset(void);              // Send the reset signal on the one wire bus

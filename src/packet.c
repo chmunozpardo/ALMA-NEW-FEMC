@@ -10,6 +10,7 @@
 #include "globalDefinitions.h"
 #include "globalOperations.h"
 #include "main.h"
+#include "owb.h"
 #include "serialMux.h"
 #include "version.h"
 
@@ -132,6 +133,8 @@ void standardRCAsHandler(void) {
 /* Special messages handler */
 void specialRCAsHandler(void) {
     /* A static to take care of the ESNs monitoring */
+    static unsigned char device = 0;
+
     /* Return code from stdlib calls: */
 
     /* Set the status to the default */
@@ -203,6 +206,60 @@ void specialRCAsHandler(void) {
                 CAN_DATA(1) = (unsigned char)((BASE_CONTROL_RCA) >> 8);
                 CAN_DATA(0) = (unsigned char)(BASE_CONTROL_RCA);
                 CAN_SIZE = CAN_FULL_SIZE;
+                break;
+            case GET_ESNS_FOUND:  // 0x2000A -> Returns the number of ESNs found
+#ifdef DEBUG_CAN
+                printf("  0x%lX->GET_ESNS_FOUND\n\n", GET_ESNS_FOUND);
+#endif                       /* DEBUG_CAN */
+                device = 0;  // Reset the device index to the beginning of the list
+                CAN_BYTE = esnDevicesFound;
+                CAN_SIZE = CAN_BOOLEAN_SIZE;
+                break;
+            case GET_ESNS:  // 0x2000B -> Return the list of ESNs found
+#ifdef DEBUG_CAN
+                printf("  0x%lX->GET_ESNS\n\n", GET_ESNS);
+#endif /* DEBUG_CAN */
+                /* If no devices were found return error */
+                if (esnDevicesFound == 0) {
+                    CAN_DATA(7) = 0xFF;
+                    CAN_DATA(6) = 0xFF;
+                    CAN_DATA(5) = 0xFF;
+                    CAN_DATA(4) = 0xFF;
+                    CAN_DATA(3) = 0xFF;
+                    CAN_DATA(2) = 0xFF;
+                    CAN_DATA(1) = 0xFF;
+                    CAN_DATA(0) = 0xFF;
+                    CAN_SIZE = CAN_FULL_SIZE;
+                    break;
+                }
+
+                /* If last found device was already reported, return zero
+                   and reset the count. */
+                if (device == esnDevicesFound) {
+                    CAN_DATA(7) = 0;
+                    CAN_DATA(6) = 0;
+                    CAN_DATA(5) = 0;
+                    CAN_DATA(4) = 0;
+                    CAN_DATA(3) = 0;
+                    CAN_DATA(2) = 0;
+                    CAN_DATA(1) = 0;
+                    CAN_DATA(0) = 0;
+                    CAN_SIZE = CAN_FULL_SIZE;
+                    device = 0;
+                    break;
+                }
+
+                /* Return the next available ESN */
+                CAN_DATA(7) = ESNS[device][7];
+                CAN_DATA(6) = ESNS[device][6];
+                CAN_DATA(5) = ESNS[device][5];
+                CAN_DATA(4) = ESNS[device][4];
+                CAN_DATA(3) = ESNS[device][3];
+                CAN_DATA(2) = ESNS[device][2];
+                CAN_DATA(1) = ESNS[device][1];
+                CAN_DATA(0) = ESNS[device][0];
+                CAN_SIZE = CAN_FULL_SIZE;
+                device++;
                 break;
             case GET_ERRORS_NUMBER:  // 0x2000C -> Returns the number of unread
                                      // errors
@@ -276,16 +333,6 @@ void specialRCAsHandler(void) {
 
     } else {
         switch (CAN_ADDRESS) {
-            case SET_EXIT_PROGRAM:  // 0x21000 -> Cause the entire program to
-                                    // come to a "graceful" end
-                stop = 1;
-                break;
-            case SET_REBOOT:  // 0x21001 -> Reboots the ARCOM board
-
-                stop = 1;
-                restart = 1;
-                break;
-
             case SET_WRITE_NV_MEMORY:  // 0x2100D -> Write the flash disk
 
                 frontendWriteNVMemory();

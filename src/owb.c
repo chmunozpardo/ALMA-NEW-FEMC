@@ -35,8 +35,8 @@ int inp(unsigned int cmd) {
     return pico_mem[OWM_READREG];
 }
 
-static unsigned char esnDevicesFound = {0};
-static unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE] = {0};
+unsigned char esnDevicesFound = {0};
+unsigned char ESNS[MAX_DEVICES_NUMBER][SERIAL_NUMBER_SIZE] = {0};
 
 /*! This function initializes the OWB and evaluates if the simulator should be
     used or not.

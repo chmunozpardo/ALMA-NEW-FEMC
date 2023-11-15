@@ -81,10 +81,11 @@ int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned
        respect to the addressed module by the number of cartridges given their
        doublefolded nature. */
     FRAME frame;
+    unsigned int port;
     if (currentModule < CARTRIDGES_NUMBER) {
-        frame.port = localCartSubsystem;
+        port = localCartSubsystem;
     } else {
-        frame.port = currentModule - 8;
+        port = currentModule - 8;
     }
 
     /* Store the command in the outgoing frame */
@@ -118,12 +119,12 @@ int serialAccess(unsigned int command, int *reg, unsigned char regSize, unsigned
         memcpy(frame.data, &intermediateBuffer, FRAME_DATA_LENGTH_BYTES);
 
         /* Call the hardware writing function */
-        if (writeMux(&frame) == ERROR) {
+        if (writeMux(port, &frame) == ERROR) {
             return ERROR;
         }
     } else {  // If it's a READ operation
         /* Call the hardware reading funtion */
-        if (readMux(&frame) == ERROR) {
+        if (readMux(port, &frame) == ERROR) {
             return ERROR;
         }
         /* Copy the data to the intermediate buffer. */

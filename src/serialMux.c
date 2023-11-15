@@ -28,8 +28,8 @@
 
 int LATCH_DEBUG_SERIAL_WRITE;
 
-static inline int check_done() {
-    while (pico_mem[STATUS] & 0x4)
+static inline int check_done(unsigned int port) {
+    while (pico_mem[SSC_STATUS(port)] & 0x4)
         ;
 
     return NO_ERROR;
@@ -55,7 +55,7 @@ static inline int check_done() {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-inline int writeMux(FRAME *frame) {
+inline int writeMux(unsigned int port, FRAME *frame) {
     /* Check if the lenght is within the hardware limit (40 bits) */
     if (frame->dataLength > FRAME_DATA_BIT_SIZE) {
         storeError(ERR_SERIAL_MUX, ERC_COMMAND_VAL);  // Data length out of
@@ -63,27 +63,19 @@ inline int writeMux(FRAME *frame) {
         return ERROR;
     }
 
-    pthread_mutex_lock(&pico_lock);
+    pthread_mutex_lock(&pico_lock[port + 1]);
 
-    /* 1 - Select the desired port/device. The check on the availability of the
-           device on the selected port should have been done by the CAN message
-           handlers. At the point of this call the software should already have
-           returned if the addressed device is not available. */
+    /* 1 - Load the data registers. */
+    pico_mem[SSC_DATAWR(port)] = frame->data[FRAME_DATA_LSW];
 
-    pico_mem[PORT_SELECT] = frame->port;
-
-    /* 2 - Load the data registers. */
-    pico_mem[DATAWR] = frame->data[FRAME_DATA_LSW];
-
-    /* 3 - Write the outgoing data lenght register with the number of bits to be
+    /* 2 - Write the outgoing data lenght register with the number of bits to be
            sent. */
-    pico_mem[LENGTH] = frame->dataLength;
+    pico_mem[SSC_LENGTH(port)] = frame->dataLength;
 
-    /* 4 - Write the command register. This will initiate the transmission of
+    /* 3 - Write the command register. This will initiate the transmission of
            data. */
-    pico_mem[COMMAND] = frame->command;
-
-    pico_mem[STATUS] = WR_SSC;
+    pico_mem[SSC_COMMAND(port)] = frame->command;
+    pico_mem[SSC_STATUS(port)] = WR_SSC;
 
 #ifdef DEBUG_SERIAL_WRITE
     if (LATCH_DEBUG_SERIAL_WRITE) {
@@ -96,9 +88,9 @@ inline int writeMux(FRAME *frame) {
     }
 #endif /* DEBUG_SERIAL_WRITE */
 
-    check_done();
+    check_done(port);
 
-    pthread_mutex_unlock(&pico_lock);
+    pthread_mutex_unlock(&pico_lock[port + 1]);
 
     return NO_ERROR;
 }
@@ -124,7 +116,7 @@ inline int writeMux(FRAME *frame) {
     \return
         - \ref NO_ERROR -> if no error occurred
         - \ref ERROR    -> if something wrong happened */
-inline int readMux(FRAME *frame) {
+inline int readMux(unsigned int port, FRAME *frame) {
     /* Check if the lenght is within the hardware limit (40 bits) */
     if (frame->dataLength > FRAME_DATA_BIT_SIZE) {
         storeError(ERR_SERIAL_MUX, ERC_COMMAND_VAL);  // Data length out of
@@ -132,25 +124,17 @@ inline int readMux(FRAME *frame) {
         return ERROR;
     }
 
-    pthread_mutex_lock(&pico_lock);
-
-    /* 1 - Select the desired port/device. The check on the availability of the
-           device on the selected port should have been done by the CAN message
-           handlers. At the point of this call the software should already have
-           returned if the addressed device is not available. */
-    pico_mem[PORT_SELECT] = frame->port;
-
-    /* 2 - Write the incoming data lenght register with the number of bits to be
+    pthread_mutex_lock(&pico_lock[port + 1]);
+    /* 1 - Write the incoming data lenght register with the number of bits to be
            received. */
-    pico_mem[LENGTH] = frame->dataLength;
+    pico_mem[SSC_LENGTH(port)] = frame->dataLength;
 
-    /* 3 - Write the command register. This will initiate the transmission of
+    /* 2 - Write the command register. This will initiate the transmission of
            data. */
-    pico_mem[COMMAND] = frame->command;
+    pico_mem[SSC_COMMAND(port)] = frame->command;
+    pico_mem[SSC_STATUS(port)] = RD_SSC;
 
-    pico_mem[STATUS] = RD_SSC;
-
-    check_done();
+    check_done(port);
 
 #ifdef DEBUG_SERIAL_READ
     printf("            (0x%04X) <- Frame.port: 0x%04X\n", MUX_PORT_ADD, frame.port);
@@ -158,11 +142,11 @@ inline int readMux(FRAME *frame) {
     printf("            (0x%04X) <- Frame.command: 0x%04X\n", MUX_COMMAND_ADD, frame.command);
 #endif /* DEBUG_SERIAL_READ */
 
-    /* 6 - Load the data registers */
-    frame->data[FRAME_DATA_MSW] = pico_mem[DATARD1] & 0xFF;
-    frame->data[FRAME_DATA_LSW] = pico_mem[DATARD0];
+    /* 3 - Load the data registers */
+    frame->data[FRAME_DATA_MSW] = pico_mem[SSC_DATARD1(port)] & 0xFF;
+    frame->data[FRAME_DATA_LSW] = pico_mem[SSC_DATARD0(port)];
 
-    pthread_mutex_unlock(&pico_lock);
+    pthread_mutex_unlock(&pico_lock[port + 1]);
 
     return NO_ERROR;
 }
