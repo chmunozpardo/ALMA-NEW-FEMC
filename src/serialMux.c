@@ -29,7 +29,7 @@
 int LATCH_DEBUG_SERIAL_WRITE;
 
 static inline int check_done(unsigned int port) {
-    while (pico_mem[SSC_STATUS(port)] & 0x4)
+    while (ssc_mem[port][SSC_STATUS] & 0x4)
         ;
 
     return NO_ERROR;
@@ -63,19 +63,19 @@ inline int writeMux(unsigned int port, FRAME *frame) {
         return ERROR;
     }
 
-    pthread_mutex_lock(&pico_lock[port + 1]);
+    pthread_mutex_lock(&(ssc_lock[port]));
 
     /* 1 - Load the data registers. */
-    pico_mem[SSC_DATAWR(port)] = frame->data[FRAME_DATA_LSW];
+    ssc_mem[port][SSC_DATAWR] = frame->data[FRAME_DATA_LSW];
 
     /* 2 - Write the outgoing data lenght register with the number of bits to be
            sent. */
-    pico_mem[SSC_LENGTH(port)] = frame->dataLength;
+    ssc_mem[port][SSC_LENGTH] = frame->dataLength;
 
     /* 3 - Write the command register. This will initiate the transmission of
            data. */
-    pico_mem[SSC_COMMAND(port)] = frame->command;
-    pico_mem[SSC_STATUS(port)] = WR_SSC;
+    ssc_mem[port][SSC_COMMAND] = frame->command;
+    ssc_mem[port][SSC_STATUS] = WR_SSC;
 
 #ifdef DEBUG_SERIAL_WRITE
     if (LATCH_DEBUG_SERIAL_WRITE) {
@@ -90,7 +90,7 @@ inline int writeMux(unsigned int port, FRAME *frame) {
 
     check_done(port);
 
-    pthread_mutex_unlock(&pico_lock[port + 1]);
+    pthread_mutex_unlock(&ssc_lock[port]);
 
     return NO_ERROR;
 }
@@ -124,15 +124,15 @@ inline int readMux(unsigned int port, FRAME *frame) {
         return ERROR;
     }
 
-    pthread_mutex_lock(&pico_lock[port + 1]);
+    pthread_mutex_lock(&ssc_lock[port]);
     /* 1 - Write the incoming data lenght register with the number of bits to be
            received. */
-    pico_mem[SSC_LENGTH(port)] = frame->dataLength;
+    ssc_mem[port][SSC_LENGTH] = frame->dataLength;
 
     /* 2 - Write the command register. This will initiate the transmission of
            data. */
-    pico_mem[SSC_COMMAND(port)] = frame->command;
-    pico_mem[SSC_STATUS(port)] = RD_SSC;
+    ssc_mem[port][SSC_COMMAND] = frame->command;
+    ssc_mem[port][SSC_STATUS] = RD_SSC;
 
     check_done(port);
 
@@ -143,15 +143,16 @@ inline int readMux(unsigned int port, FRAME *frame) {
 #endif /* DEBUG_SERIAL_READ */
 
     /* 3 - Load the data registers */
-    frame->data[FRAME_DATA_MSW] = pico_mem[SSC_DATARD1(port)] & 0xFF;
-    frame->data[FRAME_DATA_LSW] = pico_mem[SSC_DATARD0(port)];
+    frame->data[FRAME_DATA_MSW] = ssc_mem[port][SSC_DATARD1] & 0xFF;
+    frame->data[FRAME_DATA_LSW] = ssc_mem[port][SSC_DATARD0];
 
-    pthread_mutex_unlock(&pico_lock[port + 1]);
+    pthread_mutex_unlock(&ssc_lock[port]);
 
     return NO_ERROR;
 }
 
 unsigned char init_mem_map(void) {
+    int fd_mem;
     if ((fd_mem = open("/dev/mem", O_RDWR | O_SYNC)) == -1) {
         fprintf(stderr, "Error at line %d, file %s (%d) [%s]\n", __LINE__, __FILE__, errno, strerror(errno));
         exit(1);
@@ -159,12 +160,17 @@ unsigned char init_mem_map(void) {
     printf("/dev/mem opened.\n");
     fflush(stdout);
 
-    pico_mem = mmap(NULL, BASE_LPR + MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, BASE_LPR);
-    if (pico_mem == (void *)-1) {
+    main_map = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, BASE_LPR);
+    if (main_map == (void *)-1) {
         fprintf(stderr, "Error at line %d, file %s (%d) [%s]\n", __LINE__, __FILE__, errno, strerror(errno));
         exit(1);
     }
-    printf("Memory mapped at address %p.\n", pico_mem);
+    printf("Memory mapped at address %p.\n", main_map);
+
+    owb_mem = main_map;
+    for (unsigned char i = 0; i < NUMBER_OF_DEVICES; i++) {
+        ssc_mem[i] = main_map + 8 * (i + 1);
+    }
     fflush(stdout);
 
     return 0;

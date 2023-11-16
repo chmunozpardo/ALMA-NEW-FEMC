@@ -32,12 +32,12 @@
 #define BASE_LPR 0x43C00000
 #define MAP_SIZE 512
 
-#define SSC_STATUS(port) 0 + 8 * (port + 1)
-#define SSC_LENGTH(port) 1 + 8 * (port + 1)
-#define SSC_COMMAND(port) 2 + 8 * (port + 1)
-#define SSC_DATAWR(port) 3 + 8 * (port + 1)
-#define SSC_DATARD0(port) 4 + 8 * (port + 1)
-#define SSC_DATARD1(port) 5 + 8 * (port + 1)
+#define SSC_STATUS 0
+#define SSC_LENGTH 1
+#define SSC_COMMAND 2
+#define SSC_DATAWR 3
+#define SSC_DATARD0 4
+#define SSC_DATARD1 5
 
 #define START_SSC 0x1
 #define WR_SSC 0x2 + START_SSC
@@ -76,12 +76,14 @@
 #define MUX_OWB_CONTROL (OWB_BASE + 0x05)  //!< OWB Control Register (R/W)
 #define MUX_OWB_ENABLE (OWB_BASE + 0x0E)   //!< Enables the bus extending outside the FEMC (W)
 #define MUX_OWB_RESET (OWB_BASE + 0x0F)    //!< Reset the one wire master in the FPGA (W)
-#define NUMBER_OF_DEVICES 10 + 1           //!< Number of SSC devices + OWB
+#define NUMBER_OF_DEVICES 10               //!< Number of SSC devices
 
-extern int fd_mem;
+extern volatile unsigned int *main_map;
 
-extern volatile unsigned int *pico_mem;
-extern pthread_mutex_t pico_lock[NUMBER_OF_DEVICES];
+extern volatile unsigned int *owb_mem;
+extern volatile unsigned int *ssc_mem[NUMBER_OF_DEVICES];
+extern pthread_mutex_t owb_lock;
+extern pthread_mutex_t ssc_lock[NUMBER_OF_DEVICES];
 
 /* Typedefs */
 //! Serial multiplexing board's frame

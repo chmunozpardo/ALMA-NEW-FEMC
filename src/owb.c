@@ -22,17 +22,17 @@
 #include "timer.h"
 
 void outp(unsigned int cmd, unsigned int val) {
-    pico_mem[OWM_ADDRESS] = cmd;
-    pico_mem[OWM_WRITEREG] = val;
-    pico_mem[OWM_STATUS] = OWM_WRITE;
-    pico_mem[OWM_STATUS] = 0x00;
+    owb_mem[OWM_ADDRESS] = cmd;
+    owb_mem[OWM_WRITEREG] = val;
+    owb_mem[OWM_STATUS] = OWM_WRITE;
+    owb_mem[OWM_STATUS] = 0x00;
 }
 
 int inp(unsigned int cmd) {
-    pico_mem[OWM_ADDRESS] = cmd;
-    pico_mem[OWM_STATUS] = OWM_READ;
-    pico_mem[OWM_STATUS] = 0x00;
-    return pico_mem[OWM_READREG];
+    owb_mem[OWM_ADDRESS] = cmd;
+    owb_mem[OWM_STATUS] = OWM_READ;
+    owb_mem[OWM_STATUS] = 0x00;
+    return owb_mem[OWM_READREG];
 }
 
 unsigned char esnDevicesFound = {0};
